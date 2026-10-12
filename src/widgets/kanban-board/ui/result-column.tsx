@@ -24,6 +24,7 @@ export function ResultColumn({ applications }: { applications: Application[] }) 
 
   return (
     <KanbanColumn
+      id="result"
       title="결과"
       applications={filtered}
       headerExtra={
