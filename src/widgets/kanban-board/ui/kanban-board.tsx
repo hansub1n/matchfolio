@@ -11,12 +11,15 @@ import {
 
 import {
   APPLICATION_STATUSES,
+  deleteApplication,
   updateApplication,
   type Application,
   type ApplicationResult,
   type ApplicationStatus,
+  type UpdateApplicationInput,
 } from "@/entities/application";
 
+import { ApplicationDetailDialog } from "./application-detail-dialog";
 import { InterviewRoundDialog } from "./interview-round-dialog";
 import { KanbanColumn } from "./kanban-column";
 import { ResultColumn } from "./result-column";
@@ -31,6 +34,7 @@ export function KanbanBoard({ applications }: { applications: Application[] }) {
   }
   const [pendingResultId, setPendingResultId] = useState<string | null>(null);
   const [pendingRoundId, setPendingRoundId] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
@@ -78,8 +82,30 @@ export function KanbanBoard({ applications }: { applications: Application[] }) {
     updateApplication(id, { interviewRound: round }).catch(console.error);
   }
 
+  function handleUpdateApplication(id: string, input: UpdateApplicationInput) {
+    setItems((prev) =>
+      prev.map((app) =>
+        app.id === id
+          ? {
+              ...app,
+              ...input,
+              techStack: input.techStack ?? app.techStack,
+            }
+          : app
+      )
+    );
+    updateApplication(id, input).catch(console.error);
+  }
+
+  function handleDeleteApplication(id: string) {
+    setItems((prev) => prev.filter((app) => app.id !== id));
+    setDetailId(null);
+    deleteApplication(id).catch(console.error);
+  }
+
   const pendingApplication = items.find((app) => app.id === pendingResultId) ?? null;
   const pendingRoundApplication = items.find((app) => app.id === pendingRoundId) ?? null;
+  const detailApplication = items.find((app) => app.id === detailId) ?? null;
 
   return (
     <DndContext id="kanban-board" sensors={sensors} onDragEnd={handleDragEnd}>
@@ -93,6 +119,8 @@ export function KanbanBoard({ applications }: { applications: Application[] }) {
                 key={status.value}
                 applications={columnApplications}
                 onRequestResult={setPendingResultId}
+                onOpenDetail={setDetailId}
+                onDelete={handleDeleteApplication}
               />
             );
           }
@@ -104,6 +132,8 @@ export function KanbanBoard({ applications }: { applications: Application[] }) {
               title={status.label}
               applications={columnApplications}
               onRequestInterviewRound={setPendingRoundId}
+              onOpenDetail={setDetailId}
+              onDelete={handleDeleteApplication}
             />
           );
         })}
@@ -121,6 +151,13 @@ export function KanbanBoard({ applications }: { applications: Application[] }) {
         onOpenChange={(open) => {
           if (!open) setPendingRoundId(null);
         }}
+      />
+      <ApplicationDetailDialog
+        application={detailApplication}
+        onOpenChange={(open) => {
+          if (!open) setDetailId(null);
+        }}
+        onUpdate={handleUpdateApplication}
       />
     </DndContext>
   );

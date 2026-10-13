@@ -15,6 +15,8 @@ export function KanbanColumn({
   headerExtra,
   onRequestResult,
   onRequestInterviewRound,
+  onOpenDetail,
+  onDelete,
 }: {
   id: ApplicationStatus;
   title: string;
@@ -22,6 +24,8 @@ export function KanbanColumn({
   headerExtra?: ReactNode;
   onRequestResult?: (id: string) => void;
   onRequestInterviewRound?: (id: string) => void;
+  onOpenDetail?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
@@ -45,6 +49,8 @@ export function KanbanColumn({
             application={application}
             onRequestResult={onRequestResult}
             onRequestInterviewRound={onRequestInterviewRound}
+            onOpenDetail={onOpenDetail}
+            onDelete={onDelete}
           />
         ))}
       </div>

@@ -18,9 +18,13 @@ const FILTERS: { value: ResultFilter; label: string }[] = [
 export function ResultColumn({
   applications,
   onRequestResult,
+  onOpenDetail,
+  onDelete,
 }: {
   applications: Application[];
   onRequestResult: (id: string) => void;
+  onOpenDetail: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   const [filter, setFilter] = useState<ResultFilter>("all");
 
@@ -34,6 +38,8 @@ export function ResultColumn({
       title="결과"
       applications={filtered}
       onRequestResult={onRequestResult}
+      onOpenDetail={onOpenDetail}
+      onDelete={onDelete}
       headerExtra={
         <div className="ml-auto flex gap-0.5">
           {FILTERS.map((f) => (
