@@ -3,14 +3,9 @@
 import { useDraggable } from "@dnd-kit/core";
 
 import type { Application } from "@/entities/application";
+import { formatDeadline } from "@/shared/lib/format-deadline";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
-
-function formatDeadline(deadline: string | null) {
-  if (!deadline) return null;
-  const [, month, day] = deadline.split("-");
-  return `마감 ${month}/${day}`;
-}
 
 export function ApplicationCard({
   application,

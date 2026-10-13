@@ -3,8 +3,10 @@ create table interested_companies (
   user_id uuid,
   company text not null,
   position text,
+  deadline date,
   job_posting_url text,
   memo text,
+  tech_stack text[] not null default '{}',
   created_at timestamptz not null default now()
 );
 
