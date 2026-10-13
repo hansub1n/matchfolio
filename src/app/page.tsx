@@ -1,8 +1,17 @@
-import { KanbanBoard, dummyApplications } from "@/widgets/kanban-board";
-import { Watchlist, dummyInterestedCompanies } from "@/widgets/watchlist";
+import { getApplications } from "@/entities/application";
+import { getInterestedCompanies } from "@/entities/interested-company";
+import { CreateApplicationDialog } from "@/features/create-application";
+import { CreateInterestedCompanyDialog } from "@/features/create-interested-company";
+import { KanbanBoard } from "@/widgets/kanban-board";
+import { Watchlist } from "@/widgets/watchlist";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 
-export default function Home() {
+export default async function Home() {
+  const [applications, companies] = await Promise.all([
+    getApplications(),
+    getInterestedCompanies(),
+  ]);
+
   return (
     <main className="flex flex-1 flex-col py-6">
       <Tabs defaultValue="board" className="flex-1">
@@ -13,11 +22,17 @@ export default function Home() {
             <TabsTrigger value="watchlist">관심기업</TabsTrigger>
           </TabsList>
         </div>
-        <TabsContent value="board">
-          <KanbanBoard applications={dummyApplications} />
+        <TabsContent value="board" className="flex flex-col gap-4">
+          <div className="flex justify-end px-4">
+            <CreateApplicationDialog />
+          </div>
+          <KanbanBoard applications={applications} />
         </TabsContent>
-        <TabsContent value="watchlist">
-          <Watchlist companies={dummyInterestedCompanies} />
+        <TabsContent value="watchlist" className="flex flex-col gap-4">
+          <div className="flex justify-end px-4">
+            <CreateInterestedCompanyDialog />
+          </div>
+          <Watchlist companies={companies} />
         </TabsContent>
       </Tabs>
     </main>

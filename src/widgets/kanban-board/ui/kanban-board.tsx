@@ -11,6 +11,7 @@ import {
 
 import {
   APPLICATION_STATUSES,
+  updateApplication,
   type Application,
   type ApplicationResult,
   type ApplicationStatus,
@@ -23,6 +24,11 @@ import { ResultPickerDialog } from "./result-picker-dialog";
 
 export function KanbanBoard({ applications }: { applications: Application[] }) {
   const [items, setItems] = useState(applications);
+  const [prevApplications, setPrevApplications] = useState(applications);
+  if (applications !== prevApplications) {
+    setPrevApplications(applications);
+    setItems(applications);
+  }
   const [pendingResultId, setPendingResultId] = useState<string | null>(null);
   const [pendingRoundId, setPendingRoundId] = useState<string | null>(null);
   const sensors = useSensors(
@@ -45,6 +51,10 @@ export function KanbanBoard({ applications }: { applications: Application[] }) {
           : app
       )
     );
+    updateApplication(draggedId, {
+      status: nextStatus,
+      ...(leavingResult ? { result: null } : {}),
+    }).catch(console.error);
 
     if (nextStatus === "result" && !draggedApp.result) {
       setPendingResultId(draggedId);
@@ -57,6 +67,7 @@ export function KanbanBoard({ applications }: { applications: Application[] }) {
   function handleSetResult(id: string, result: ApplicationResult) {
     setItems((prev) => prev.map((app) => (app.id === id ? { ...app, result } : app)));
     setPendingResultId(null);
+    updateApplication(id, { result }).catch(console.error);
   }
 
   function handleSetInterviewRound(id: string, round: string) {
@@ -64,6 +75,7 @@ export function KanbanBoard({ applications }: { applications: Application[] }) {
       prev.map((app) => (app.id === id ? { ...app, interviewRound: round } : app))
     );
     setPendingRoundId(null);
+    updateApplication(id, { interviewRound: round }).catch(console.error);
   }
 
   const pendingApplication = items.find((app) => app.id === pendingResultId) ?? null;

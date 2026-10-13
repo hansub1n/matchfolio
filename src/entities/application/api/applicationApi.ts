@@ -82,3 +82,25 @@ export async function createApplication(
   if (error) throw error;
   return toApplication(data);
 }
+
+export interface UpdateApplicationInput {
+  status?: ApplicationStatus;
+  interviewRound?: string | null;
+  result?: ApplicationResult | null;
+}
+
+export async function updateApplication(
+  id: string,
+  input: UpdateApplicationInput
+): Promise<void> {
+  const { error } = await supabase
+    .from("applications")
+    .update({
+      status: input.status,
+      interview_round: input.interviewRound,
+      result: input.result,
+    })
+    .eq("id", id);
+
+  if (error) throw error;
+}
