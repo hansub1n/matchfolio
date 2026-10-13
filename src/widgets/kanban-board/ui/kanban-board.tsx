@@ -57,7 +57,7 @@ export function KanbanBoard({ applications }: { applications: Application[] }) {
   const pendingApplication = items.find((app) => app.id === pendingResultId) ?? null;
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext id="kanban-board" sensors={sensors} onDragEnd={handleDragEnd}>
       <div className="flex gap-4 overflow-x-auto px-4 pb-4">
         {APPLICATION_STATUSES.map((status) => {
           const columnApplications = items.filter((app) => app.status === status.value);
