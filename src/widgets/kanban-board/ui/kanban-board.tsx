@@ -16,6 +16,7 @@ import {
   type ApplicationStatus,
 } from "@/entities/application";
 
+import { InterviewRoundDialog } from "./interview-round-dialog";
 import { KanbanColumn } from "./kanban-column";
 import { ResultColumn } from "./result-column";
 import { ResultPickerDialog } from "./result-picker-dialog";
@@ -23,6 +24,7 @@ import { ResultPickerDialog } from "./result-picker-dialog";
 export function KanbanBoard({ applications }: { applications: Application[] }) {
   const [items, setItems] = useState(applications);
   const [pendingResultId, setPendingResultId] = useState<string | null>(null);
+  const [pendingRoundId, setPendingRoundId] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
@@ -47,6 +49,9 @@ export function KanbanBoard({ applications }: { applications: Application[] }) {
     if (nextStatus === "result" && !draggedApp.result) {
       setPendingResultId(draggedId);
     }
+    if (nextStatus === "interview" && !draggedApp.interviewRound) {
+      setPendingRoundId(draggedId);
+    }
   }
 
   function handleSetResult(id: string, result: ApplicationResult) {
@@ -54,7 +59,15 @@ export function KanbanBoard({ applications }: { applications: Application[] }) {
     setPendingResultId(null);
   }
 
+  function handleSetInterviewRound(id: string, round: string) {
+    setItems((prev) =>
+      prev.map((app) => (app.id === id ? { ...app, interviewRound: round } : app))
+    );
+    setPendingRoundId(null);
+  }
+
   const pendingApplication = items.find((app) => app.id === pendingResultId) ?? null;
+  const pendingRoundApplication = items.find((app) => app.id === pendingRoundId) ?? null;
 
   return (
     <DndContext id="kanban-board" sensors={sensors} onDragEnd={handleDragEnd}>
@@ -78,6 +91,7 @@ export function KanbanBoard({ applications }: { applications: Application[] }) {
               id={status.value}
               title={status.label}
               applications={columnApplications}
+              onRequestInterviewRound={setPendingRoundId}
             />
           );
         })}
@@ -87,6 +101,13 @@ export function KanbanBoard({ applications }: { applications: Application[] }) {
         onSelect={handleSetResult}
         onOpenChange={(open) => {
           if (!open) setPendingResultId(null);
+        }}
+      />
+      <InterviewRoundDialog
+        application={pendingRoundApplication}
+        onSelect={handleSetInterviewRound}
+        onOpenChange={(open) => {
+          if (!open) setPendingRoundId(null);
         }}
       />
     </DndContext>

@@ -15,9 +15,11 @@ function formatDeadline(deadline: string | null) {
 export function ApplicationCard({
   application,
   onRequestResult,
+  onRequestInterviewRound,
 }: {
   application: Application;
   onRequestResult?: (id: string) => void;
+  onRequestInterviewRound?: (id: string) => void;
 }) {
   const deadlineLabel = formatDeadline(application.deadline);
   const { setNodeRef, listeners, attributes, transform, isDragging } = useDraggable({
@@ -41,8 +43,23 @@ export function ApplicationCard({
         <CardHeader>
           <CardTitle className="flex items-center gap-1.5">
             {application.company}
-            {application.interviewRound && (
-              <Badge variant="outline">{application.interviewRound}</Badge>
+            {application.status === "interview" ? (
+              <Badge
+                variant="outline"
+                className={
+                  application.interviewRound
+                    ? "cursor-pointer"
+                    : "cursor-pointer bg-amber-500/10 text-amber-600"
+                }
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => onRequestInterviewRound?.(application.id)}
+              >
+                {application.interviewRound ?? "차수 선택"}
+              </Badge>
+            ) : (
+              application.interviewRound && (
+                <Badge variant="outline">{application.interviewRound}</Badge>
+              )
             )}
             {application.result && (
               <Badge

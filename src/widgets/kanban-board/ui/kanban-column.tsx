@@ -14,12 +14,14 @@ export function KanbanColumn({
   applications,
   headerExtra,
   onRequestResult,
+  onRequestInterviewRound,
 }: {
   id: ApplicationStatus;
   title: string;
   applications: Application[];
   headerExtra?: ReactNode;
   onRequestResult?: (id: string) => void;
+  onRequestInterviewRound?: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
@@ -42,6 +44,7 @@ export function KanbanColumn({
             key={application.id}
             application={application}
             onRequestResult={onRequestResult}
+            onRequestInterviewRound={onRequestInterviewRound}
           />
         ))}
       </div>
