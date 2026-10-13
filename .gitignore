@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# velog devlog 초안 (git에는 안 올림)
+/devlog/
