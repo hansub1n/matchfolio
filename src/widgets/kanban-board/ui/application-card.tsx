@@ -12,7 +12,13 @@ function formatDeadline(deadline: string | null) {
   return `마감 ${month}/${day}`;
 }
 
-export function ApplicationCard({ application }: { application: Application }) {
+export function ApplicationCard({
+  application,
+  onRequestResult,
+}: {
+  application: Application;
+  onRequestResult?: (id: string) => void;
+}) {
   const deadlineLabel = formatDeadline(application.deadline);
   const { setNodeRef, listeners, attributes, transform, isDragging } = useDraggable({
     id: application.id,
@@ -48,6 +54,16 @@ export function ApplicationCard({ application }: { application: Application }) {
                 variant={application.result === "passed" ? "outline" : "destructive"}
               >
                 {application.result === "passed" ? "합격" : "불합격"}
+              </Badge>
+            )}
+            {application.status === "result" && !application.result && (
+              <Badge
+                variant="outline"
+                className="ml-auto cursor-pointer bg-amber-500/10 text-amber-600"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => onRequestResult?.(application.id)}
+              >
+                결과 미정
               </Badge>
             )}
           </CardTitle>

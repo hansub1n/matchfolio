@@ -13,11 +13,13 @@ export function KanbanColumn({
   title,
   applications,
   headerExtra,
+  onRequestResult,
 }: {
   id: ApplicationStatus;
   title: string;
   applications: Application[];
   headerExtra?: ReactNode;
+  onRequestResult?: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
@@ -36,7 +38,11 @@ export function KanbanColumn({
       </div>
       <div className="flex flex-col gap-2 px-1 pb-2">
         {applications.map((application) => (
-          <ApplicationCard key={application.id} application={application} />
+          <ApplicationCard
+            key={application.id}
+            application={application}
+            onRequestResult={onRequestResult}
+          />
         ))}
       </div>
     </div>

@@ -15,7 +15,13 @@ const FILTERS: { value: ResultFilter; label: string }[] = [
   { value: "failed", label: "불합격" },
 ];
 
-export function ResultColumn({ applications }: { applications: Application[] }) {
+export function ResultColumn({
+  applications,
+  onRequestResult,
+}: {
+  applications: Application[];
+  onRequestResult: (id: string) => void;
+}) {
   const [filter, setFilter] = useState<ResultFilter>("all");
 
   const filtered = applications.filter((app) =>
@@ -27,6 +33,7 @@ export function ResultColumn({ applications }: { applications: Application[] }) 
       id="result"
       title="결과"
       applications={filtered}
+      onRequestResult={onRequestResult}
       headerExtra={
         <div className="ml-auto flex gap-0.5">
           {FILTERS.map((f) => (
