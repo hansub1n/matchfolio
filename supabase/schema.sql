@@ -5,6 +5,8 @@ create table interested_companies (
   position text,
   deadline date,
   job_posting_url text,
+  screenshot_paths text[] not null default '{}',
+  description text,
   memo text,
   tech_stack text[] not null default '{}',
   created_at timestamptz not null default now()
@@ -22,6 +24,8 @@ create table applications (
   applied_at date,
   deadline date,
   job_posting_url text,
+  screenshot_paths text[] not null default '{}',
+  description text,
   memo text,
   tech_stack text[] not null default '{}',
   created_at timestamptz not null default now(),

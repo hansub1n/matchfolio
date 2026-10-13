@@ -12,6 +12,8 @@ interface ApplicationRow {
   applied_at: string | null;
   deadline: string | null;
   job_posting_url: string | null;
+  screenshot_paths: string[];
+  description: string | null;
   memo: string | null;
   tech_stack: string[];
   created_at: string;
@@ -29,6 +31,8 @@ function toApplication(row: ApplicationRow): Application {
     appliedAt: row.applied_at,
     deadline: row.deadline,
     jobPostingUrl: row.job_posting_url,
+    screenshotPaths: row.screenshot_paths,
+    description: row.description,
     memo: row.memo,
     techStack: row.tech_stack,
     createdAt: row.created_at,
@@ -55,6 +59,8 @@ export interface CreateApplicationInput {
   appliedAt?: string | null;
   deadline?: string | null;
   jobPostingUrl?: string | null;
+  screenshotPaths?: string[];
+  description?: string | null;
   memo?: string | null;
   techStack?: string[];
 }
@@ -73,6 +79,8 @@ export async function createApplication(
       applied_at: input.appliedAt,
       deadline: input.deadline,
       job_posting_url: input.jobPostingUrl,
+      screenshot_paths: input.screenshotPaths,
+      description: input.description,
       memo: input.memo,
       tech_stack: input.techStack,
     })
@@ -84,9 +92,16 @@ export async function createApplication(
 }
 
 export interface UpdateApplicationInput {
+  company?: string;
+  position?: string;
   status?: ApplicationStatus;
   interviewRound?: string | null;
   result?: ApplicationResult | null;
+  deadline?: string | null;
+  jobPostingUrl?: string | null;
+  description?: string | null;
+  memo?: string | null;
+  techStack?: string[];
 }
 
 export async function updateApplication(
@@ -96,11 +111,23 @@ export async function updateApplication(
   const { error } = await supabase
     .from("applications")
     .update({
+      company: input.company,
+      position: input.position,
       status: input.status,
       interview_round: input.interviewRound,
       result: input.result,
+      deadline: input.deadline,
+      job_posting_url: input.jobPostingUrl,
+      description: input.description,
+      memo: input.memo,
+      tech_stack: input.techStack,
     })
     .eq("id", id);
 
+  if (error) throw error;
+}
+
+export async function deleteApplication(id: string): Promise<void> {
+  const { error } = await supabase.from("applications").delete().eq("id", id);
   if (error) throw error;
 }

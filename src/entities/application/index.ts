@@ -5,4 +5,5 @@ export {
   getApplications,
   createApplication,
   updateApplication,
+  deleteApplication,
 } from "./api/applicationApi";
