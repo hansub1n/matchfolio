@@ -57,7 +57,7 @@ export function CreateApplicationDialog() {
       setDescription(extracted.description);
       setScreenshotPaths(extracted.screenshotPaths);
     } catch (error) {
-      console.error(error);
+      console.warn("스크린샷 추출 실패:", error);
       setExtractError(error instanceof Error ? error.message : "알 수 없는 오류");
     } finally {
       setExtracting(false);

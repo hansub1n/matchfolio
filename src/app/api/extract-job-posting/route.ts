@@ -10,15 +10,16 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function isQuotaExceeded(error: unknown) {
+  const message = error instanceof Error ? error.message : "";
+  return message.includes("RESOURCE_EXHAUSTED");
+}
+
 function isRetryable(error: unknown) {
   if (error instanceof Error && error.name === "TimeoutError") return true;
+  if (isQuotaExceeded(error)) return false;
   const message = error instanceof Error ? error.message : "";
-  return (
-    message.includes("UNAVAILABLE") ||
-    message.includes("RESOURCE_EXHAUSTED") ||
-    message.includes('"code":503') ||
-    message.includes('"code":429')
-  );
+  return message.includes("UNAVAILABLE") || message.includes('"code":503');
 }
 
 const EXTRACTION_SCHEMA = {
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-flash-latest",
+        model: "gemini-3.8-flash",
         contents: [
           {
             role: "user",
@@ -105,11 +106,13 @@ export async function POST(request: Request) {
         continue;
       }
 
-      const message = isRetryable(error)
-        ? "Gemini 서버가 일시적으로 혼잡합니다. 잠시 후 다시 시도해주세요."
-        : error instanceof Error
-          ? error.message
-          : "알 수 없는 오류";
+      const message = isQuotaExceeded(error)
+        ? "오늘 Gemini 무료 사용량을 모두 썼습니다. 내일 다시 시도해주세요."
+        : isRetryable(error)
+          ? "Gemini 서버가 일시적으로 혼잡합니다. 잠시 후 다시 시도해주세요."
+          : error instanceof Error
+            ? error.message
+            : "알 수 없는 오류";
       return NextResponse.json(
         { error: `이미지 분석에 실패했습니다: ${message}` },
         { status: 500 }
