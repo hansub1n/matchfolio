@@ -19,6 +19,7 @@ import {
   type UpdateApplicationInput,
 } from "@/entities/application";
 
+import { applyStatusChange } from "../model/apply-status-change";
 import { ApplicationDetailDialog } from "./application-detail-dialog";
 import { InterviewRoundDialog } from "./interview-round-dialog";
 import { KanbanColumn } from "./kanban-column";
@@ -48,13 +49,7 @@ export function KanbanBoard({ applications }: { applications: Application[] }) {
 
     const leavingResult = draggedApp.status === "result" && nextStatus !== "result";
 
-    setItems((prev) =>
-      prev.map((app) =>
-        app.id === draggedId
-          ? { ...app, status: nextStatus, result: leavingResult ? null : app.result }
-          : app
-      )
-    );
+    setItems((prev) => applyStatusChange(prev, draggedId, nextStatus));
     updateApplication(draggedId, {
       status: nextStatus,
       ...(leavingResult ? { result: null } : {}),

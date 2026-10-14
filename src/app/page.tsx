@@ -7,6 +7,9 @@ import { KanbanBoard } from "@/widgets/kanban-board";
 import { Watchlist } from "@/widgets/watchlist";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 
+// 지원 현황은 항상 최신 상태로 보여야 해서 정적 생성을 끄고 요청마다 새로 렌더링한다.
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const [applications, companies] = await Promise.all([
     getApplications(),
