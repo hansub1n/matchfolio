@@ -2,6 +2,7 @@ import { getApplications } from "@/entities/application";
 import { getInterestedCompanies } from "@/entities/interested-company";
 import { CreateApplicationDialog } from "@/features/create-application";
 import { CreateInterestedCompanyDialog } from "@/features/create-interested-company";
+import { ApplicationStats } from "@/widgets/application-stats";
 import { KanbanBoard } from "@/widgets/kanban-board";
 import { Watchlist } from "@/widgets/watchlist";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
@@ -20,6 +21,7 @@ export default async function Home() {
           <TabsList>
             <TabsTrigger value="board">보드</TabsTrigger>
             <TabsTrigger value="watchlist">관심기업</TabsTrigger>
+            <TabsTrigger value="stats">통계</TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="board" className="flex flex-col gap-4">
@@ -33,6 +35,9 @@ export default async function Home() {
             <CreateInterestedCompanyDialog />
           </div>
           <Watchlist companies={companies} />
+        </TabsContent>
+        <TabsContent value="stats">
+          <ApplicationStats applications={applications} />
         </TabsContent>
       </Tabs>
     </main>
