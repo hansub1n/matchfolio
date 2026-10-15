@@ -31,3 +31,13 @@ create table applications (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+create table interview_prep (
+  id uuid primary key default gen_random_uuid(),
+  application_id uuid not null references applications(id) on delete cascade unique,
+  company_analysis text not null,
+  interview_questions text[] not null default '{}',
+  sources jsonb not null default '[]',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);

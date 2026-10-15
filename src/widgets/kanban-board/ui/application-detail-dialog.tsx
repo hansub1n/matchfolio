@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import type { Application, UpdateApplicationInput } from "@/entities/application";
+import { AnalyzeCompanyPanel } from "@/features/analyze-company";
 import { formatDeadline } from "@/shared/lib/format-deadline";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -76,12 +77,12 @@ export function ApplicationDetailDialog({
 
   return (
     <Dialog open={application !== null} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{application?.company}</DialogTitle>
         </DialogHeader>
         {application && !editing && (
-          <div className="flex flex-col gap-3 text-sm">
+          <div className="flex min-w-0 flex-col gap-3 text-sm">
             <p className="text-muted-foreground">{application.position}</p>
             {deadlineLabel && <p className="text-muted-foreground">{deadlineLabel}</p>}
             {application.techStack.length > 0 && (
@@ -114,6 +115,9 @@ export function ApplicationDetailDialog({
               </p>
             )}
             <ScreenshotGallery paths={application.screenshotPaths} />
+            {application.status !== "applied" && (
+              <AnalyzeCompanyPanel key={application.id} application={application} />
+            )}
             <DialogFooter>
               <Button variant="outline" onClick={handleStartEdit}>
                 수정

@@ -5,35 +5,10 @@ import { GoogleGenAI } from "@google/genai";
 import { env } from "@/shared/config/env";
 import { JOB_POSTING_SCREENSHOTS_BUCKET } from "@/shared/config/constants";
 import { supabaseAdmin } from "@/shared/api/supabase-admin";
+import { describeGeminiError, GEMINI_MODEL, isRetryable } from "@/shared/lib/gemini";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function getRetryDelaySeconds(error: unknown) {
-  const message = error instanceof Error ? error.message : "";
-  const match = message.match(/"retryDelay":"([\d.]+)s"/);
-  return match ? Number(match[1]) : null;
-}
-
-// 분당 한도 초과는 retryDelay가 짧고, 일일 한도 초과는 몇 시간 단위로 길다.
-const RATE_LIMIT_RETRY_THRESHOLD_SECONDS = 60;
-
-function isQuotaExceeded(error: unknown) {
-  const message = error instanceof Error ? error.message : "";
-  if (!message.includes("RESOURCE_EXHAUSTED")) return false;
-  const retryDelaySeconds = getRetryDelaySeconds(error);
-  return retryDelaySeconds === null || retryDelaySeconds > RATE_LIMIT_RETRY_THRESHOLD_SECONDS;
-}
-
-function isRetryable(error: unknown) {
-  if (error instanceof Error && error.name === "TimeoutError") return true;
-  const message = error instanceof Error ? error.message : "";
-  if (message.includes("RESOURCE_EXHAUSTED")) {
-    const retryDelaySeconds = getRetryDelaySeconds(error);
-    return retryDelaySeconds !== null && retryDelaySeconds <= RATE_LIMIT_RETRY_THRESHOLD_SECONDS;
-  }
-  return message.includes("UNAVAILABLE") || message.includes('"code":503');
 }
 
 const EXTRACTION_SCHEMA = {
@@ -87,7 +62,7 @@ export async function POST(request: Request) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-3.8-flash",
+        model: GEMINI_MODEL,
         contents: [
           {
             role: "user",
@@ -120,15 +95,8 @@ export async function POST(request: Request) {
         continue;
       }
 
-      const message = isQuotaExceeded(error)
-        ? "오늘 Gemini 무료 사용량을 모두 썼습니다. 내일 다시 시도해주세요."
-        : isRetryable(error)
-          ? "Gemini 서버가 일시적으로 혼잡합니다. 잠시 후 다시 시도해주세요."
-          : error instanceof Error
-            ? error.message
-            : "알 수 없는 오류";
       return NextResponse.json(
-        { error: `이미지 분석에 실패했습니다: ${message}` },
+        { error: `이미지 분석에 실패했습니다: ${describeGeminiError(error)}` },
         { status: 500 }
       );
     }
