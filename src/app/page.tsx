@@ -1,9 +1,12 @@
 import { getApplications } from "@/entities/application";
 import { getInterestedCompanies } from "@/entities/interested-company";
+import { getMyProjects } from "@/entities/my-project";
 import { CreateApplicationDialog } from "@/features/create-application";
 import { CreateInterestedCompanyDialog } from "@/features/create-interested-company";
+import { CreateMyProjectDialog } from "@/features/create-my-project";
 import { ApplicationStats } from "@/widgets/application-stats";
 import { KanbanBoard } from "@/widgets/kanban-board";
+import { MyProjects } from "@/widgets/my-projects";
 import { Watchlist } from "@/widgets/watchlist";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 
@@ -11,9 +14,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [applications, companies] = await Promise.all([
+  const [applications, companies, myProjects] = await Promise.all([
     getApplications(),
     getInterestedCompanies(),
+    getMyProjects(),
   ]);
 
   return (
@@ -24,6 +28,7 @@ export default async function Home() {
           <TabsList>
             <TabsTrigger value="board">보드</TabsTrigger>
             <TabsTrigger value="watchlist">관심기업</TabsTrigger>
+            <TabsTrigger value="my-projects">내 프로젝트</TabsTrigger>
             <TabsTrigger value="stats">통계</TabsTrigger>
           </TabsList>
         </div>
@@ -38,6 +43,12 @@ export default async function Home() {
             <CreateInterestedCompanyDialog />
           </div>
           <Watchlist companies={companies} />
+        </TabsContent>
+        <TabsContent value="my-projects" className="flex flex-col gap-4">
+          <div className="flex justify-end px-4">
+            <CreateMyProjectDialog />
+          </div>
+          <MyProjects projects={myProjects} />
         </TabsContent>
         <TabsContent value="stats">
           <ApplicationStats applications={applications} />

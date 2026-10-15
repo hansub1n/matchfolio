@@ -41,3 +41,13 @@ create table interview_prep (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+create table my_projects (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid,
+  name text not null,
+  description text,
+  tech_stack text[] not null default '{}',
+  highlights text[] not null default '{}',
+  created_at timestamptz not null default now()
+);
