@@ -51,3 +51,11 @@ create table my_projects (
   highlights text[] not null default '{}',
   created_at timestamptz not null default now()
 );
+
+create table project_matches (
+  id uuid primary key default gen_random_uuid(),
+  interested_company_id uuid not null references interested_companies(id) on delete cascade unique,
+  matches jsonb not null default '[]',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);

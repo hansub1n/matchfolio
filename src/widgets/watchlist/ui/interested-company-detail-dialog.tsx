@@ -6,6 +6,7 @@ import type {
   InterestedCompany,
   UpdateInterestedCompanyInput,
 } from "@/entities/interested-company";
+import { MatchProjectsPanel } from "@/features/match-projects";
 import { formatDeadline } from "@/shared/lib/format-deadline";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -79,12 +80,12 @@ export function InterestedCompanyDetailDialog({
 
   return (
     <Dialog open={company !== null} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{company?.company}</DialogTitle>
         </DialogHeader>
         {company && !editing && (
-          <div className="flex flex-col gap-3 text-sm">
+          <div className="flex min-w-0 flex-col gap-3 text-sm">
             {company.position && (
               <p className="text-muted-foreground">{company.position}</p>
             )}
@@ -119,6 +120,7 @@ export function InterestedCompanyDetailDialog({
               </p>
             )}
             <ScreenshotGallery paths={company.screenshotPaths} />
+            <MatchProjectsPanel key={company.id} company={company} />
             <DialogFooter>
               <Button variant="outline" onClick={handleStartEdit}>
                 수정
