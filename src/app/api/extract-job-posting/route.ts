@@ -10,15 +10,29 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function getRetryDelaySeconds(error: unknown) {
+  const message = error instanceof Error ? error.message : "";
+  const match = message.match(/"retryDelay":"([\d.]+)s"/);
+  return match ? Number(match[1]) : null;
+}
+
+// 분당 한도 초과는 retryDelay가 짧고, 일일 한도 초과는 몇 시간 단위로 길다.
+const RATE_LIMIT_RETRY_THRESHOLD_SECONDS = 60;
+
 function isQuotaExceeded(error: unknown) {
   const message = error instanceof Error ? error.message : "";
-  return message.includes("RESOURCE_EXHAUSTED");
+  if (!message.includes("RESOURCE_EXHAUSTED")) return false;
+  const retryDelaySeconds = getRetryDelaySeconds(error);
+  return retryDelaySeconds === null || retryDelaySeconds > RATE_LIMIT_RETRY_THRESHOLD_SECONDS;
 }
 
 function isRetryable(error: unknown) {
   if (error instanceof Error && error.name === "TimeoutError") return true;
-  if (isQuotaExceeded(error)) return false;
   const message = error instanceof Error ? error.message : "";
+  if (message.includes("RESOURCE_EXHAUSTED")) {
+    const retryDelaySeconds = getRetryDelaySeconds(error);
+    return retryDelaySeconds !== null && retryDelaySeconds <= RATE_LIMIT_RETRY_THRESHOLD_SECONDS;
+  }
   return message.includes("UNAVAILABLE") || message.includes('"code":503');
 }
 
