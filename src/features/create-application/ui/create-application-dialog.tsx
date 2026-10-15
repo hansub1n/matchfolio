@@ -1,6 +1,13 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent, type ClipboardEvent, type FormEvent } from "react";
+import {
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ClipboardEvent,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 
 import { createApplication } from "@/entities/application";
@@ -18,31 +25,58 @@ import {
 const inputClassName =
   "rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
-export function CreateApplicationDialog() {
+export interface CreateApplicationInitialValues {
+  company?: string;
+  position?: string;
+  deadline?: string | null;
+  jobPostingUrl?: string | null;
+  techStack?: string[];
+  description?: string | null;
+  memo?: string | null;
+  screenshotPaths?: string[];
+}
+
+export function CreateApplicationDialog({
+  trigger,
+  initialValues,
+  open: openProp,
+  onOpenChange: onOpenChangeProp,
+  onCreated,
+}: {
+  trigger?: ReactNode;
+  initialValues?: CreateApplicationInitialValues;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onCreated?: () => void;
+} = {}) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [open, setOpen] = useState(false);
-  const [company, setCompany] = useState("");
-  const [position, setPosition] = useState("");
-  const [deadline, setDeadline] = useState("");
-  const [jobPostingUrl, setJobPostingUrl] = useState("");
-  const [techStack, setTechStack] = useState("");
-  const [description, setDescription] = useState("");
-  const [memo, setMemo] = useState("");
-  const [screenshotPaths, setScreenshotPaths] = useState<string[]>([]);
+  const [openState, setOpenState] = useState(false);
+  const open = openProp ?? openState;
+  const setOpen = onOpenChangeProp ?? setOpenState;
+  const [company, setCompany] = useState(initialValues?.company ?? "");
+  const [position, setPosition] = useState(initialValues?.position ?? "");
+  const [deadline, setDeadline] = useState(initialValues?.deadline ?? "");
+  const [jobPostingUrl, setJobPostingUrl] = useState(initialValues?.jobPostingUrl ?? "");
+  const [techStack, setTechStack] = useState(initialValues?.techStack?.join(", ") ?? "");
+  const [description, setDescription] = useState(initialValues?.description ?? "");
+  const [memo, setMemo] = useState(initialValues?.memo ?? "");
+  const [screenshotPaths, setScreenshotPaths] = useState<string[]>(
+    initialValues?.screenshotPaths ?? []
+  );
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   function reset() {
-    setCompany("");
-    setPosition("");
-    setDeadline("");
-    setJobPostingUrl("");
-    setTechStack("");
-    setDescription("");
-    setMemo("");
-    setScreenshotPaths([]);
+    setCompany(initialValues?.company ?? "");
+    setPosition(initialValues?.position ?? "");
+    setDeadline(initialValues?.deadline ?? "");
+    setJobPostingUrl(initialValues?.jobPostingUrl ?? "");
+    setTechStack(initialValues?.techStack?.join(", ") ?? "");
+    setDescription(initialValues?.description ?? "");
+    setMemo(initialValues?.memo ?? "");
+    setScreenshotPaths(initialValues?.screenshotPaths ?? []);
   }
 
   async function extractFromFiles(files: File[]) {
@@ -99,6 +133,7 @@ export function CreateApplicationDialog() {
       });
       reset();
       setOpen(false);
+      onCreated?.();
       router.refresh();
     } catch (error) {
       console.error(error);
@@ -109,9 +144,9 @@ export function CreateApplicationDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline">+ 카드 추가</Button>
-      </DialogTrigger>
+      {trigger !== null && (
+        <DialogTrigger asChild>{trigger ?? <Button variant="outline">+ 카드 추가</Button>}</DialogTrigger>
+      )}
       <DialogContent onPaste={handlePaste}>
         <DialogHeader>
           <DialogTitle>카드 추가</DialogTitle>

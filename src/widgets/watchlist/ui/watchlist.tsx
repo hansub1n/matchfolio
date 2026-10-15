@@ -51,6 +51,7 @@ export function Watchlist({ companies }: { companies: InterestedCompany[] }) {
           company={company}
           onOpenDetail={setDetailId}
           onDelete={handleDelete}
+          onConvert={handleDelete}
         />
       ))}
       <InterestedCompanyDetailDialog

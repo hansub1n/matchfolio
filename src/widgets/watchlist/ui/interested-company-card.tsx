@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 
 import type { InterestedCompany } from "@/entities/interested-company";
+import { CreateApplicationDialog } from "@/features/create-application";
 import { formatDeadline } from "@/shared/lib/format-deadline";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -20,12 +21,15 @@ export function InterestedCompanyCard({
   company,
   onOpenDetail,
   onDelete,
+  onConvert,
 }: {
   company: InterestedCompany;
   onOpenDetail?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onConvert?: (id: string) => void;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [applyOpen, setApplyOpen] = useState(false);
   const deadlineLabel = formatDeadline(company.deadline);
 
   return (
@@ -60,15 +64,36 @@ export function InterestedCompanyCard({
               <span className="text-xs text-muted-foreground">{deadlineLabel}</span>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => onOpenDetail?.(company.id)}
-            className="self-start text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-          >
-            자세히 보기
-          </button>
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => onOpenDetail?.(company.id)}
+              className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              자세히 보기
+            </button>
+            <Button variant="outline" size="sm" onClick={() => setApplyOpen(true)}>
+              지원하기
+            </Button>
+          </div>
         </CardContent>
       </Card>
+      <CreateApplicationDialog
+        trigger={null}
+        open={applyOpen}
+        onOpenChange={setApplyOpen}
+        initialValues={{
+          company: company.company,
+          position: company.position ?? "",
+          deadline: company.deadline,
+          jobPostingUrl: company.jobPostingUrl,
+          techStack: company.techStack,
+          description: company.description,
+          memo: company.memo,
+          screenshotPaths: company.screenshotPaths,
+        }}
+        onCreated={() => onConvert?.(company.id)}
+      />
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
