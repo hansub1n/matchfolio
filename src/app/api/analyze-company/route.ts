@@ -62,17 +62,24 @@ const ANALYSIS_SCHEMA = {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { applicationId, company, position, description, techStack } = body as {
-    applicationId: string;
-    company: string;
-    position: string;
-    description: string | null;
-    techStack: string[];
-  };
+  const { applicationId } = body as { applicationId: string };
 
-  if (!applicationId || !company) {
-    return NextResponse.json({ error: "applicationId와 company는 필수입니다." }, { status: 400 });
+  if (!applicationId) {
+    return NextResponse.json({ error: "applicationId는 필수입니다." }, { status: 400 });
   }
+
+  // 클라이언트가 보낸 회사명/공고 정보를 그대로 믿지 않고, DB에 저장된 값을 기준으로 삼는다.
+  const { data: application, error: applicationError } = await supabaseAdmin
+    .from("applications")
+    .select("company, position, description, tech_stack")
+    .eq("id", applicationId)
+    .single();
+
+  if (applicationError || !application) {
+    return NextResponse.json({ error: "존재하지 않는 지원 카드입니다." }, { status: 404 });
+  }
+
+  const { company, position, description, tech_stack: techStack } = application;
 
   const sources = await searchCompany(company);
 

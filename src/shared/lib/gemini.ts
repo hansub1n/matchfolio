@@ -18,9 +18,11 @@ export function isQuotaExceeded(error: unknown) {
   return retryDelaySeconds === null || retryDelaySeconds > RATE_LIMIT_RETRY_THRESHOLD_SECONDS;
 }
 
+// @google/genai는 AbortSignal 타임아웃을 TimeoutError가 아니라
+// AbortError("This operation was aborted")로 감싸서 던진다. 이 프로젝트는
+// generateContent에 AbortSignal.timeout()만 넘기므로 AbortError = 타임아웃으로
+// 취급하지만, 나중에 사용자가 직접 취소하는 기능이 생기면 이 가정은 깨진다.
 function isTimeout(error: unknown) {
-  // @google/genai는 AbortSignal 타임아웃을 TimeoutError가 아니라
-  // AbortError("This operation was aborted")로 감싸서 던진다.
   return error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
 }
 
@@ -37,6 +39,9 @@ export function isRetryable(error: unknown) {
 export function describeGeminiError(error: unknown) {
   if (isQuotaExceeded(error)) {
     return "오늘 Gemini 무료 사용량을 모두 썼습니다. 내일 다시 시도해주세요.";
+  }
+  if (isTimeout(error)) {
+    return "응답 생성이 너무 오래 걸려 중단됐습니다. 잠시 후 다시 시도해주세요.";
   }
   if (isRetryable(error)) {
     return "Gemini 서버가 일시적으로 혼잡합니다. 잠시 후 다시 시도해주세요.";

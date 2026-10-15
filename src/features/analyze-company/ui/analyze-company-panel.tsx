@@ -20,7 +20,10 @@ export function AnalyzeCompanyPanel({ application }: { application: Application 
       .then((result) => {
         if (!cancelled) setPrep(result);
       })
-      .catch((err) => console.warn("기업분석 조회 실패:", err))
+      .catch((err) => {
+        console.warn("기업분석 조회 실패:", err);
+        if (!cancelled) setError("기업분석을 불러오지 못했습니다.");
+      })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
@@ -33,13 +36,7 @@ export function AnalyzeCompanyPanel({ application }: { application: Application 
     setAnalyzing(true);
     setError(null);
     try {
-      const result = await analyzeCompany({
-        applicationId: application.id,
-        company: application.company,
-        position: application.position,
-        description: application.description,
-        techStack: application.techStack,
-      });
+      const result = await analyzeCompany(application.id);
       setPrep(result);
     } catch (err) {
       console.warn("기업분석 실패:", err);
@@ -49,11 +46,11 @@ export function AnalyzeCompanyPanel({ application }: { application: Application 
     }
   }
 
-  if (loading) return null;
-
   return (
     <div className="flex min-w-0 flex-col gap-3 border-t pt-3">
-      {prep ? (
+      {loading ? (
+        <p className="text-sm text-muted-foreground">기업분석 불러오는 중...</p>
+      ) : prep ? (
         <>
           <div>
             <h3 className="mb-1 text-sm font-semibold">기업분석</h3>
