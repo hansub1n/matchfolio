@@ -38,8 +38,15 @@ export function Watchlist({ companies }: { companies: InterestedCompany[] }) {
   }
 
   function handleDelete(id: string) {
-    setItems((prev) => prev.filter((company) => company.id !== id));
+    const company = items.find((c) => c.id === id);
+    setItems((prev) => prev.filter((c) => c.id !== id));
     setDetailId(null);
+    deleteInterestedCompany(id, { screenshotPaths: company?.screenshotPaths }).catch(console.error);
+  }
+
+  function handleConvert(id: string) {
+    // 전환된 지원카드가 같은 스크린샷 경로를 그대로 쓰므로 Storage 파일은 지우지 않는다.
+    setItems((prev) => prev.filter((c) => c.id !== id));
     deleteInterestedCompany(id).catch(console.error);
   }
 
@@ -51,7 +58,7 @@ export function Watchlist({ companies }: { companies: InterestedCompany[] }) {
           company={company}
           onOpenDetail={setDetailId}
           onDelete={handleDelete}
-          onConvert={handleDelete}
+          onConvert={handleConvert}
         />
       ))}
       <InterestedCompanyDetailDialog

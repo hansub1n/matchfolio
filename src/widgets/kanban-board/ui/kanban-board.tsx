@@ -93,9 +93,10 @@ export function KanbanBoard({ applications }: { applications: Application[] }) {
   }
 
   function handleDeleteApplication(id: string) {
-    setItems((prev) => prev.filter((app) => app.id !== id));
+    const app = items.find((a) => a.id === id);
+    setItems((prev) => prev.filter((a) => a.id !== id));
     setDetailId(null);
-    deleteApplication(id).catch(console.error);
+    deleteApplication(id, { screenshotPaths: app?.screenshotPaths }).catch(console.error);
   }
 
   const pendingApplication = items.find((app) => app.id === pendingResultId) ?? null;

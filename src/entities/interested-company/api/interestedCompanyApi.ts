@@ -1,4 +1,5 @@
 import { supabase } from "@/shared/api/supabase";
+import { JOB_POSTING_SCREENSHOTS_BUCKET } from "@/shared/config/constants";
 
 import type { InterestedCompany } from "../model/types";
 
@@ -103,7 +104,17 @@ export async function updateInterestedCompany(
   if (error) throw error;
 }
 
-export async function deleteInterestedCompany(id: string): Promise<void> {
+export async function deleteInterestedCompany(
+  id: string,
+  options?: { screenshotPaths?: string[] }
+): Promise<void> {
   const { error } = await supabase.from("interested_companies").delete().eq("id", id);
   if (error) throw error;
+
+  if (options?.screenshotPaths?.length) {
+    const { error: storageError } = await supabase.storage
+      .from(JOB_POSTING_SCREENSHOTS_BUCKET)
+      .remove(options.screenshotPaths);
+    if (storageError) console.warn("스크린샷 삭제 실패:", storageError);
+  }
 }
