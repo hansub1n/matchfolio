@@ -8,6 +8,9 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// 재시도 3회 × 25초 + 백오프 ≈ 78초가 최악의 경우 (Vercel Hobby 기본 300초 안에 넉넉히 들어옴).
+export const maxDuration = 90;
+
 function parseGithubRepo(githubUrl: string) {
   const match = githubUrl.match(/github\.com\/([^/]+)\/([^/#?]+)/i);
   if (!match) return null;

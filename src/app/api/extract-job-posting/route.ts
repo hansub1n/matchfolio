@@ -11,6 +11,9 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// 재시도 2회 × 25초 + 백오프 ≈ 51초가 최악의 경우 (Vercel Hobby 기본 300초 안에 넉넉히 들어옴).
+export const maxDuration = 60;
+
 const EXTRACTION_SCHEMA = {
   type: "object",
   properties: {
