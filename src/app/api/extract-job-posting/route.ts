@@ -6,6 +6,7 @@ import { env } from "@/shared/config/env";
 import { JOB_POSTING_SCREENSHOTS_BUCKET } from "@/shared/config/constants";
 import { supabaseAdmin } from "@/shared/api/supabase-admin";
 import { describeGeminiError, GEMINI_MODEL, isRetryable } from "@/shared/lib/gemini";
+import { isSameOrigin } from "@/shared/lib/request-guard";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -31,6 +32,10 @@ const EXTRACTION_SCHEMA = {
 };
 
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) {
+    return NextResponse.json({ error: "허용되지 않은 요청입니다." }, { status: 403 });
+  }
+
   const formData = await request.formData();
   const files = formData.getAll("files").filter((f): f is File => f instanceof File);
 

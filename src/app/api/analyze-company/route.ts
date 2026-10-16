@@ -4,6 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import { env } from "@/shared/config/env";
 import { supabaseAdmin } from "@/shared/api/supabase-admin";
 import { describeGeminiError, GEMINI_MODEL, isRetryable } from "@/shared/lib/gemini";
+import { isSameOrigin } from "@/shared/lib/request-guard";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -64,6 +65,10 @@ const ANALYSIS_SCHEMA = {
 };
 
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) {
+    return NextResponse.json({ error: "허용되지 않은 요청입니다." }, { status: 403 });
+  }
+
   const body = await request.json();
   const { applicationId } = body as { applicationId: string };
 
