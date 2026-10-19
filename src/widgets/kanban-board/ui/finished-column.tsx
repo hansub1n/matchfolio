@@ -3,41 +3,38 @@
 import { useState } from "react";
 import { cn } from "cn";
 
-import type { Application, ApplicationResult } from "@/entities/application";
+import type { Application, ApplicationOutcome } from "@/entities/application";
 
 import { KanbanColumn } from "./kanban-column";
 
-type ResultFilter = "all" | ApplicationResult;
+type OutcomeFilter = "all" | ApplicationOutcome;
 
-const FILTERS: { value: ResultFilter; label: string }[] = [
+const FILTERS: { value: OutcomeFilter; label: string }[] = [
   { value: "all", label: "전체" },
   { value: "passed", label: "합격" },
-  { value: "failed", label: "불합격" },
+  { value: "failed", label: "탈락" },
 ];
 
-export function ResultColumn({
+export function FinishedColumn({
   applications,
-  onRequestResult,
   onOpenDetail,
   onDelete,
 }: {
   applications: Application[];
-  onRequestResult: (id: string) => void;
   onOpenDetail: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
-  const [filter, setFilter] = useState<ResultFilter>("all");
+  const [filter, setFilter] = useState<OutcomeFilter>("all");
 
   const filtered = applications.filter((app) =>
-    filter === "all" ? true : app.result === filter
+    filter === "all" ? true : app.outcome === filter
   );
 
   return (
     <KanbanColumn
-      id="result"
-      title="결과"
+      id="finished"
+      title="종료"
       applications={filtered}
-      onRequestResult={onRequestResult}
       onOpenDetail={onOpenDetail}
       onDelete={onDelete}
       headerExtra={

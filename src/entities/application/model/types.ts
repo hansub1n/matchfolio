@@ -1,19 +1,13 @@
-export type ApplicationStatus =
-  | "applied"
-  | "document_passed"
-  | "coding_test"
-  | "interview"
-  | "result";
+export type ApplicationStage = "document" | "coding_test" | "interview";
 
-export type ApplicationResult = "passed" | "failed";
+export type ApplicationOutcome = "in_progress" | "passed" | "failed";
 
 export interface Application {
   id: string;
   company: string;
   position: string;
-  status: ApplicationStatus;
-  interviewRound: string | null;
-  result: ApplicationResult | null;
+  stage: ApplicationStage;
+  outcome: ApplicationOutcome;
   appliedAt: string | null;
   deadline: string | null;
   jobPostingUrl: string | null;

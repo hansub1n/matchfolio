@@ -1,15 +1,14 @@
 import { supabase } from "@/shared/api/supabase";
 import { JOB_POSTING_SCREENSHOTS_BUCKET } from "@/shared/config/constants";
 
-import type { Application, ApplicationResult, ApplicationStatus } from "../model/types";
+import type { Application, ApplicationOutcome, ApplicationStage } from "../model/types";
 
 interface ApplicationRow {
   id: string;
   company: string;
   position: string;
-  status: ApplicationStatus;
-  interview_round: string | null;
-  result: ApplicationResult | null;
+  stage: ApplicationStage;
+  outcome: ApplicationOutcome;
   applied_at: string | null;
   deadline: string | null;
   job_posting_url: string | null;
@@ -26,9 +25,8 @@ function toApplication(row: ApplicationRow): Application {
     id: row.id,
     company: row.company,
     position: row.position,
-    status: row.status,
-    interviewRound: row.interview_round,
-    result: row.result,
+    stage: row.stage,
+    outcome: row.outcome,
     appliedAt: row.applied_at,
     deadline: row.deadline,
     jobPostingUrl: row.job_posting_url,
@@ -54,9 +52,8 @@ export async function getApplications(): Promise<Application[]> {
 export interface CreateApplicationInput {
   company: string;
   position: string;
-  status?: ApplicationStatus;
-  interviewRound?: string | null;
-  result?: ApplicationResult | null;
+  stage?: ApplicationStage;
+  outcome?: ApplicationOutcome;
   appliedAt?: string | null;
   deadline?: string | null;
   jobPostingUrl?: string | null;
@@ -74,9 +71,8 @@ export async function createApplication(
     .insert({
       company: input.company,
       position: input.position,
-      status: input.status,
-      interview_round: input.interviewRound,
-      result: input.result,
+      stage: input.stage,
+      outcome: input.outcome,
       applied_at: input.appliedAt,
       deadline: input.deadline,
       job_posting_url: input.jobPostingUrl,
@@ -95,9 +91,8 @@ export async function createApplication(
 export interface UpdateApplicationInput {
   company?: string;
   position?: string;
-  status?: ApplicationStatus;
-  interviewRound?: string | null;
-  result?: ApplicationResult | null;
+  stage?: ApplicationStage;
+  outcome?: ApplicationOutcome;
   deadline?: string | null;
   jobPostingUrl?: string | null;
   description?: string | null;
@@ -114,9 +109,8 @@ export async function updateApplication(
     .update({
       company: input.company,
       position: input.position,
-      status: input.status,
-      interview_round: input.interviewRound,
-      result: input.result,
+      stage: input.stage,
+      outcome: input.outcome,
       deadline: input.deadline,
       job_posting_url: input.jobPostingUrl,
       description: input.description,

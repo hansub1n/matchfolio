@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -10,30 +10,56 @@ import {
 } from "@dnd-kit/core";
 
 import {
-  APPLICATION_STATUSES,
+  APPLICATION_STAGES,
   deleteApplication,
   updateApplication,
   type Application,
-  type ApplicationResult,
-  type ApplicationStatus,
   type UpdateApplicationInput,
 } from "@/entities/application";
+import {
+  createSchedule,
+  latestScheduleByApplication,
+  type Schedule,
+} from "@/entities/schedule";
 
-import { applyStatusChange } from "../model/apply-status-change";
+import { applyStageChange, type BoardColumnId } from "../model/apply-stage-change";
 import { ApplicationDetailDialog } from "./application-detail-dialog";
+import { FinishedColumn } from "./finished-column";
 import { InterviewRoundDialog } from "./interview-round-dialog";
 import { KanbanColumn } from "./kanban-column";
-import { ResultColumn } from "./result-column";
 import { ResultPickerDialog } from "./result-picker-dialog";
 
-export function KanbanBoard({ applications }: { applications: Application[] }) {
+export function KanbanBoard({
+  applications,
+  schedules,
+}: {
+  applications: Application[];
+  schedules: Schedule[];
+}) {
   const [items, setItems] = useState(applications);
   const [prevApplications, setPrevApplications] = useState(applications);
   if (applications !== prevApplications) {
     setPrevApplications(applications);
     setItems(applications);
   }
-  const [pendingResultId, setPendingResultId] = useState<string | null>(null);
+  const [scheduleItems, setScheduleItems] = useState(schedules);
+  const [prevSchedules, setPrevSchedules] = useState(schedules);
+  if (schedules !== prevSchedules) {
+    setPrevSchedules(schedules);
+    setScheduleItems(schedules);
+  }
+  const latestSchedules = useMemo(
+    () => latestScheduleByApplication(scheduleItems),
+    [scheduleItems]
+  );
+  // "코테를 실제로 밟았는지" 통계용 — 날짜 입력 없이 코테 컬럼에 처음 들어간
+  // 시점만 조용히 기록해둔다 (UI 다이얼로그는 없음, 캘린더 작업에서 추가 예정).
+  const codingTestMarked = useMemo(
+    () => new Set(scheduleItems.filter((s) => s.stage === "coding_test").map((s) => s.applicationId)),
+    [scheduleItems]
+  );
+
+  const [pendingOutcomeId, setPendingOutcomeId] = useState<string | null>(null);
   const [pendingRoundId, setPendingRoundId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const sensors = useSensors(
@@ -42,39 +68,45 @@ export function KanbanBoard({ applications }: { applications: Application[] }) {
 
   function handleDragEnd({ active, over }: DragEndEvent) {
     if (!over) return;
-    const nextStatus = over.id as ApplicationStatus;
+    const target = over.id as BoardColumnId;
     const draggedId = active.id as string;
     const draggedApp = items.find((app) => app.id === draggedId);
     if (!draggedApp) return;
 
-    const leavingResult = draggedApp.status === "result" && nextStatus !== "result";
+    if (target === "finished") {
+      setPendingOutcomeId(draggedId);
+      return;
+    }
 
-    setItems((prev) => applyStatusChange(prev, draggedId, nextStatus));
+    const leavingFinished = draggedApp.outcome !== "in_progress";
+    setItems((prev) => applyStageChange(prev, draggedId, target));
     updateApplication(draggedId, {
-      status: nextStatus,
-      ...(leavingResult ? { result: null } : {}),
+      stage: target,
+      ...(leavingFinished ? { outcome: "in_progress" as const } : {}),
     }).catch(console.error);
 
-    if (nextStatus === "result" && !draggedApp.result) {
-      setPendingResultId(draggedId);
-    }
-    if (nextStatus === "interview" && !draggedApp.interviewRound) {
+    if (target === "interview" && !latestSchedules.get(draggedId)) {
       setPendingRoundId(draggedId);
+    }
+
+    if (target === "coding_test" && !codingTestMarked.has(draggedId)) {
+      createSchedule({ applicationId: draggedId, stage: "coding_test" })
+        .then((created) => setScheduleItems((prev) => [created, ...prev]))
+        .catch(console.error);
     }
   }
 
-  function handleSetResult(id: string, result: ApplicationResult) {
-    setItems((prev) => prev.map((app) => (app.id === id ? { ...app, result } : app)));
-    setPendingResultId(null);
-    updateApplication(id, { result }).catch(console.error);
+  function handleSetOutcome(id: string, outcome: "passed" | "failed") {
+    setItems((prev) => prev.map((app) => (app.id === id ? { ...app, outcome } : app)));
+    setPendingOutcomeId(null);
+    updateApplication(id, { outcome }).catch(console.error);
   }
 
   function handleSetInterviewRound(id: string, round: string) {
-    setItems((prev) =>
-      prev.map((app) => (app.id === id ? { ...app, interviewRound: round } : app))
-    );
     setPendingRoundId(null);
-    updateApplication(id, { interviewRound: round }).catch(console.error);
+    createSchedule({ applicationId: id, stage: "interview", roundLabel: round })
+      .then((created) => setScheduleItems((prev) => [created, ...prev]))
+      .catch(console.error);
   }
 
   function handleUpdateApplication(id: string, input: UpdateApplicationInput) {
@@ -99,46 +131,43 @@ export function KanbanBoard({ applications }: { applications: Application[] }) {
     deleteApplication(id, { screenshotPaths: app?.screenshotPaths }).catch(console.error);
   }
 
-  const pendingApplication = items.find((app) => app.id === pendingResultId) ?? null;
+  const pendingOutcomeApplication = items.find((app) => app.id === pendingOutcomeId) ?? null;
   const pendingRoundApplication = items.find((app) => app.id === pendingRoundId) ?? null;
   const detailApplication = items.find((app) => app.id === detailId) ?? null;
+  const detailSchedule = detailApplication ? latestSchedules.get(detailApplication.id) : null;
 
   return (
     <DndContext id="kanban-board" sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="flex gap-4 overflow-x-auto px-4 pb-4">
-        {APPLICATION_STATUSES.map((status) => {
-          const columnApplications = items.filter((app) => app.status === status.value);
-
-          if (status.value === "result") {
-            return (
-              <ResultColumn
-                key={status.value}
-                applications={columnApplications}
-                onRequestResult={setPendingResultId}
-                onOpenDetail={setDetailId}
-                onDelete={handleDeleteApplication}
-              />
-            );
-          }
+      <div className="flex gap-4 overflow-x-auto px-6 pb-4">
+        {APPLICATION_STAGES.map((stage) => {
+          const columnApplications = items.filter(
+            (app) => app.stage === stage.value && app.outcome === "in_progress"
+          );
 
           return (
             <KanbanColumn
-              key={status.value}
-              id={status.value}
-              title={status.label}
+              key={stage.value}
+              id={stage.value}
+              title={stage.label}
               applications={columnApplications}
+              schedules={latestSchedules}
               onRequestInterviewRound={setPendingRoundId}
               onOpenDetail={setDetailId}
               onDelete={handleDeleteApplication}
             />
           );
         })}
+        <FinishedColumn
+          applications={items.filter((app) => app.outcome !== "in_progress")}
+          onOpenDetail={setDetailId}
+          onDelete={handleDeleteApplication}
+        />
       </div>
       <ResultPickerDialog
-        application={pendingApplication}
-        onSelect={handleSetResult}
+        application={pendingOutcomeApplication}
+        onSelect={handleSetOutcome}
         onOpenChange={(open) => {
-          if (!open) setPendingResultId(null);
+          if (!open) setPendingOutcomeId(null);
         }}
       />
       <InterviewRoundDialog
@@ -150,6 +179,7 @@ export function KanbanBoard({ applications }: { applications: Application[] }) {
       />
       <ApplicationDetailDialog
         application={detailApplication}
+        schedule={detailSchedule ?? null}
         onOpenChange={(open) => {
           if (!open) setDetailId(null);
         }}

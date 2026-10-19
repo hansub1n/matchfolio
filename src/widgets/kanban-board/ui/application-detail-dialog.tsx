@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import type { Application, UpdateApplicationInput } from "@/entities/application";
+import type { Schedule } from "@/entities/schedule";
 import { AnalyzeCompanyPanel } from "@/features/analyze-company";
 import { formatDeadline } from "@/shared/lib/format-deadline";
 import { Badge } from "@/shared/ui/badge";
@@ -21,10 +22,12 @@ const inputClassName =
 
 export function ApplicationDetailDialog({
   application,
+  schedule,
   onOpenChange,
   onUpdate,
 }: {
   application: Application | null;
+  schedule?: Schedule | null;
   onOpenChange: (open: boolean) => void;
   onUpdate: (id: string, input: UpdateApplicationInput) => void;
 }) {
@@ -84,6 +87,14 @@ export function ApplicationDetailDialog({
         {application && !editing && (
           <div className="flex min-w-0 flex-col gap-3 text-sm">
             <p className="text-muted-foreground">{application.position}</p>
+            {schedule && (
+              <p className="text-muted-foreground">
+                {schedule.roundLabel ?? "면접"}
+                {schedule.scheduledAt
+                  ? ` · ${new Date(schedule.scheduledAt).toLocaleString("ko-KR")}`
+                  : " · 일정 미정"}
+              </p>
+            )}
             {deadlineLabel && <p className="text-muted-foreground">{deadlineLabel}</p>}
             {application.techStack.length > 0 && (
               <div className="flex flex-wrap gap-1">
@@ -115,7 +126,7 @@ export function ApplicationDetailDialog({
               </p>
             )}
             <ScreenshotGallery paths={application.screenshotPaths} />
-            {application.status !== "applied" && (
+            {application.outcome === "in_progress" && application.stage !== "document" && (
               <AnalyzeCompanyPanel key={application.id} application={application} />
             )}
             <DialogFooter>

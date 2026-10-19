@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { X } from "lucide-react";
 
-import type { Application } from "@/entities/application";
+import { APPLICATION_STAGES, type Application } from "@/entities/application";
+import type { Schedule } from "@/entities/schedule";
 import { formatDeadline } from "@/shared/lib/format-deadline";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -17,15 +18,19 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 
+const STAGE_LABELS = Object.fromEntries(
+  APPLICATION_STAGES.map((stage) => [stage.value, stage.label])
+);
+
 export function ApplicationCard({
   application,
-  onRequestResult,
+  schedule,
   onRequestInterviewRound,
   onOpenDetail,
   onDelete,
 }: {
   application: Application;
-  onRequestResult?: (id: string) => void;
+  schedule?: Schedule | null;
   onRequestInterviewRound?: (id: string) => void;
   onOpenDetail?: (id: string) => void;
   onDelete?: (id: string) => void;
@@ -35,6 +40,8 @@ export function ApplicationCard({
   const { setNodeRef, listeners, attributes, transform, isDragging } = useDraggable({
     id: application.id,
   });
+
+  const isInterviewing = application.stage === "interview" && application.outcome === "in_progress";
 
   return (
     <div
@@ -60,46 +67,30 @@ export function ApplicationCard({
           <span className="sr-only">삭제</span>
         </button>
         <CardHeader>
-          <CardTitle className="flex items-center gap-1.5 pr-4">
+          <CardTitle className="flex flex-wrap items-center gap-1.5 pr-4">
             {application.company}
-            {application.status === "interview" ? (
+            {isInterviewing && (
               <Badge
                 variant="outline"
                 className={
-                  application.interviewRound
+                  schedule
                     ? "cursor-pointer"
                     : "cursor-pointer bg-amber-500/10 text-amber-600"
                 }
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={() => onRequestInterviewRound?.(application.id)}
               >
-                {application.interviewRound ?? "차수 선택"}
-              </Badge>
-            ) : (
-              application.interviewRound && (
-                <Badge variant="outline">{application.interviewRound}</Badge>
-              )
-            )}
-            {application.result && (
-              <Badge
-                className={
-                  application.result === "passed"
-                    ? "ml-auto bg-emerald-500/10 text-emerald-600"
-                    : "ml-auto"
-                }
-                variant={application.result === "passed" ? "outline" : "destructive"}
-              >
-                {application.result === "passed" ? "합격" : "불합격"}
+                {schedule ? (schedule.roundLabel ?? "면접") : "차수 선택"}
               </Badge>
             )}
-            {application.status === "result" && !application.result && (
-              <Badge
-                variant="outline"
-                className="ml-auto cursor-pointer bg-amber-500/10 text-amber-600"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => onRequestResult?.(application.id)}
-              >
-                결과 미정
+            {application.outcome === "passed" && (
+              <Badge className="ml-auto bg-highlight text-highlight-foreground">최종 합격</Badge>
+            )}
+            {application.outcome === "failed" && (
+              <Badge variant="destructive" className="ml-auto">
+                {application.stage === "interview" && schedule?.roundLabel
+                  ? `${schedule.roundLabel} 면접 탈락`
+                  : `${STAGE_LABELS[application.stage]} 탈락`}
               </Badge>
             )}
           </CardTitle>
@@ -109,7 +100,7 @@ export function ApplicationCard({
           <div className="flex flex-col gap-1.5">
             {application.techStack.length > 0 && (
               <div className="flex flex-wrap gap-1">
-                {application.techStack.slice(0, 2).map((tech) => (
+                {application.techStack.slice(0, 3).map((tech) => (
                   <Badge key={tech} variant="secondary">
                     {tech}
                   </Badge>

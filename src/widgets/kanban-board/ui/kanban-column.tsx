@@ -4,25 +4,27 @@ import type { ReactNode } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "cn";
 
-import type { Application, ApplicationStatus } from "@/entities/application";
+import type { Application } from "@/entities/application";
+import type { Schedule } from "@/entities/schedule";
 
+import type { BoardColumnId } from "../model/apply-stage-change";
 import { ApplicationCard } from "./application-card";
 
 export function KanbanColumn({
   id,
   title,
   applications,
+  schedules,
   headerExtra,
-  onRequestResult,
   onRequestInterviewRound,
   onOpenDetail,
   onDelete,
 }: {
-  id: ApplicationStatus;
+  id: BoardColumnId;
   title: string;
   applications: Application[];
+  schedules?: Map<string, Schedule>;
   headerExtra?: ReactNode;
-  onRequestResult?: (id: string) => void;
   onRequestInterviewRound?: (id: string) => void;
   onOpenDetail?: (id: string) => void;
   onDelete?: (id: string) => void;
@@ -38,8 +40,10 @@ export function KanbanColumn({
       )}
     >
       <div className="flex items-center gap-2 px-1">
-        <h2 className="text-sm font-medium">{title}</h2>
-        <span className="text-xs text-muted-foreground">{applications.length}</span>
+        <h2 className="text-sm font-semibold">{title}</h2>
+        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-xs font-medium text-muted-foreground">
+          {applications.length}
+        </span>
         {headerExtra}
       </div>
       <div className="flex flex-col gap-2 px-1 pb-2">
@@ -47,7 +51,7 @@ export function KanbanColumn({
           <ApplicationCard
             key={application.id}
             application={application}
-            onRequestResult={onRequestResult}
+            schedule={schedules?.get(application.id) ?? null}
             onRequestInterviewRound={onRequestInterviewRound}
             onOpenDetail={onOpenDetail}
             onDelete={onDelete}
