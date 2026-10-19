@@ -4,15 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
+  buildYearHeatmap,
+  computeLongestStreak,
   updateApplication,
   type Application,
   type UpdateApplicationInput,
 } from "@/entities/application";
 import { latestScheduleByApplication, type Schedule } from "@/entities/schedule";
+import { todayKST } from "@/shared/lib/kst-date";
 import { CreateApplicationDialog } from "@/features/create-application";
 import { ApplicationDetailDialog } from "@/widgets/kanban-board";
+import { cn } from "cn";
 
 import { computeApplicationStats } from "../model/compute-stats";
+import { ActivityHeatmap } from "./activity-heatmap";
 import { StageFunnel } from "./stage-funnel";
 import { SummaryHeader } from "./summary-header";
 import { TechStackBars } from "./tech-stack-bars";
@@ -30,6 +35,14 @@ export function ApplicationStats({
 }) {
   const router = useRouter();
   const stats = computeApplicationStats(applications, schedules);
+  const today = todayKST();
+  const currentYear = Number(today.slice(0, 4));
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const availableYears = Array.from(
+    new Set([currentYear, ...applications.flatMap((a) => (a.appliedAt ? [Number(a.appliedAt.slice(0, 4))] : []))])
+  ).sort((a, b) => b - a);
+  const yearHeatmap = buildYearHeatmap(applications, selectedYear, today);
+  const longestStreak = computeLongestStreak(yearHeatmap);
   const latestSchedules = latestScheduleByApplication(schedules);
   const [detailId, setDetailId] = useState<string | null>(null);
   const detailApplication = applications.find((app) => app.id === detailId) ?? null;
@@ -54,6 +67,36 @@ export function ApplicationStats({
   return (
     <div className="mx-auto flex max-w-[720px] flex-col px-6 pt-10 pb-8">
       <SummaryHeader stats={stats} />
+
+      <div className={`${SECTION} flex flex-col gap-3`}>
+        <div className="flex items-baseline justify-between gap-4">
+          <p className="text-sm font-medium">
+            {selectedYear}년에{" "}
+            <span className="bg-[linear-gradient(transparent_58%,var(--highlight)_58%)] px-0.5">
+              {yearHeatmap.totalCount}곳
+            </span>
+            에 지원했어요
+          </p>
+          <span className="flex shrink-0 items-baseline gap-2 text-[11px] text-muted-foreground">
+            {availableYears.length > 1 &&
+              availableYears.map((year) => (
+                <button
+                  key={year}
+                  type="button"
+                  onClick={() => setSelectedYear(year)}
+                  className={cn(
+                    year === selectedYear ? "text-foreground" : "text-muted-foreground",
+                    "hover:text-foreground"
+                  )}
+                >
+                  {year}
+                </button>
+              ))}
+            <span>최장 연속 {longestStreak}일</span>
+          </span>
+        </div>
+        <ActivityHeatmap heatmap={yearHeatmap} />
+      </div>
 
       <div className={SECTION}>
         <StageFunnel steps={stats.funnel} total={stats.total} />
