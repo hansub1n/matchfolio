@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import type { Application } from "@/entities/application";
+import type { Schedule } from "@/entities/schedule";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -14,28 +15,46 @@ import {
 
 const QUICK_ROUNDS = ["1차", "2차", "최종"];
 
+function toDatetimeLocalValue(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fromDatetimeLocalValue(value: string): string | null {
+  return value ? new Date(value).toISOString() : null;
+}
+
 export function InterviewRoundDialog({
   application,
+  schedule,
   onSelect,
   onOpenChange,
 }: {
   application: Application | null;
-  onSelect: (id: string, round: string) => void;
+  schedule?: Schedule | null;
+  onSelect: (id: string, round: string, scheduledAt: string | null) => void;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [customRound, setCustomRound] = useState("");
+  const [customRound, setCustomRound] = useState(schedule?.roundLabel ?? "");
+  const [scheduledAt, setScheduledAt] = useState(toDatetimeLocalValue(schedule?.scheduledAt));
 
   function select(round: string) {
     if (!application || !round.trim()) return;
-    onSelect(application.id, round.trim());
+    onSelect(application.id, round.trim(), fromDatetimeLocalValue(scheduledAt));
     setCustomRound("");
+    setScheduledAt("");
   }
 
   return (
     <Dialog
       open={application !== null}
       onOpenChange={(open) => {
-        if (!open) setCustomRound("");
+        if (!open) {
+          setCustomRound("");
+          setScheduledAt("");
+        }
         onOpenChange(open);
       }}
     >
@@ -54,6 +73,15 @@ export function InterviewRoundDialog({
               {round}
             </Button>
           ))}
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-muted-foreground">일정 (선택)</label>
+          <input
+            type="datetime-local"
+            value={scheduledAt}
+            onChange={(e) => setScheduledAt(e.target.value)}
+            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          />
         </div>
         <DialogFooter>
           <input

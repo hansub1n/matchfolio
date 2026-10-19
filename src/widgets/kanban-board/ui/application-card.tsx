@@ -22,16 +22,28 @@ const STAGE_LABELS = Object.fromEntries(
   APPLICATION_STAGES.map((stage) => [stage.value, stage.label])
 );
 
+function formatScheduleTime(scheduledAt: string | null) {
+  if (!scheduledAt) return null;
+  return new Date(scheduledAt).toLocaleString("ko-KR", {
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function ApplicationCard({
   application,
   schedule,
   onRequestInterviewRound,
+  onRequestCodingTestSchedule,
   onOpenDetail,
   onDelete,
 }: {
   application: Application;
   schedule?: Schedule | null;
   onRequestInterviewRound?: (id: string) => void;
+  onRequestCodingTestSchedule?: (id: string) => void;
   onOpenDetail?: (id: string) => void;
   onDelete?: (id: string) => void;
 }) {
@@ -42,6 +54,8 @@ export function ApplicationCard({
   });
 
   const isInterviewing = application.stage === "interview" && application.outcome === "in_progress";
+  const isCodingTest = application.stage === "coding_test" && application.outcome === "in_progress";
+  const codingTestTimeLabel = formatScheduleTime(schedule?.scheduledAt ?? null);
 
   return (
     <div
@@ -81,6 +95,16 @@ export function ApplicationCard({
                 onClick={() => onRequestInterviewRound?.(application.id)}
               >
                 {schedule ? (schedule.roundLabel ?? "면접") : "차수 선택"}
+              </Badge>
+            )}
+            {isCodingTest && (
+              <Badge
+                variant="outline"
+                className={codingTestTimeLabel ? "cursor-pointer" : "cursor-pointer bg-amber-500/10 text-amber-600"}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => onRequestCodingTestSchedule?.(application.id)}
+              >
+                {codingTestTimeLabel ?? "일정 입력"}
               </Badge>
             )}
             {application.outcome === "passed" && (

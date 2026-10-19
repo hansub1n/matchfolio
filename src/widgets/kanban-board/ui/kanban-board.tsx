@@ -19,11 +19,14 @@ import {
 import {
   createSchedule,
   latestScheduleByApplication,
+  updateSchedule,
   type Schedule,
 } from "@/entities/schedule";
 
 import { applyStageChange, type BoardColumnId } from "../model/apply-stage-change";
+import { shouldUpdateExistingSchedule } from "../model/resolve-interview-round";
 import { ApplicationDetailDialog } from "./application-detail-dialog";
+import { CodingTestScheduleDialog } from "./coding-test-schedule-dialog";
 import { FinishedColumn } from "./finished-column";
 import { InterviewRoundDialog } from "./interview-round-dialog";
 import { KanbanColumn } from "./kanban-column";
@@ -52,8 +55,8 @@ export function KanbanBoard({
     () => latestScheduleByApplication(scheduleItems),
     [scheduleItems]
   );
-  // "코테를 실제로 밟았는지" 통계용 — 날짜 입력 없이 코테 컬럼에 처음 들어간
-  // 시점만 조용히 기록해둔다 (UI 다이얼로그는 없음, 캘린더 작업에서 추가 예정).
+  // "코테를 실제로 밟았는지" 통계용 — 코테 컬럼에 처음 들어갈 때 한 번만 다이얼로그로
+  // 일정을 묻고(건너뛰기 가능), 이후 재진입 시엔 다시 묻지 않는다.
   const codingTestMarked = useMemo(
     () => new Set(scheduleItems.filter((s) => s.stage === "coding_test").map((s) => s.applicationId)),
     [scheduleItems]
@@ -61,6 +64,7 @@ export function KanbanBoard({
 
   const [pendingOutcomeId, setPendingOutcomeId] = useState<string | null>(null);
   const [pendingRoundId, setPendingRoundId] = useState<string | null>(null);
+  const [pendingCodingTestId, setPendingCodingTestId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -90,9 +94,7 @@ export function KanbanBoard({
     }
 
     if (target === "coding_test" && !codingTestMarked.has(draggedId)) {
-      createSchedule({ applicationId: draggedId, stage: "coding_test" })
-        .then((created) => setScheduleItems((prev) => [created, ...prev]))
-        .catch(console.error);
+      setPendingCodingTestId(draggedId);
     }
   }
 
@@ -102,9 +104,38 @@ export function KanbanBoard({
     updateApplication(id, { outcome }).catch(console.error);
   }
 
-  function handleSetInterviewRound(id: string, round: string) {
+  function handleSetInterviewRound(id: string, round: string, scheduledAt: string | null) {
     setPendingRoundId(null);
-    createSchedule({ applicationId: id, stage: "interview", roundLabel: round })
+    const existing = latestSchedules.get(id);
+
+    if (shouldUpdateExistingSchedule(existing, round)) {
+      updateSchedule(existing.id, { scheduledAt })
+        .then((updated) =>
+          setScheduleItems((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+        )
+        .catch(console.error);
+      return;
+    }
+
+    createSchedule({ applicationId: id, stage: "interview", roundLabel: round, scheduledAt })
+      .then((created) => setScheduleItems((prev) => [created, ...prev]))
+      .catch(console.error);
+  }
+
+  function handleSetCodingTestSchedule(id: string, scheduledAt: string | null) {
+    setPendingCodingTestId(null);
+    const existing = scheduleItems.find((s) => s.applicationId === id && s.stage === "coding_test");
+
+    if (existing) {
+      updateSchedule(existing.id, { scheduledAt })
+        .then((updated) =>
+          setScheduleItems((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+        )
+        .catch(console.error);
+      return;
+    }
+
+    createSchedule({ applicationId: id, stage: "coding_test", scheduledAt })
       .then((created) => setScheduleItems((prev) => [created, ...prev]))
       .catch(console.error);
   }
@@ -133,6 +164,13 @@ export function KanbanBoard({
 
   const pendingOutcomeApplication = items.find((app) => app.id === pendingOutcomeId) ?? null;
   const pendingRoundApplication = items.find((app) => app.id === pendingRoundId) ?? null;
+  const pendingCodingTestApplication =
+    items.find((app) => app.id === pendingCodingTestId) ?? null;
+  const pendingCodingTestSchedule = pendingCodingTestApplication
+    ? (scheduleItems.find(
+        (s) => s.applicationId === pendingCodingTestApplication.id && s.stage === "coding_test"
+      ) ?? null)
+    : null;
   const detailApplication = items.find((app) => app.id === detailId) ?? null;
   const detailSchedule = detailApplication ? latestSchedules.get(detailApplication.id) : null;
 
@@ -152,6 +190,7 @@ export function KanbanBoard({
               applications={columnApplications}
               schedules={latestSchedules}
               onRequestInterviewRound={setPendingRoundId}
+              onRequestCodingTestSchedule={setPendingCodingTestId}
               onOpenDetail={setDetailId}
               onDelete={handleDeleteApplication}
             />
@@ -171,10 +210,21 @@ export function KanbanBoard({
         }}
       />
       <InterviewRoundDialog
+        key={`round-${pendingRoundApplication?.id ?? "none"}`}
         application={pendingRoundApplication}
+        schedule={pendingRoundApplication ? latestSchedules.get(pendingRoundApplication.id) : null}
         onSelect={handleSetInterviewRound}
         onOpenChange={(open) => {
           if (!open) setPendingRoundId(null);
+        }}
+      />
+      <CodingTestScheduleDialog
+        key={`coding-test-${pendingCodingTestApplication?.id ?? "none"}`}
+        application={pendingCodingTestApplication}
+        schedule={pendingCodingTestSchedule}
+        onSelect={handleSetCodingTestSchedule}
+        onOpenChange={(open) => {
+          if (!open) setPendingCodingTestId(null);
         }}
       />
       <ApplicationDetailDialog

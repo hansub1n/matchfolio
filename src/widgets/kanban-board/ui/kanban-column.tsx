@@ -17,6 +17,7 @@ export function KanbanColumn({
   schedules,
   headerExtra,
   onRequestInterviewRound,
+  onRequestCodingTestSchedule,
   onOpenDetail,
   onDelete,
 }: {
@@ -26,6 +27,7 @@ export function KanbanColumn({
   schedules?: Map<string, Schedule>;
   headerExtra?: ReactNode;
   onRequestInterviewRound?: (id: string) => void;
+  onRequestCodingTestSchedule?: (id: string) => void;
   onOpenDetail?: (id: string) => void;
   onDelete?: (id: string) => void;
 }) {
@@ -53,6 +55,7 @@ export function KanbanColumn({
             application={application}
             schedule={schedules?.get(application.id) ?? null}
             onRequestInterviewRound={onRequestInterviewRound}
+            onRequestCodingTestSchedule={onRequestCodingTestSchedule}
             onOpenDetail={onOpenDetail}
             onDelete={onDelete}
           />

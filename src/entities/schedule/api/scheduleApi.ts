@@ -56,3 +56,23 @@ export async function createSchedule(input: CreateScheduleInput): Promise<Schedu
   if (error) throw error;
   return toSchedule(data);
 }
+
+export interface UpdateScheduleInput {
+  roundLabel?: string | null;
+  scheduledAt?: string | null;
+}
+
+export async function updateSchedule(id: string, input: UpdateScheduleInput): Promise<Schedule> {
+  const { data, error } = await supabase
+    .from("schedules")
+    .update({
+      ...(input.roundLabel !== undefined ? { round_label: input.roundLabel } : {}),
+      ...(input.scheduledAt !== undefined ? { scheduled_at: input.scheduledAt } : {}),
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return toSchedule(data);
+}
