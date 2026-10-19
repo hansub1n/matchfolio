@@ -89,7 +89,7 @@ export function CreateMyProjectDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">+ 프로젝트 추가</Button>
+        <Button>+ 프로젝트 추가</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>

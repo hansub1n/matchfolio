@@ -145,7 +145,7 @@ export function CreateApplicationDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {trigger !== null && (
-        <DialogTrigger asChild>{trigger ?? <Button variant="outline">+ 카드 추가</Button>}</DialogTrigger>
+        <DialogTrigger asChild>{trigger ?? <Button>+ 카드 추가</Button>}</DialogTrigger>
       )}
       <DialogContent onPaste={handlePaste}>
         <DialogHeader>

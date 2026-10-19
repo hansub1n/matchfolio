@@ -110,7 +110,7 @@ export function CreateInterestedCompanyDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">+ 관심기업 추가</Button>
+        <Button>+ 관심기업 추가</Button>
       </DialogTrigger>
       <DialogContent onPaste={handlePaste}>
         <DialogHeader>

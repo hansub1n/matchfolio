@@ -51,7 +51,7 @@ export function Watchlist({ companies }: { companies: InterestedCompany[] }) {
   }
 
   return (
-    <div className="flex flex-wrap gap-2 px-4">
+    <div className="flex flex-wrap gap-2 px-6">
       {items.map((company) => (
         <InterestedCompanyCard
           key={company.id}

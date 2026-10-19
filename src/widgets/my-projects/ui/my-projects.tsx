@@ -45,7 +45,7 @@ export function MyProjects({ projects }: { projects: MyProject[] }) {
   }
 
   return (
-    <div className="flex flex-wrap gap-2 px-4">
+    <div className="flex flex-wrap gap-2 px-6">
       {items.map((project) => (
         <MyProjectCard
           key={project.id}
