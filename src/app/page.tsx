@@ -4,10 +4,10 @@ import { getApplications } from "@/entities/application";
 import { getInterestedCompanies } from "@/entities/interested-company";
 import { getMyProjects } from "@/entities/my-project";
 import { getSchedules } from "@/entities/schedule";
-import { CreateApplicationDialog } from "@/features/create-application";
 import { CreateInterestedCompanyDialog } from "@/features/create-interested-company";
 import { CreateMyProjectDialog } from "@/features/create-my-project";
 import { ApplicationStats } from "@/widgets/application-stats";
+import { BoardHeader } from "@/widgets/board-header";
 import { KanbanBoard } from "@/widgets/kanban-board";
 import { MyProjects } from "@/widgets/my-projects";
 import { Watchlist } from "@/widgets/watchlist";
@@ -48,9 +48,11 @@ export default async function Home() {
           </TabsList>
         </div>
         <TabsContent value="board" className="flex flex-col gap-4">
-          <div className="flex justify-end px-6">
-            <CreateApplicationDialog />
-          </div>
+          <BoardHeader
+            applications={applications}
+            interestedCompanies={companies}
+            schedules={schedules}
+          />
           <KanbanBoard applications={applications} schedules={schedules} />
         </TabsContent>
         <TabsContent value="watchlist" className="flex flex-col gap-4">
