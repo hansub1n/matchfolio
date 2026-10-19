@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
+import Groq from "groq-sdk";
 
 import { env } from "@/shared/config/env";
 import { supabaseAdmin } from "@/shared/api/supabase-admin";
-import { describeGeminiError, GEMINI_MODEL, isRetryable } from "@/shared/lib/gemini";
+import { describeGroqError, GROQ_TEXT_MODEL, isRetryable } from "@/shared/lib/groq";
 import { isSameOrigin } from "@/shared/lib/request-guard";
 
 function sleep(ms: number) {
@@ -62,6 +62,7 @@ const ANALYSIS_SCHEMA = {
     },
   },
   required: ["companyAnalysis", "interviewQuestions"],
+  additionalProperties: false,
 };
 
 export async function POST(request: Request) {
@@ -108,23 +109,25 @@ ${searchContext}
 
 위 정보를 바탕으로 이 회사에 대한 기업분석과, 이 공고/기업 특성에 맞춘 예상 면접 질문을 만들어줘.`;
 
-  const ai = new GoogleGenAI({ apiKey: env.gemini.apiKey });
+  const groq = new Groq({ apiKey: env.groq.apiKey });
   const maxAttempts = 3;
   const attemptTimeoutMs = 25000;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      const response = await ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        config: {
-          responseMimeType: "application/json",
-          responseJsonSchema: ANALYSIS_SCHEMA,
-          abortSignal: AbortSignal.timeout(attemptTimeoutMs),
+      const response = await groq.chat.completions.create(
+        {
+          model: GROQ_TEXT_MODEL,
+          messages: [{ role: "user", content: prompt }],
+          response_format: {
+            type: "json_schema",
+            json_schema: { name: "company_analysis", schema: ANALYSIS_SCHEMA, strict: true },
+          },
         },
-      });
+        { signal: AbortSignal.timeout(attemptTimeoutMs) }
+      );
 
-      const result = JSON.parse(response.text ?? "{}") as {
+      const result = JSON.parse(response.choices[0]?.message?.content ?? "{}") as {
         companyAnalysis: string;
         interviewQuestions: string[];
       };
@@ -164,7 +167,7 @@ ${searchContext}
       }
 
       return NextResponse.json(
-        { error: `기업분석에 실패했습니다: ${describeGeminiError(error)}` },
+        { error: `기업분석에 실패했습니다: ${describeGroqError(error)}` },
         { status: 500 }
       );
     }

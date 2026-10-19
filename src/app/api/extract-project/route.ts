@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
+import Groq from "groq-sdk";
 
 import { env } from "@/shared/config/env";
-import { describeGeminiError, GEMINI_MODEL, isRetryable } from "@/shared/lib/gemini";
+import { describeGroqError, GROQ_TEXT_MODEL, isRetryable } from "@/shared/lib/groq";
 import { isSameOrigin } from "@/shared/lib/request-guard";
 
 function sleep(ms: number) {
@@ -56,6 +56,7 @@ const EXTRACTION_SCHEMA = {
     },
   },
   required: ["name", "description", "techStack", "highlights"],
+  additionalProperties: false,
 };
 
 export async function POST(request: Request) {
@@ -91,23 +92,25 @@ ${sourceText}
 
 위 내용을 바탕으로 프로젝트 이름, 한두 문장 소개, 기술스택 태그, 이력서/면접에서 어필할 만한 주요 기능이나 경험 3~5개를 뽑아줘.`;
 
-  const ai = new GoogleGenAI({ apiKey: env.gemini.apiKey });
+  const groq = new Groq({ apiKey: env.groq.apiKey });
   const maxAttempts = 3;
   const attemptTimeoutMs = 25000;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      const response = await ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        config: {
-          responseMimeType: "application/json",
-          responseJsonSchema: EXTRACTION_SCHEMA,
-          abortSignal: AbortSignal.timeout(attemptTimeoutMs),
+      const response = await groq.chat.completions.create(
+        {
+          model: GROQ_TEXT_MODEL,
+          messages: [{ role: "user", content: prompt }],
+          response_format: {
+            type: "json_schema",
+            json_schema: { name: "project_extraction", schema: EXTRACTION_SCHEMA, strict: true },
+          },
         },
-      });
+        { signal: AbortSignal.timeout(attemptTimeoutMs) }
+      );
 
-      const extracted = JSON.parse(response.text ?? "{}");
+      const extracted = JSON.parse(response.choices[0]?.message?.content ?? "{}");
       return NextResponse.json(extracted);
     } catch (error) {
       console.error(`extract-project attempt ${attempt} failed:`, error);
@@ -118,7 +121,7 @@ ${sourceText}
       }
 
       return NextResponse.json(
-        { error: `프로젝트 정보 추출에 실패했습니다: ${describeGeminiError(error)}` },
+        { error: `프로젝트 정보 추출에 실패했습니다: ${describeGroqError(error)}` },
         { status: 500 }
       );
     }

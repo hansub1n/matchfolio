@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
+import Groq from "groq-sdk";
 
 import { env } from "@/shared/config/env";
 import { supabaseAdmin } from "@/shared/api/supabase-admin";
-import { describeGeminiError, GEMINI_MODEL, isRetryable } from "@/shared/lib/gemini";
+import { describeGroqError, GROQ_TEXT_MODEL, isRetryable } from "@/shared/lib/groq";
 import { isSameOrigin } from "@/shared/lib/request-guard";
 
 function sleep(ms: number) {
@@ -40,10 +40,12 @@ const MATCH_SCHEMA = {
           },
         },
         required: ["projectName", "fitScore", "reason", "highlightPoints"],
+        additionalProperties: false,
       },
     },
   },
   required: ["matches"],
+  additionalProperties: false,
 };
 
 export async function POST(request: Request) {
@@ -102,24 +104,26 @@ ${projectsText}
 
 너는 이 지원자의 커리어 코치가 아니라 냉정한 채용 담당자처럼 평가해야 한다. 모든 프로젝트를 무조건 긍정적으로 포장하지 말고, 공고에 실제로 명시된 요구사항과 겹치는 부분이 얼마나 되는지만 근거로 점수를 매겨라. 공고에 기술스택이나 구체적인 업무가 적혀있지 않다면 "완벽히 부합" 같은 말은 쓰지 말고, 근거가 약하다는 걸 그대로 드러내고 점수도 낮게 줘라. 등록된 프로젝트 전부에 대해 fitScore를 매겨서 반환해.`;
 
-  const ai = new GoogleGenAI({ apiKey: env.gemini.apiKey });
+  const groq = new Groq({ apiKey: env.groq.apiKey });
   const maxAttempts = 3;
   // 프로젝트마다 fitScore/이유/강조포인트를 다 만들어야 해서 다른 라우트보다 출력량이 많다.
   const attemptTimeoutMs = 45000;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      const response = await ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        config: {
-          responseMimeType: "application/json",
-          responseJsonSchema: MATCH_SCHEMA,
-          abortSignal: AbortSignal.timeout(attemptTimeoutMs),
+      const response = await groq.chat.completions.create(
+        {
+          model: GROQ_TEXT_MODEL,
+          messages: [{ role: "user", content: prompt }],
+          response_format: {
+            type: "json_schema",
+            json_schema: { name: "project_matches", schema: MATCH_SCHEMA, strict: true },
+          },
         },
-      });
+        { signal: AbortSignal.timeout(attemptTimeoutMs) }
+      );
 
-      const result = JSON.parse(response.text ?? "{}") as { matches: unknown };
+      const result = JSON.parse(response.choices[0]?.message?.content ?? "{}") as { matches: unknown };
       const sortedMatches = (result.matches as { fitScore: number }[]).sort(
         (a, b) => b.fitScore - a.fitScore
       );
@@ -155,7 +159,7 @@ ${projectsText}
       }
 
       return NextResponse.json(
-        { error: `프로젝트 매칭에 실패했습니다: ${describeGeminiError(error)}` },
+        { error: `프로젝트 매칭에 실패했습니다: ${describeGroqError(error)}` },
         { status: 500 }
       );
     }
