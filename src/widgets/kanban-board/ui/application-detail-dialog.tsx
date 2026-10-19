@@ -34,6 +34,7 @@ export function ApplicationDetailDialog({
   const [editing, setEditing] = useState(false);
   const [company, setCompany] = useState("");
   const [position, setPosition] = useState("");
+  const [appliedAt, setAppliedAt] = useState("");
   const [deadline, setDeadline] = useState("");
   const [jobPostingUrl, setJobPostingUrl] = useState("");
   const [techStack, setTechStack] = useState("");
@@ -41,6 +42,9 @@ export function ApplicationDetailDialog({
   const [memo, setMemo] = useState("");
 
   const deadlineLabel = formatDeadline(application?.deadline ?? null);
+  const appliedAtLabel = application?.appliedAt
+    ? `지원 ${application.appliedAt.slice(5).replace("-", "/")}`
+    : null;
 
   function handleOpenChange(open: boolean) {
     if (!open) {
@@ -53,6 +57,7 @@ export function ApplicationDetailDialog({
     if (!application) return;
     setCompany(application.company);
     setPosition(application.position);
+    setAppliedAt(application.appliedAt ?? "");
     setDeadline(application.deadline ?? "");
     setJobPostingUrl(application.jobPostingUrl ?? "");
     setTechStack(application.techStack.join(", "));
@@ -66,6 +71,7 @@ export function ApplicationDetailDialog({
     onUpdate(application.id, {
       company: company.trim(),
       position: position.trim(),
+      appliedAt: appliedAt || null,
       deadline: deadline || null,
       jobPostingUrl: jobPostingUrl.trim() || null,
       description: description.trim() || null,
@@ -95,6 +101,7 @@ export function ApplicationDetailDialog({
                   : " · 일정 미정"}
               </p>
             )}
+            {appliedAtLabel && <p className="text-muted-foreground">{appliedAtLabel}</p>}
             {deadlineLabel && <p className="text-muted-foreground">{deadlineLabel}</p>}
             {application.techStack.length > 0 && (
               <div className="flex flex-wrap gap-1">
@@ -150,12 +157,24 @@ export function ApplicationDetailDialog({
               placeholder="직무"
               className={inputClassName}
             />
-            <input
-              type="date"
-              value={deadline}
-              onChange={(e) => setDeadline(e.target.value)}
-              className={inputClassName}
-            />
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">지원일</label>
+              <input
+                type="date"
+                value={appliedAt}
+                onChange={(e) => setAppliedAt(e.target.value)}
+                className={inputClassName}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">마감일</label>
+              <input
+                type="date"
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+                className={inputClassName}
+              />
+            </div>
             <input
               value={jobPostingUrl}
               onChange={(e) => setJobPostingUrl(e.target.value)}

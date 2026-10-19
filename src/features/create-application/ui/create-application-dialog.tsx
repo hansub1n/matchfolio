@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 
 import { createApplication } from "@/entities/application";
 import { extractJobPosting } from "@/features/extract-job-posting";
+import { todayKST } from "@/shared/lib/kst-date";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -56,6 +57,7 @@ export function CreateApplicationDialog({
   const setOpen = onOpenChangeProp ?? setOpenState;
   const [company, setCompany] = useState(initialValues?.company ?? "");
   const [position, setPosition] = useState(initialValues?.position ?? "");
+  const [appliedAt, setAppliedAt] = useState(todayKST());
   const [deadline, setDeadline] = useState(initialValues?.deadline ?? "");
   const [jobPostingUrl, setJobPostingUrl] = useState(initialValues?.jobPostingUrl ?? "");
   const [techStack, setTechStack] = useState(initialValues?.techStack?.join(", ") ?? "");
@@ -71,6 +73,7 @@ export function CreateApplicationDialog({
   function reset() {
     setCompany(initialValues?.company ?? "");
     setPosition(initialValues?.position ?? "");
+    setAppliedAt(todayKST());
     setDeadline(initialValues?.deadline ?? "");
     setJobPostingUrl(initialValues?.jobPostingUrl ?? "");
     setTechStack(initialValues?.techStack?.join(", ") ?? "");
@@ -121,6 +124,7 @@ export function CreateApplicationDialog({
       await createApplication({
         company: company.trim(),
         position: position.trim(),
+        appliedAt: appliedAt || null,
         deadline: deadline || null,
         jobPostingUrl: jobPostingUrl.trim() || null,
         screenshotPaths,
@@ -181,12 +185,24 @@ export function CreateApplicationDialog({
             placeholder="직무"
             className={inputClassName}
           />
-          <input
-            type="date"
-            value={deadline}
-            onChange={(e) => setDeadline(e.target.value)}
-            className={inputClassName}
-          />
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-muted-foreground">지원일</label>
+            <input
+              type="date"
+              value={appliedAt}
+              onChange={(e) => setAppliedAt(e.target.value)}
+              className={inputClassName}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-muted-foreground">마감일</label>
+            <input
+              type="date"
+              value={deadline}
+              onChange={(e) => setDeadline(e.target.value)}
+              className={inputClassName}
+            />
+          </div>
           <input
             value={jobPostingUrl}
             onChange={(e) => setJobPostingUrl(e.target.value)}

@@ -93,6 +93,7 @@ export interface UpdateApplicationInput {
   position?: string;
   stage?: ApplicationStage;
   outcome?: ApplicationOutcome;
+  appliedAt?: string | null;
   deadline?: string | null;
   jobPostingUrl?: string | null;
   description?: string | null;
@@ -111,6 +112,7 @@ export async function updateApplication(
       position: input.position,
       stage: input.stage,
       outcome: input.outcome,
+      applied_at: input.appliedAt,
       deadline: input.deadline,
       job_posting_url: input.jobPostingUrl,
       description: input.description,
