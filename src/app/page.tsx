@@ -1,4 +1,4 @@
-import { BarChart3, FolderGit2, LayoutGrid, Star } from "lucide-react";
+import { BarChart3, CalendarDays, FolderGit2, LayoutGrid, Star } from "lucide-react";
 
 import { getApplications } from "@/entities/application";
 import { getInterestedCompanies } from "@/entities/interested-company";
@@ -8,6 +8,7 @@ import { CreateInterestedCompanyDialog } from "@/features/create-interested-comp
 import { CreateMyProjectDialog } from "@/features/create-my-project";
 import { ApplicationStats } from "@/widgets/application-stats";
 import { BoardHeader } from "@/widgets/board-header";
+import { CalendarView } from "@/widgets/calendar-view";
 import { KanbanBoard } from "@/widgets/kanban-board";
 import { MyProjects } from "@/widgets/my-projects";
 import { Watchlist } from "@/widgets/watchlist";
@@ -45,6 +46,10 @@ export default async function Home() {
               <BarChart3 data-icon="inline-start" />
               통계
             </TabsTrigger>
+            <TabsTrigger value="calendar">
+              <CalendarDays data-icon="inline-start" />
+              캘린더
+            </TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="board" className="flex flex-col gap-4">
@@ -69,6 +74,13 @@ export default async function Home() {
         </TabsContent>
         <TabsContent value="stats">
           <ApplicationStats applications={applications} schedules={schedules} />
+        </TabsContent>
+        <TabsContent value="calendar">
+          <CalendarView
+            applications={applications}
+            interestedCompanies={companies}
+            schedules={schedules}
+          />
         </TabsContent>
       </Tabs>
     </main>

@@ -9,6 +9,8 @@
   --color-foreground: var(--foreground);
   --color-highlight: var(--highlight);
   --color-highlight-foreground: var(--highlight-foreground);
+  --color-urgent: var(--urgent);
+  --color-urgent-foreground: var(--urgent-foreground);
   --font-sans: "Pretendard Variable", var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
@@ -85,6 +87,8 @@
   --sidebar-ring: oklch(0.708 0 0);
   --highlight: oklch(0.87 0.19 126);
   --highlight-foreground: oklch(0.27 0.05 126);
+  --urgent: oklch(0.75 0.17 55);
+  --urgent-foreground: oklch(0.27 0.06 55);
   --heat-0: oklch(0.93 0 0);
   --heat-1: #eefbc4;
   --heat-2: var(--highlight);
@@ -126,6 +130,8 @@
   --sidebar-ring: oklch(0.556 0 0);
   --highlight: oklch(0.8 0.19 126);
   --highlight-foreground: oklch(0.22 0.04 126);
+  --urgent: oklch(0.7 0.18 55);
+  --urgent-foreground: oklch(0.2 0.05 55);
   --heat-0: oklch(0.27 0 0);
   --heat-1: oklch(0.32 0.035 126);
   --heat-2: var(--highlight);

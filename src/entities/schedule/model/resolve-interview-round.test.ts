@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Schedule } from "@/entities/schedule";
-
+import type { Schedule } from "./types";
 import { shouldUpdateExistingSchedule } from "./resolve-interview-round";
 
 function buildSchedule(overrides: Partial<Schedule> = {}): Schedule {

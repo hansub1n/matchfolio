@@ -9,3 +9,7 @@ export function todayKST(): string {
 export function toKSTDateString(date: Date | string): string {
   return formatInTimeZone(date, KST_TIME_ZONE, "yyyy-MM-dd");
 }
+
+export function toKSTTimeString(date: Date | string): string {
+  return formatInTimeZone(date, KST_TIME_ZONE, "HH:mm");
+}

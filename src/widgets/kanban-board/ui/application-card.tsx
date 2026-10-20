@@ -6,8 +6,11 @@ import { X } from "lucide-react";
 
 import { APPLICATION_STAGES, type Application } from "@/entities/application";
 import type { Schedule } from "@/entities/schedule";
+import { getDdayTier } from "@/shared/lib/dday";
 import { formatDeadline } from "@/shared/lib/format-deadline";
+import { todayKST } from "@/shared/lib/kst-date";
 import { Badge } from "@/shared/ui/badge";
+import { cn } from "cn";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import {
@@ -49,6 +52,7 @@ export function ApplicationCard({
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const deadlineLabel = formatDeadline(application.deadline);
+  const deadlineTier = application.deadline ? getDdayTier(application.deadline, todayKST()) : null;
   const { setNodeRef, listeners, attributes, transform, isDragging } = useDraggable({
     id: application.id,
   });
@@ -132,7 +136,18 @@ export function ApplicationCard({
               </div>
             )}
             {deadlineLabel && (
-              <span className="text-xs text-muted-foreground">{deadlineLabel}</span>
+              <span
+                className={cn(
+                  "text-xs",
+                  deadlineTier === "urgent"
+                    ? "font-medium text-urgent"
+                    : deadlineTier === "soon"
+                      ? "text-foreground"
+                      : "text-muted-foreground"
+                )}
+              >
+                {deadlineLabel}
+              </span>
             )}
           </div>
           <button

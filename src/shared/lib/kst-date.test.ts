@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { todayKST, toKSTDateString } from "./kst-date";
+import { todayKST, toKSTDateString, toKSTTimeString } from "./kst-date";
 
 describe("toKSTDateString", () => {
   it("rolls over to the next day when UTC time is already past KST midnight", () => {
@@ -11,6 +11,13 @@ describe("toKSTDateString", () => {
   it("stays on the same day right before KST midnight", () => {
     // 2026-01-01 14:59 UTC = 2026-01-01 23:59 KST — 아직 자정 전.
     expect(toKSTDateString("2026-01-01T14:59:00Z")).toBe("2026-01-01");
+  });
+});
+
+describe("toKSTTimeString", () => {
+  it("rolls over to the next day's time when UTC time is already past KST midnight", () => {
+    // 2026-01-01 15:30 UTC = 2026-01-02 00:30 KST — 시간도 날짜와 같이 넘어가야 한다.
+    expect(toKSTTimeString("2026-01-01T15:30:00Z")).toBe("00:30");
   });
 });
 
