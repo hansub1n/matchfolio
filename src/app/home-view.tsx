@@ -8,7 +8,6 @@ import type { InterestedCompany } from "@/entities/interested-company";
 import type { MyProject } from "@/entities/my-project";
 import type { ProjectMatchWithCompany } from "@/entities/project-match";
 import type { Schedule } from "@/entities/schedule";
-import { CreateInterestedCompanyDialog } from "@/features/create-interested-company";
 import { ApplicationStats } from "@/widgets/application-stats";
 import { BoardHeader } from "@/widgets/board-header";
 import { CalendarView } from "@/widgets/calendar-view";
@@ -77,11 +76,8 @@ export function HomeView({
           />
           <KanbanBoard applications={applications} schedules={schedules} myProjects={myProjects} />
         </TabsContent>
-        <TabsContent value="watchlist" className="flex flex-col gap-4">
-          <div className="flex justify-end px-6">
-            <CreateInterestedCompanyDialog />
-          </div>
-          <Watchlist companies={companies} />
+        <TabsContent value="watchlist">
+          <Watchlist companies={companies} allProjectMatches={allProjectMatches} />
         </TabsContent>
         <TabsContent value="my-projects">
           <MyProjects

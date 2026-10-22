@@ -8,12 +8,23 @@ import {
   type InterestedCompany,
   type UpdateInterestedCompanyInput,
 } from "@/entities/interested-company";
+import type { ProjectMatchWithCompany } from "@/entities/project-match";
 import { CreateApplicationDialog } from "@/features/create-application";
+import { CreateInterestedCompanyDialog } from "@/features/create-interested-company";
+import { todayKST } from "@/shared/lib/kst-date";
 import { ApplicationDetailDialog } from "@/widgets/kanban-board";
 
-import { InterestedCompanyCard } from "./interested-company-card";
+import { computeBestProject } from "../model/compute-best-project";
+import { countDueThisWeek, groupByDeadline } from "../model/group-by-deadline";
+import { InterestedCompanyRow } from "./interested-company-row";
 
-export function Watchlist({ companies }: { companies: InterestedCompany[] }) {
+export function Watchlist({
+  companies,
+  allProjectMatches,
+}: {
+  companies: InterestedCompany[];
+  allProjectMatches: ProjectMatchWithCompany[];
+}) {
   const [items, setItems] = useState(companies);
   const [prevCompanies, setPrevCompanies] = useState(companies);
   if (companies !== prevCompanies) {
@@ -52,17 +63,68 @@ export function Watchlist({ companies }: { companies: InterestedCompany[] }) {
     deleteInterestedCompany(id).catch(console.error);
   }
 
+  const today = todayKST();
+  const { upcoming, past } = groupByDeadline(items, today);
+  const dueThisWeek = countDueThisWeek(items, today);
+
+  if (items.length === 0) {
+    return (
+      <div className="mx-auto flex max-w-[880px] flex-col gap-4 px-6 pt-10">
+        <p className="text-[22px] font-medium tracking-tight">관심 있는 공고를 모아두세요</p>
+        <CreateInterestedCompanyDialog />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-wrap gap-2 px-6">
-      {items.map((company) => (
-        <InterestedCompanyCard
-          key={company.id}
-          company={company}
-          onOpenDetail={setDetailId}
-          onDelete={handleDelete}
-          onConvert={handleConvert}
+    <div className="mx-auto flex max-w-[880px] flex-col gap-4 px-6 pt-10 pb-8">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-[22px] font-medium tracking-tight">관심기업 {items.length}곳</p>
+          <p className="text-xs text-muted-foreground">이번 주 마감 {dueThisWeek}곳</p>
+        </div>
+        <CreateInterestedCompanyDialog
+          trigger={
+            <button
+              type="button"
+              className="rounded-full bg-primary px-3 py-1.5 text-xs text-primary-foreground"
+            >
+              관심기업 추가
+            </button>
+          }
         />
-      ))}
+      </div>
+
+      <div className="flex flex-col">
+        {upcoming.map((company) => (
+          <InterestedCompanyRow
+            key={company.id}
+            company={company}
+            bestProject={computeBestProject(company.company, allProjectMatches)}
+            onOpenDetail={setDetailId}
+            onApply={setApplyCompany}
+          />
+        ))}
+      </div>
+
+      {past.length > 0 && (
+        <div className="flex flex-col gap-1 pt-2">
+          <p className="text-xs text-muted-foreground">마감 지남</p>
+          <div className="flex flex-col">
+            {past.map((company) => (
+              <InterestedCompanyRow
+                key={company.id}
+                company={company}
+                bestProject={computeBestProject(company.company, allProjectMatches)}
+                past
+                onOpenDetail={setDetailId}
+                onApply={setApplyCompany}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       <ApplicationDetailDialog
         key={`detail-${detailCompany?.id ?? "none"}`}
         variant="interested"
