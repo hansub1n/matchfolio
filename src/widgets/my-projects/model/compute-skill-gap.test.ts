@@ -38,13 +38,18 @@ function buildProject(overrides: Partial<MyProject> = {}): MyProject {
 }
 
 describe("computeSkillGap", () => {
-  it("lists tech required in applications but absent from every registered project", () => {
+  it("lists tech required in 2+ applications but absent from every registered project", () => {
     const applications = [
       buildApplication({ id: "1", techStack: ["React", "GraphQL"] }),
       buildApplication({ id: "2", techStack: ["GraphQL"] }),
     ];
     const projects = [buildProject({ techStack: ["React"] })];
     expect(computeSkillGap(applications, projects)).toEqual([{ name: "GraphQL", count: 2 }]);
+  });
+
+  it("excludes tech that only appeared in a single posting", () => {
+    const applications = [buildApplication({ id: "1", techStack: ["Rust"] })];
+    expect(computeSkillGap(applications, [])).toEqual([]);
   });
 
   it("treats case/whitespace/dot variants as the same tech (Next.js == nextjs)", () => {
@@ -56,26 +61,40 @@ describe("computeSkillGap", () => {
     expect(computeSkillGap(applications, projects)).toEqual([]);
   });
 
+  it("closes the gap via an alias relationship (owning Next.js counts as owning React)", () => {
+    const applications = [
+      buildApplication({ id: "1", techStack: ["React"] }),
+      buildApplication({ id: "2", techStack: ["React"] }),
+    ];
+    const projects = [buildProject({ techStack: ["Next.js"] })];
+    expect(computeSkillGap(applications, projects)).toEqual([]);
+  });
+
   it("sorts by how many postings asked for it, most first", () => {
     const applications = [
       buildApplication({ id: "1", techStack: ["Rust"] }),
       buildApplication({ id: "2", techStack: ["Go", "Rust", "Elixir"] }),
       buildApplication({ id: "3", techStack: ["Go"] }),
+      buildApplication({ id: "4", techStack: ["Elixir"] }),
     ];
     const result = computeSkillGap(applications, []);
     expect(result.map((r) => r.name)).toEqual(["Rust", "Go", "Elixir"]);
-    expect(result.map((r) => r.count)).toEqual([2, 2, 1]);
+    expect(result.map((r) => r.count)).toEqual([2, 2, 2]);
   });
 
   it("caps the result at the given limit", () => {
-    const applications = Array.from({ length: 10 }, (_, i) =>
-      buildApplication({ id: `${i}`, techStack: [`Tech${i}`] })
-    );
+    const applications = Array.from({ length: 10 }, (_, i) => [
+      buildApplication({ id: `${i}a`, techStack: [`Tech${i}`] }),
+      buildApplication({ id: `${i}b`, techStack: [`Tech${i}`] }),
+    ]).flat();
     expect(computeSkillGap(applications, [], 8)).toHaveLength(8);
   });
 
   it("returns an empty list when there's no gap", () => {
-    const applications = [buildApplication({ techStack: ["React"] })];
+    const applications = [
+      buildApplication({ id: "1", techStack: ["React"] }),
+      buildApplication({ id: "2", techStack: ["React"] }),
+    ];
     const projects = [buildProject({ techStack: ["React"] })];
     expect(computeSkillGap(applications, projects)).toEqual([]);
   });

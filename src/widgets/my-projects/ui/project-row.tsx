@@ -66,7 +66,7 @@ export function ProjectRow({
       tabIndex={0}
       onClick={handleRowClick}
       onKeyDown={handleKeyDown}
-      className="group relative grid cursor-pointer grid-cols-[28px_1fr_auto] items-start gap-3 rounded-lg border-t border-border px-2 py-4 last:border-b hover:bg-accent"
+      className="group relative grid cursor-pointer grid-cols-[28px_1fr] items-start gap-3 rounded-lg border-t border-border px-2 py-4 last:border-b hover:bg-accent"
     >
       <CompanyMonogram company={project.name} size={28} />
 
@@ -89,18 +89,10 @@ export function ProjectRow({
             )}
           </p>
         )}
-      </div>
-
-      <div className="flex flex-col items-end gap-1 text-right">
-        <p className="text-[11.5px] text-muted-foreground">잘 맞는 공고</p>
-        {bestMatch ? (
-          <p className="text-sm">
-            <span className="bg-[linear-gradient(transparent_58%,var(--highlight)_58%)] px-0.5">
-              {bestMatch.company}
-            </span>
+        {bestMatch && (
+          <p className="text-xs text-muted-foreground">
+            잘 맞는 공고 · <span className="text-foreground">{bestMatch.company}</span>
           </p>
-        ) : (
-          <p className="text-xs text-muted-foreground">매칭 기록 없음</p>
         )}
       </div>
 
