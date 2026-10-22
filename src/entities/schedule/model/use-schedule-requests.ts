@@ -9,8 +9,12 @@ import { latestScheduleByApplication } from "./latest-schedule";
 import { shouldUpdateExistingSchedule } from "./resolve-interview-round";
 import type { Schedule } from "./types";
 
-// 면접 차수/코딩테스트 일정을 "물어보고 저장"하는 흐름은 보드(드래그 트리거)와
-// 캘린더(일정 미정 목록의 "날짜 입력" 버튼) 양쪽에서 똑같이 필요해서 훅으로 분리했다.
+// 면접/코딩테스트 일정을 "물어보고 저장"하는 두 뮤테이션(생성-vs-수정 판단 포함)을
+// 보드와 캘린더 양쪽에서 똑같이 쓰기 때문에 훅으로 분리했다. 면접 쪽 Popover는
+// 이제 카드/목록 항목 각자가 자기 위치에 붙여서 여는 구조라 "열려 있는 지원 건"
+// 상태는 여기서 들고 있지 않다 — 코딩테스트(여전히 중앙 Dialog라 상태가 필요함)와
+// 드래그로 막 면접 컬럼에 들어온 카드가 자기 Popover를 자동으로 열어야 하는
+// 경우(autoOpenRoundId)만 예외로 남아 있다.
 export function useScheduleRequests(
   applications: Application[],
   scheduleItems: Schedule[],
@@ -21,13 +25,8 @@ export function useScheduleRequests(
     [scheduleItems]
   );
 
-  const [pendingRoundId, setPendingRoundId] = useState<string | null>(null);
+  const [autoOpenRoundId, setAutoOpenRoundId] = useState<string | null>(null);
   const [pendingCodingTestId, setPendingCodingTestId] = useState<string | null>(null);
-
-  const pendingRoundApplication = applications.find((app) => app.id === pendingRoundId) ?? null;
-  const pendingRoundSchedule = pendingRoundApplication
-    ? (latestSchedules.get(pendingRoundApplication.id) ?? null)
-    : null;
 
   const pendingCodingTestApplication =
     applications.find((app) => app.id === pendingCodingTestId) ?? null;
@@ -38,7 +37,6 @@ export function useScheduleRequests(
     : null;
 
   function handleSetInterviewRound(id: string, round: string, scheduledAt: string | null) {
-    setPendingRoundId(null);
     const existing = latestSchedules.get(id);
 
     if (shouldUpdateExistingSchedule(existing, round)) {
@@ -75,10 +73,8 @@ export function useScheduleRequests(
 
   return {
     latestSchedules,
-    pendingRoundId,
-    setPendingRoundId,
-    pendingRoundApplication,
-    pendingRoundSchedule,
+    autoOpenRoundId,
+    setAutoOpenRoundId,
     pendingCodingTestId,
     setPendingCodingTestId,
     pendingCodingTestApplication,

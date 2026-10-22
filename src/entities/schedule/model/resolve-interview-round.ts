@@ -8,3 +8,15 @@ export function shouldUpdateExistingSchedule(
 ): existing is Schedule {
   return existing !== undefined && existing.stage === "interview" && existing.roundLabel === round;
 }
+
+const ROUND_SEQUENCE = ["1차", "2차", "3차", "최종"];
+
+// 면접 일정 Popover의 차수 칩 목록. 현재 차수가 없으면(처음 면접 컬럼에 들어온
+// 경우) 1차/2차/최종만 보여주고, 있으면 그 차수부터 뒤를 전부 보여준다(이미 지난
+// 차수 칩은 숨김). 고정 순서에 없는 커스텀 차수면 현재 차수 칩 하나만 남긴다.
+export function buildRoundChips(currentRound: string | null): string[] {
+  if (!currentRound) return ["1차", "2차", "최종"];
+  const index = ROUND_SEQUENCE.indexOf(currentRound);
+  if (index === -1) return [currentRound];
+  return ROUND_SEQUENCE.slice(index);
+}
