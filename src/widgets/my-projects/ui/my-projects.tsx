@@ -13,9 +13,11 @@ import type { ProjectMatchWithCompany } from "@/entities/project-match";
 import { CreateMyProjectDialog } from "@/features/create-my-project";
 
 import { computeBestMatch } from "../model/compute-best-match";
+import { computeSkillGap } from "../model/compute-skill-gap";
 import { computeTopTechStack } from "../model/compute-top-tech-stack";
 import { MyProjectDetailDialog } from "./my-project-detail-dialog";
 import { ProjectRow } from "./project-row";
+import { SkillGapBox } from "./skill-gap-box";
 
 export function MyProjects({
   projects,
@@ -37,6 +39,7 @@ export function MyProjects({
   const detailProject = items.find((p) => p.id === detailId) ?? null;
 
   const topTechStack = computeTopTechStack(items);
+  const skillGap = computeSkillGap(applications, items);
 
   function openDetail(id: string, mode: "view" | "edit") {
     setDetailMode(mode);
@@ -97,6 +100,8 @@ export function MyProjects({
           가장 많이 쓴 기술 · {topTechStack.join(", ")}
         </p>
       )}
+
+      <SkillGapBox items={skillGap} />
 
       <div className="flex flex-col">
         {items.map((project) => (
