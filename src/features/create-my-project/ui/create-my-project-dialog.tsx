@@ -3,7 +3,7 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
-import { createMyProject } from "@/entities/my-project";
+import { createMyProject, joinHighlights, parseHighlights } from "@/entities/my-project";
 import { extractProject } from "@/features/extract-project";
 import { Button } from "@/shared/ui/button";
 import {
@@ -14,9 +14,26 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/shared/ui/dialog";
+import { ExtractingPanel } from "@/shared/ui/extracting-panel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
+import { TagInput } from "@/shared/ui/tag-input";
 
 const inputClassName =
   "rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+
+type SourceTab = "github" | "paste" | "manual";
+type AiField = "name" | "description" | "techStack" | "highlights";
+
+function FieldLabel({ children, aiFilled }: { children: ReactNode; aiFilled: boolean }) {
+  return (
+    <label className="flex items-center gap-1 text-xs text-muted-foreground">
+      {children}
+      {aiFilled && (
+        <span title="AI가 채웠어요" className="inline-block size-1.5 rounded-full bg-highlight" />
+      )}
+    </label>
+  );
+}
 
 export function CreateMyProjectDialog({
   trigger,
@@ -31,24 +48,34 @@ export function CreateMyProjectDialog({
   const [openState, setOpenState] = useState(false);
   const open = openProp ?? openState;
   const setOpen = onOpenChangeProp ?? setOpenState;
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [techStack, setTechStack] = useState("");
-  const [highlights, setHighlights] = useState("");
-  const [pending, setPending] = useState(false);
 
+  const [sourceTab, setSourceTab] = useState<SourceTab>("github");
   const [githubUrl, setGithubUrl] = useState("");
   const [pasteText, setPasteText] = useState("");
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [techStack, setTechStack] = useState<string[]>([]);
+  const [highlights, setHighlights] = useState("");
+  const [aiFilled, setAiFilled] = useState<Set<AiField>>(new Set());
+  const [pending, setPending] = useState(false);
+
+  const showForm = sourceTab === "manual" || loaded;
 
   function reset() {
-    setName("");
-    setDescription("");
-    setTechStack("");
-    setHighlights("");
+    setSourceTab("github");
     setGithubUrl("");
     setPasteText("");
+    setExtractError(null);
+    setLoaded(false);
+    setName("");
+    setDescription("");
+    setTechStack([]);
+    setHighlights("");
+    setAiFilled(new Set());
   }
 
   async function handleExtract(input: { githubUrl: string } | { text: string }) {
@@ -58,14 +85,30 @@ export function CreateMyProjectDialog({
       const extracted = await extractProject(input);
       setName(extracted.name);
       setDescription(extracted.description);
-      setTechStack(extracted.techStack.join(", "));
-      setHighlights(extracted.highlights.join(", "));
+      setTechStack(extracted.techStack);
+      setHighlights(joinHighlights(extracted.highlights));
+      const filled = new Set<AiField>();
+      if (extracted.name) filled.add("name");
+      if (extracted.description) filled.add("description");
+      if (extracted.techStack.length > 0) filled.add("techStack");
+      if (extracted.highlights.length > 0) filled.add("highlights");
+      setAiFilled(filled);
+      setLoaded(true);
     } catch (error) {
       console.warn("프로젝트 정보 추출 실패:", error);
       setExtractError(error instanceof Error ? error.message : "알 수 없는 오류");
     } finally {
       setExtracting(false);
     }
+  }
+
+  function clearAiFilled(field: AiField) {
+    setAiFilled((prev) => {
+      if (!prev.has(field)) return prev;
+      const next = new Set(prev);
+      next.delete(field);
+      return next;
+    });
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -77,14 +120,8 @@ export function CreateMyProjectDialog({
       await createMyProject({
         name: name.trim(),
         description: description.trim() || null,
-        techStack: techStack
-          .split(",")
-          .map((tech) => tech.trim())
-          .filter(Boolean),
-        highlights: highlights
-          .split(",")
-          .map((highlight) => highlight.trim())
-          .filter(Boolean),
+        techStack,
+        highlights: parseHighlights(highlights),
       });
       reset();
       setOpen(false);
@@ -96,95 +133,145 @@ export function CreateMyProjectDialog({
     }
   }
 
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+    if (!nextOpen) reset();
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       {trigger !== null && (
         <DialogTrigger asChild>{trigger ?? <Button>+ 프로젝트 추가</Button>}</DialogTrigger>
       )}
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>내 프로젝트 추가</DialogTitle>
+          <DialogTitle>프로젝트 추가</DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-1.5">
-          <div className="flex gap-1.5">
-            <input
-              value={githubUrl}
-              onChange={(e) => setGithubUrl(e.target.value)}
-              placeholder="GitHub 저장소 URL"
-              disabled={extracting}
-              className={`flex-1 ${inputClassName}`}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={extracting || !githubUrl.trim()}
-              onClick={() => handleExtract({ githubUrl: githubUrl.trim() })}
-            >
-              불러오기
-            </Button>
-          </div>
-          <div className="flex gap-1.5">
-            <textarea
-              value={pasteText}
-              onChange={(e) => setPasteText(e.target.value)}
-              placeholder="또는 README/블로그 글 등 설명 텍스트를 붙여넣기"
-              rows={3}
-              disabled={extracting}
-              className={`flex-1 ${inputClassName}`}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={extracting || !pasteText.trim()}
-              onClick={() => handleExtract({ text: pasteText.trim() })}
-            >
-              불러오기
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {extracting
-              ? "프로젝트 정보를 추출하는 중..."
-              : "둘 다 건너뛰고 아래 칸을 직접 채워도 돼요."}
-          </p>
-          {extractError && <p className="text-xs text-destructive">{extractError}</p>}
-        </div>
+        <Tabs value={sourceTab} onValueChange={(value) => setSourceTab(value as SourceTab)}>
+          <TabsList className="w-full">
+            <TabsTrigger value="github">GitHub 주소</TabsTrigger>
+            <TabsTrigger value="paste">텍스트 붙여넣기</TabsTrigger>
+            <TabsTrigger value="manual">직접 입력</TabsTrigger>
+          </TabsList>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="프로젝트 이름"
-            className={inputClassName}
-          />
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="한 줄 소개 (예: 러닝 루틴을 기록하는 개인 프로젝트)"
-            rows={2}
-            className={inputClassName}
-          />
-          <input
-            value={techStack}
-            onChange={(e) => setTechStack(e.target.value)}
-            placeholder="기술스택 (쉼표로 구분, 예: React, TypeScript, Supabase)"
-            className={inputClassName}
-          />
-          <textarea
-            value={highlights}
-            onChange={(e) => setHighlights(e.target.value)}
-            placeholder="주요 기능/경험 (쉼표로 구분, 예: 낙관적 업데이트, 무한스크롤, 동시성 제어)"
-            rows={2}
-            className={inputClassName}
-          />
-          <DialogFooter>
-            <Button type="submit" disabled={pending}>
-              {pending ? "추가 중..." : "추가"}
-            </Button>
-          </DialogFooter>
-        </form>
+          <TabsContent value="github" className="flex flex-col gap-2 pt-2">
+            {extracting ? (
+              <ExtractingPanel previewUrl={null} label="프로젝트 정보를 읽는 중" />
+            ) : (
+              <div className="flex gap-1.5">
+                <input
+                  value={githubUrl}
+                  onChange={(e) => setGithubUrl(e.target.value)}
+                  placeholder="GitHub 저장소 URL"
+                  className={`flex-1 ${inputClassName}`}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!githubUrl.trim()}
+                  onClick={() => handleExtract({ githubUrl: githubUrl.trim() })}
+                >
+                  불러오기
+                </Button>
+              </div>
+            )}
+            {extractError && <p className="text-xs text-destructive">{extractError}</p>}
+          </TabsContent>
+
+          <TabsContent value="paste" className="flex flex-col gap-2 pt-2">
+            {extracting ? (
+              <ExtractingPanel previewUrl={null} label="프로젝트 정보를 읽는 중" />
+            ) : (
+              <div className="flex gap-1.5">
+                <textarea
+                  value={pasteText}
+                  onChange={(e) => setPasteText(e.target.value)}
+                  placeholder="README나 devlog 등 설명 텍스트를 붙여넣으세요"
+                  rows={3}
+                  className={`flex-1 ${inputClassName}`}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!pasteText.trim()}
+                  onClick={() => handleExtract({ text: pasteText.trim() })}
+                >
+                  불러오기
+                </Button>
+              </div>
+            )}
+            {extractError && <p className="text-xs text-destructive">{extractError}</p>}
+          </TabsContent>
+
+          <TabsContent value="manual" />
+        </Tabs>
+
+        {showForm && (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <FieldLabel aiFilled={aiFilled.has("name")}>프로젝트 이름</FieldLabel>
+              <input
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  clearAiFilled("name");
+                }}
+                className={inputClassName}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <FieldLabel aiFilled={aiFilled.has("description")}>한 줄 소개</FieldLabel>
+              <textarea
+                value={description}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  clearAiFilled("description");
+                }}
+                rows={2}
+                className={inputClassName}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <FieldLabel aiFilled={aiFilled.has("techStack")}>기술스택</FieldLabel>
+              <TagInput
+                value={techStack}
+                onChange={(tags) => {
+                  setTechStack(tags);
+                  clearAiFilled("techStack");
+                }}
+                placeholder="입력 후 Enter"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <FieldLabel aiFilled={aiFilled.has("highlights")}>핵심 포인트</FieldLabel>
+              <textarea
+                value={highlights}
+                onChange={(e) => {
+                  setHighlights(e.target.value);
+                  clearAiFilled("highlights");
+                }}
+                placeholder="한 줄에 하나씩 적어주세요"
+                rows={3}
+                className={inputClassName}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+                취소
+              </Button>
+              <Button type="submit" disabled={pending || !name.trim()}>
+                {pending ? "추가 중..." : "추가"}
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );

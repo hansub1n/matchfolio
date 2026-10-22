@@ -6,3 +6,4 @@ export {
   updateMyProject,
   deleteMyProject,
 } from "./api/myProjectApi";
+export { parseHighlights, joinHighlights } from "./model/parse-highlights";

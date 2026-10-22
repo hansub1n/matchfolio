@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 
-import type { MyProject, UpdateMyProjectInput } from "@/entities/my-project";
+import {
+  joinHighlights,
+  parseHighlights,
+  type MyProject,
+  type UpdateMyProjectInput,
+} from "@/entities/my-project";
 import type { ProjectMatchWithCompany } from "@/entities/project-match";
 import { splitNameSubtitle } from "@/shared/lib/split-name-subtitle";
 import { Button } from "@/shared/ui/button";
@@ -14,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
+import { TagInput } from "@/shared/ui/tag-input";
 
 import { computeProjectMatchList } from "../model/compute-project-match-list";
 
@@ -47,8 +53,8 @@ export function MyProjectDetailDialog({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [name, setName] = useState(project?.name ?? "");
   const [description, setDescription] = useState(project?.description ?? "");
-  const [techStack, setTechStack] = useState(project?.techStack.join(", ") ?? "");
-  const [highlights, setHighlights] = useState(project?.highlights.join(", ") ?? "");
+  const [techStack, setTechStack] = useState<string[]>(project?.techStack ?? []);
+  const [highlights, setHighlights] = useState(joinHighlights(project?.highlights ?? []));
 
   if (!project) {
     return (
@@ -70,8 +76,8 @@ export function MyProjectDetailDialog({
     if (!project) return;
     setName(project.name);
     setDescription(project.description ?? "");
-    setTechStack(project.techStack.join(", "));
-    setHighlights(project.highlights.join(", "));
+    setTechStack(project.techStack);
+    setHighlights(joinHighlights(project.highlights));
     setEditing(true);
   }
 
@@ -80,14 +86,8 @@ export function MyProjectDetailDialog({
     onUpdate(project.id, {
       name: name.trim(),
       description: description.trim() || null,
-      techStack: techStack
-        .split(",")
-        .map((tech) => tech.trim())
-        .filter(Boolean),
-      highlights: highlights
-        .split(",")
-        .map((highlight) => highlight.trim())
-        .filter(Boolean),
+      techStack,
+      highlights: parseHighlights(highlights),
     });
     setEditing(false);
   }
@@ -174,16 +174,11 @@ export function MyProjectDetailDialog({
               rows={2}
               className={inputClassName}
             />
-            <input
-              value={techStack}
-              onChange={(e) => setTechStack(e.target.value)}
-              placeholder="기술스택 (쉼표로 구분)"
-              className={inputClassName}
-            />
+            <TagInput value={techStack} onChange={setTechStack} placeholder="입력 후 Enter" />
             <textarea
               value={highlights}
               onChange={(e) => setHighlights(e.target.value)}
-              placeholder="주요 기능/경험 (쉼표로 구분)"
+              placeholder="한 줄에 하나씩 적어주세요"
               rows={3}
               className={inputClassName}
             />
