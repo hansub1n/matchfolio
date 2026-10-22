@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, Trash2 } from "lucide-react";
 
 import type { MyProject, UpdateMyProjectInput } from "@/entities/my-project";
 import type { ProjectMatchWithCompany } from "@/entities/project-match";
@@ -15,12 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/shared/ui/dropdown-menu";
 
 import { computeProjectMatchList } from "../model/compute-project-match-list";
 
@@ -112,28 +105,9 @@ export function MyProjectDetailDialog({
             {subtitle && <span className="font-normal text-muted-foreground"> {subtitle}</span>}
           </p>
           {!editing && (
-            <>
-              <Button variant="ghost" size="xs" className="text-xs" onClick={handleStartEdit}>
-                수정
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="rounded-sm p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                  >
-                    <MoreHorizontal className="size-3.5" />
-                    <span className="sr-only">더보기</span>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem variant="destructive" onSelect={() => setConfirmOpen(true)}>
-                    <Trash2 className="size-3.5" />
-                    삭제
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
+            <Button variant="ghost" size="xs" className="text-xs" onClick={handleStartEdit}>
+              수정
+            </Button>
           )}
         </div>
 
@@ -213,11 +187,20 @@ export function MyProjectDetailDialog({
               rows={3}
               className={inputClassName}
             />
-            <div className="flex justify-end gap-2 pt-1">
-              <Button variant="outline" onClick={() => setEditing(false)}>
-                취소
-              </Button>
-              <Button onClick={handleSave}>저장</Button>
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <button
+                type="button"
+                className="text-sm text-destructive hover:underline"
+                onClick={() => setConfirmOpen(true)}
+              >
+                삭제
+              </button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setEditing(false)}>
+                  취소
+                </Button>
+                <Button onClick={handleSave}>저장</Button>
+              </div>
             </div>
           </div>
         )}
@@ -226,8 +209,9 @@ export function MyProjectDetailDialog({
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent onClick={stopClick}>
           <DialogHeader>
-            <DialogTitle>{project.name} 프로젝트를 삭제할까요?</DialogTitle>
+            <DialogTitle>이 프로젝트를 삭제할까요?</DialogTitle>
           </DialogHeader>
+          <p className="text-sm text-muted-foreground">매칭 기록도 함께 삭제돼요.</p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>
               취소
