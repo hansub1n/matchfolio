@@ -1,0 +1,27 @@
+import { describe, expect, it } from "vitest";
+
+import { techSatisfies } from "./tech-aliases";
+
+describe("techSatisfies", () => {
+  it("matches exactly, ignoring case/whitespace/dots", () => {
+    expect(techSatisfies("TypeScript", "typescript")).toBe(true);
+  });
+
+  it("matches via an explicit alias relationship (Next.js implies React)", () => {
+    expect(techSatisfies("React", "Next.js")).toBe(true);
+    expect(techSatisfies("Next.js", "React")).toBe(true);
+  });
+
+  it("matches notation differences via containment (Vue vs Vue.js)", () => {
+    expect(techSatisfies("Vue", "Vue.js")).toBe(true);
+  });
+
+  it("does not false-positive on short tech names appearing inside unrelated words", () => {
+    expect(techSatisfies("Go", "Django")).toBe(false);
+    expect(techSatisfies("Go", "MongoDB")).toBe(false);
+  });
+
+  it("returns false for genuinely unrelated tech", () => {
+    expect(techSatisfies("React", "Vue")).toBe(false);
+  });
+});

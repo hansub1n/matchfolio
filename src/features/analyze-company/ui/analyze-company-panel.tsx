@@ -13,6 +13,7 @@ export function AnalyzeCompanyPanel({ application }: { application: Application 
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,6 +39,7 @@ export function AnalyzeCompanyPanel({ application }: { application: Application 
     try {
       const result = await analyzeCompany(application.id);
       setPrep(result);
+      setExpanded(true);
     } catch (err) {
       console.warn("기업분석 실패:", err);
       setError(err instanceof Error ? err.message : "알 수 없는 오류");
@@ -46,9 +48,6 @@ export function AnalyzeCompanyPanel({ application }: { application: Application 
     }
   }
 
-  // 로딩 전/분석 전에는 작은 버튼 하나뿐이라 액션 버튼 한 줄에 다른 버튼들과
-  // 나란히 들어갈 수 있게 감싸는 div 없이 그대로 반환한다 — border-t 섹션은
-  // 실제 분석 결과가 생겼을 때만 씌운다.
   if (loading) {
     return <p className="text-sm text-muted-foreground">기업분석 불러오는 중...</p>;
   }
@@ -57,21 +56,34 @@ export function AnalyzeCompanyPanel({ application }: { application: Application 
     return (
       <>
         <Button variant="outline" size="sm" onClick={handleAnalyze} disabled={analyzing}>
-          {analyzing ? "분석 중... (최대 1분 정도 걸릴 수 있어요)" : "기업분석 보기"}
+          {analyzing ? "생성 중... (최대 1분 정도 걸릴 수 있어요)" : "기업분석 생성"}
         </Button>
         {error && <p className="text-xs text-destructive">{error}</p>}
       </>
     );
   }
 
-  return (
-    <div className="flex min-w-0 flex-col gap-3 border-t pt-3">
-      <div>
-        <h3 className="mb-1 text-sm font-semibold">기업분석</h3>
-        <p className="whitespace-pre-wrap text-sm leading-relaxed">{prep.companyAnalysis}</p>
+  if (!expanded) {
+    return (
+      <div className="flex flex-col gap-2">
+        <p className="line-clamp-2 text-sm leading-relaxed">{prep.companyAnalysis}</p>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">
+            예상 질문 {prep.interviewQuestions.length}개
+          </span>
+          <Button variant="outline" size="sm" onClick={() => setExpanded(true)}>
+            전체 보기
+          </Button>
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="flex min-w-0 flex-col gap-3">
+      <p className="whitespace-pre-wrap text-sm leading-relaxed">{prep.companyAnalysis}</p>
       <div>
-        <h3 className="mb-1 text-sm font-semibold">예상 면접질문</h3>
+        <p className="mb-1 text-xs font-medium text-foreground">예상 면접질문</p>
         <ul className="list-inside list-disc text-sm leading-relaxed">
           {prep.interviewQuestions.map((q, i) => (
             <li key={i}>{q}</li>
@@ -93,9 +105,14 @@ export function AnalyzeCompanyPanel({ application }: { application: Application 
           ))}
         </div>
       )}
-      <Button variant="outline" size="sm" onClick={handleAnalyze} disabled={analyzing}>
-        {analyzing ? "다시 분석 중... (최대 1분 정도 걸릴 수 있어요)" : "다시 분석"}
-      </Button>
+      <div className="flex gap-2">
+        <Button variant="outline" size="sm" onClick={() => setExpanded(false)}>
+          접기
+        </Button>
+        <Button variant="outline" size="sm" onClick={handleAnalyze} disabled={analyzing}>
+          {analyzing ? "다시 분석 중... (최대 1분 정도 걸릴 수 있어요)" : "다시 분석"}
+        </Button>
+      </div>
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );

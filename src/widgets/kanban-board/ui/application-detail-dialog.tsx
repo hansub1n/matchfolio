@@ -1,15 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, Trash2 } from "lucide-react";
 import { cn } from "cn";
 
 import { APPLICATION_STAGES, type Application, type UpdateApplicationInput } from "@/entities/application";
 import type { Schedule } from "@/entities/schedule";
 import { AnalyzeCompanyPanel } from "@/features/analyze-company";
 import { formatDateTime } from "@/shared/lib/format-date-time";
-import { normalizeTech } from "@/shared/lib/normalize-tech";
-import { splitNameSubtitle } from "@/shared/lib/split-name-subtitle";
+import { techSatisfies } from "@/shared/lib/tech-aliases";
 import { Button } from "@/shared/ui/button";
 import { CompanyMonogram } from "@/shared/ui/company-monogram";
 import {
@@ -19,12 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/shared/ui/dropdown-menu";
 import { ScreenshotGallery } from "@/shared/ui/screenshot-gallery";
 
 import { parseJobDescription } from "../model/parse-job-description";
@@ -33,6 +25,8 @@ import { InterviewSchedulePopover } from "./interview-schedule-popover";
 
 const inputClassName =
   "rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+
+const SECTION_LABEL = "text-[11px] text-muted-foreground";
 
 const STAGE_LABELS = Object.fromEntries(
   APPLICATION_STAGES.map((stage) => [stage.value, stage.label])
@@ -112,11 +106,12 @@ export function ApplicationDetailDialog({
     );
   }
 
-  const { main, subtitle } = splitNameSubtitle(application.company);
   const status = getStatusLine(application, schedule);
   const hasSchedule = application.stage === "coding_test" || application.stage === "interview";
   const appliedAtLabel = formatDateTime(application.appliedAt);
   const deadlineLabel = formatDateTime(application.deadline);
+  const hasMeta = hasSchedule || appliedAtLabel || deadlineLabel || application.jobPostingUrl;
+  const showAnalysis = application.outcome === "in_progress" && application.stage !== "document";
   const parsedDescription = application.description ? parseJobDescription(application.description) : null;
 
   function handleOpenChange(open: boolean) {
@@ -176,33 +171,11 @@ export function ApplicationDetailDialog({
       >
         <div className="flex shrink-0 items-center gap-2 border-b px-5 py-4 pr-12">
           <CompanyMonogram company={application.company} size={28} />
-          <p className="min-w-0 flex-1 truncate text-base font-medium">
-            {main}
-            {subtitle && <span className="font-normal text-muted-foreground"> {subtitle}</span>}
-          </p>
+          <p className="min-w-0 flex-1 truncate text-base font-medium">{application.company}</p>
           {!editing && (
-            <>
-              <Button variant="ghost" size="xs" className="text-xs" onClick={handleStartEdit}>
-                수정
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="rounded-sm p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                  >
-                    <MoreHorizontal className="size-3.5" />
-                    <span className="sr-only">더보기</span>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem variant="destructive" onSelect={() => setConfirmOpen(true)}>
-                    <Trash2 className="size-3.5" />
-                    삭제
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
+            <Button variant="ghost" size="xs" className="text-xs" onClick={handleStartEdit}>
+              수정
+            </Button>
           )}
         </div>
 
@@ -230,7 +203,7 @@ export function ApplicationDetailDialog({
               </p>
             </div>
 
-            {(hasSchedule || appliedAtLabel || deadlineLabel) && (
+            {hasMeta && (
               <div className="grid grid-cols-[72px_1fr] gap-y-1.5 text-xs">
                 {hasSchedule && (
                   <>
@@ -261,23 +234,41 @@ export function ApplicationDetailDialog({
                     <span>{deadlineLabel}</span>
                   </>
                 )}
+                {application.jobPostingUrl && (
+                  <>
+                    <span className="text-muted-foreground">링크</span>
+                    <a
+                      href={application.jobPostingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline underline-offset-2"
+                    >
+                      공고 링크 ↗
+                    </a>
+                  </>
+                )}
+              </div>
+            )}
+
+            {showAnalysis && (
+              <div>
+                <p className={cn(SECTION_LABEL, "mb-1.5")}>기업분석 · 예상 질문</p>
+                <AnalyzeCompanyPanel key={application.id} application={application} />
               </div>
             )}
 
             {application.techStack.length > 0 && (
               <div className="flex flex-col gap-1.5">
-                <p className="text-[11px] text-muted-foreground">기술스택</p>
+                <p className={SECTION_LABEL}>기술스택</p>
                 <div className="flex flex-wrap gap-1.5">
                   {application.techStack.map((tech) => {
-                    const owned = myProjectTechStack.some(
-                      (t) => normalizeTech(t) === normalizeTech(tech)
-                    );
+                    const owned = myProjectTechStack.some((ownedTech) => techSatisfies(tech, ownedTech));
                     return (
                       <span
                         key={tech}
                         className={cn(
-                          "rounded-full border px-2.5 py-1 text-xs",
-                          owned && "bg-[linear-gradient(transparent_58%,var(--highlight)_58%)]"
+                          "rounded-full px-2.5 py-1 text-xs",
+                          owned ? "bg-[var(--heat-1)]" : "border"
                         )}
                       >
                         {tech}
@@ -285,21 +276,18 @@ export function ApplicationDetailDialog({
                     );
                   })}
                 </div>
-                <p className="text-[11px] text-muted-foreground">
-                  형광펜 = 내 프로젝트에 있는 기술
-                </p>
+                <p className={SECTION_LABEL}>연두색 = 내 프로젝트에 있는 기술</p>
               </div>
             )}
 
             {application.description && (
               <div>
-                <p className="mb-1.5 text-[11px] text-muted-foreground">공고 내용</p>
                 {parsedDescription ? (
                   <div className="flex flex-col gap-3">
                     {parsedDescription.sections.map((section, i) => (
                       <div key={i}>
                         {section.title && (
-                          <p className="mb-1.5 text-[11px] text-muted-foreground">
+                          <p className="mb-1.5 text-xs font-medium text-foreground">
                             {section.title}
                           </p>
                         )}
@@ -321,26 +309,14 @@ export function ApplicationDetailDialog({
 
             {application.memo && (
               <div>
-                <p className="mb-1.5 text-[11px] text-muted-foreground">메모</p>
+                <p className={cn(SECTION_LABEL, "mb-1.5")}>메모</p>
                 <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
                   {application.memo}
                 </p>
               </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-2">
-              {application.jobPostingUrl && (
-                <Button variant="outline" size="sm" asChild>
-                  <a href={application.jobPostingUrl} target="_blank" rel="noopener noreferrer">
-                    공고 링크 ↗
-                  </a>
-                </Button>
-              )}
-              <ScreenshotGallery paths={application.screenshotPaths} />
-              {application.outcome === "in_progress" && application.stage !== "document" && (
-                <AnalyzeCompanyPanel key={application.id} application={application} />
-              )}
-            </div>
+            <ScreenshotGallery paths={application.screenshotPaths} />
           </div>
         ) : (
           <div className="flex flex-col gap-3 overflow-y-auto px-5 py-4">
@@ -400,11 +376,20 @@ export function ApplicationDetailDialog({
               rows={2}
               className={inputClassName}
             />
-            <div className="flex justify-end gap-2 pt-1">
-              <Button variant="outline" onClick={() => setEditing(false)}>
-                취소
-              </Button>
-              <Button onClick={handleSave}>저장</Button>
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <button
+                type="button"
+                className="text-sm text-destructive hover:underline"
+                onClick={() => setConfirmOpen(true)}
+              >
+                삭제
+              </button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setEditing(false)}>
+                  취소
+                </Button>
+                <Button onClick={handleSave}>저장</Button>
+              </div>
             </div>
           </div>
         )}
@@ -423,8 +408,11 @@ export function ApplicationDetailDialog({
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent onClick={stopClick}>
           <DialogHeader>
-            <DialogTitle>{application.company} 카드를 삭제할까요?</DialogTitle>
+            <DialogTitle>이 공고를 삭제할까요?</DialogTitle>
           </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            스크린샷과 기업분석 기록도 함께 삭제돼요.
+          </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>
               취소
