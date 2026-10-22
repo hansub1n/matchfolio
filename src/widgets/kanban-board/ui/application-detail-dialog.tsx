@@ -4,8 +4,10 @@ import { useState } from "react";
 import { cn } from "cn";
 
 import { APPLICATION_STAGES, type Application, type UpdateApplicationInput } from "@/entities/application";
+import type { InterestedCompany, UpdateInterestedCompanyInput } from "@/entities/interested-company";
 import type { Schedule } from "@/entities/schedule";
 import { AnalyzeCompanyPanel } from "@/features/analyze-company";
+import { MatchProjectsPanel } from "@/features/match-projects";
 import { formatDateTime } from "@/shared/lib/format-date-time";
 import { techSatisfies } from "@/shared/lib/tech-aliases";
 import { Button } from "@/shared/ui/button";
@@ -18,6 +20,7 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import { ScreenshotGallery } from "@/shared/ui/screenshot-gallery";
+import { TagInput } from "@/shared/ui/tag-input";
 
 import { parseJobDescription } from "../model/parse-job-description";
 import { CodingTestScheduleDialog } from "./coding-test-schedule-dialog";
@@ -63,42 +66,53 @@ function getScheduleLabel(application: Application, schedule: Schedule | null | 
   return time ? `${prefix} · ${time}` : "일정 미정";
 }
 
-export function ApplicationDetailDialog({
-  application,
-  schedule,
-  myProjectTechStack = [],
-  initialMode = "view",
-  onOpenChange,
-  onUpdate,
-  onDelete,
-  onSaveInterviewRound,
-  onSaveCodingTestSchedule,
-}: {
-  application: Application | null;
-  schedule?: Schedule | null;
+type CommonProps = {
   myProjectTechStack?: string[];
   initialMode?: "view" | "edit";
   onOpenChange: (open: boolean) => void;
-  onUpdate: (id: string, input: UpdateApplicationInput) => void;
   onDelete?: (id: string) => void;
+};
+
+type ApplicationVariantProps = CommonProps & {
+  variant?: "application";
+  application: Application | null;
+  schedule?: Schedule | null;
+  onUpdate: (id: string, input: UpdateApplicationInput) => void;
   onSaveInterviewRound: (id: string, round: string, scheduledAt: string | null) => void;
   onSaveCodingTestSchedule: (id: string, scheduledAt: string | null) => void;
-}) {
-  // 호출하는 쪽에서 application 바뀔 때마다 key를 바꿔 매번 새로 마운트시키는
-  // 전제로 작성했다 — 그래야 아래 초기값들이 "이번에 연 지원 건" 기준으로 맞다.
+};
+
+type InterestedVariantProps = CommonProps & {
+  variant: "interested";
+  company: InterestedCompany | null;
+  onUpdate: (id: string, input: UpdateInterestedCompanyInput) => void;
+  onApply?: (company: InterestedCompany) => void;
+};
+
+type Props = ApplicationVariantProps | InterestedVariantProps;
+
+export function ApplicationDetailDialog(props: Props) {
+  const { myProjectTechStack = [], initialMode = "view", onOpenChange, onDelete } = props;
+  const isInterested = props.variant === "interested";
+  const entity = isInterested ? props.company : props.application;
+
+  // 호출하는 쪽에서 entity 바뀔 때마다 key를 바꿔 매번 새로 마운트시키는
+  // 전제로 작성했다 — 그래야 아래 초기값들이 "이번에 연 항목" 기준으로 맞다.
   const [editing, setEditing] = useState(initialMode === "edit");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [company, setCompany] = useState(application?.company ?? "");
-  const [position, setPosition] = useState(application?.position ?? "");
-  const [appliedAt, setAppliedAt] = useState(application?.appliedAt ?? "");
-  const [deadline, setDeadline] = useState(application?.deadline ?? "");
-  const [jobPostingUrl, setJobPostingUrl] = useState(application?.jobPostingUrl ?? "");
-  const [techStack, setTechStack] = useState(application?.techStack.join(", ") ?? "");
-  const [description, setDescription] = useState(application?.description ?? "");
-  const [memo, setMemo] = useState(application?.memo ?? "");
+  const [company, setCompany] = useState(entity?.company ?? "");
+  const [position, setPosition] = useState(entity?.position ?? "");
+  const [appliedAt, setAppliedAt] = useState(
+    !isInterested ? (entity as Application | null)?.appliedAt ?? "" : ""
+  );
+  const [deadline, setDeadline] = useState(entity?.deadline ?? "");
+  const [jobPostingUrl, setJobPostingUrl] = useState(entity?.jobPostingUrl ?? "");
+  const [techStack, setTechStack] = useState<string[]>(entity?.techStack ?? []);
+  const [description, setDescription] = useState(entity?.description ?? "");
+  const [memo, setMemo] = useState(entity?.memo ?? "");
 
-  if (!application) {
+  if (!entity) {
     return (
       <Dialog open={false} onOpenChange={onOpenChange}>
         <DialogContent />
@@ -106,13 +120,18 @@ export function ApplicationDetailDialog({
     );
   }
 
-  const status = getStatusLine(application, schedule);
-  const hasSchedule = application.stage === "coding_test" || application.stage === "interview";
-  const appliedAtLabel = formatDateTime(application.appliedAt);
-  const deadlineLabel = formatDateTime(application.deadline);
-  const hasMeta = hasSchedule || appliedAtLabel || deadlineLabel || application.jobPostingUrl;
-  const showAnalysis = application.outcome === "in_progress" && application.stage !== "document";
-  const parsedDescription = application.description ? parseJobDescription(application.description) : null;
+  const application = !isInterested ? (entity as Application) : null;
+  const status = application ? getStatusLine(application, props.variant !== "interested" ? props.schedule : null) : null;
+  const hasSchedule =
+    application !== null &&
+    (application.stage === "coding_test" || application.stage === "interview");
+  const scheduleForApplication = props.variant !== "interested" ? props.schedule ?? null : null;
+  const appliedAtLabel = application ? formatDateTime(application.appliedAt) : null;
+  const deadlineLabel = formatDateTime(entity.deadline);
+  const hasMeta = hasSchedule || appliedAtLabel || deadlineLabel || entity.jobPostingUrl;
+  const showAnalysis =
+    application !== null && application.outcome === "in_progress" && application.stage !== "document";
+  const parsedDescription = entity.description ? parseJobDescription(entity.description) : null;
 
   function handleOpenChange(open: boolean) {
     if (!open) setEditing(false);
@@ -120,37 +139,41 @@ export function ApplicationDetailDialog({
   }
 
   function handleStartEdit() {
-    if (!application) return;
-    setCompany(application.company);
-    setPosition(application.position);
-    setAppliedAt(application.appliedAt ?? "");
-    setDeadline(application.deadline ?? "");
-    setJobPostingUrl(application.jobPostingUrl ?? "");
-    setTechStack(application.techStack.join(", "));
-    setDescription(application.description ?? "");
-    setMemo(application.memo ?? "");
+    if (!entity) return;
+    setCompany(entity.company);
+    setPosition(entity.position ?? "");
+    if (application) setAppliedAt(application.appliedAt ?? "");
+    setDeadline(entity.deadline ?? "");
+    setJobPostingUrl(entity.jobPostingUrl ?? "");
+    setTechStack(entity.techStack);
+    setDescription(entity.description ?? "");
+    setMemo(entity.memo ?? "");
     setEditing(true);
   }
 
   function handleSave() {
-    if (!application) return;
-    onUpdate(application.id, {
+    if (!entity) return;
+    const base = {
       company: company.trim(),
-      position: position.trim(),
-      appliedAt: appliedAt || null,
       deadline: deadline || null,
       jobPostingUrl: jobPostingUrl.trim() || null,
       description: description.trim() || null,
       memo: memo.trim() || null,
-      techStack: techStack
-        .split(",")
-        .map((tech) => tech.trim())
-        .filter(Boolean),
-    });
+      techStack,
+    };
+    if (props.variant === "interested") {
+      props.onUpdate(entity.id, { ...base, position: position.trim() || null });
+    } else {
+      props.onUpdate(entity.id, {
+        ...base,
+        position: position.trim(),
+        appliedAt: appliedAt || null,
+      });
+    }
     setEditing(false);
   }
 
-  const scheduleTrigger = (
+  const scheduleTrigger = application && (
     <button
       type="button"
       onClick={(e) => {
@@ -159,19 +182,27 @@ export function ApplicationDetailDialog({
       }}
       className="text-left hover:text-foreground"
     >
-      {getScheduleLabel(application, schedule)}
+      {getScheduleLabel(application, scheduleForApplication)}
     </button>
   );
 
   return (
-    <Dialog open={application !== null} onOpenChange={handleOpenChange}>
+    <Dialog open={entity !== null} onOpenChange={handleOpenChange}>
       <DialogContent
         className="flex max-h-[85dvh] w-full max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-lg"
         onClick={stopClick}
       >
         <div className="flex shrink-0 items-center gap-2 border-b px-5 py-4 pr-12">
-          <CompanyMonogram company={application.company} size={28} />
-          <p className="min-w-0 flex-1 truncate text-base font-medium">{application.company}</p>
+          <CompanyMonogram company={entity.company} size={28} />
+          <p className="min-w-0 flex-1 truncate text-base font-medium">{entity.company}</p>
+          {!editing && isInterested && (
+            <Button
+              size="sm"
+              onClick={() => props.variant === "interested" && props.onApply?.(entity as InterestedCompany)}
+            >
+              지원하기
+            </Button>
+          )}
           {!editing && (
             <Button variant="ghost" size="xs" className="text-xs" onClick={handleStartEdit}>
               수정
@@ -182,39 +213,41 @@ export function ApplicationDetailDialog({
         {!editing ? (
           <div className="flex flex-col gap-5 overflow-y-auto px-5 py-4 text-sm">
             <div className="flex flex-col gap-3">
-              <p className="text-muted-foreground">{application.position}</p>
-              <p
-                className={cn(
-                  "text-xs",
-                  status.variant === "destructive"
-                    ? "text-destructive"
-                    : status.variant === "highlight"
-                      ? "text-foreground"
-                      : "text-muted-foreground"
-                )}
-              >
-                {status.variant === "highlight" ? (
-                  <span className="bg-[linear-gradient(transparent_58%,var(--highlight)_58%)] px-0.5">
-                    {status.text}
-                  </span>
-                ) : (
-                  status.text
-                )}
-              </p>
+              {entity.position && <p className="text-muted-foreground">{entity.position}</p>}
+              {status && (
+                <p
+                  className={cn(
+                    "text-xs",
+                    status.variant === "destructive"
+                      ? "text-destructive"
+                      : status.variant === "highlight"
+                        ? "text-foreground"
+                        : "text-muted-foreground"
+                  )}
+                >
+                  {status.variant === "highlight" ? (
+                    <span className="bg-[linear-gradient(transparent_58%,var(--highlight)_58%)] px-0.5">
+                      {status.text}
+                    </span>
+                  ) : (
+                    status.text
+                  )}
+                </p>
+              )}
             </div>
 
             {hasMeta && (
               <div className="grid grid-cols-[72px_1fr] gap-y-1.5 text-xs">
-                {hasSchedule && (
+                {hasSchedule && application && (
                   <>
                     <span className="text-muted-foreground">일정</span>
                     {application.stage === "interview" ? (
                       <InterviewSchedulePopover
                         application={application}
-                        schedule={schedule ?? null}
+                        schedule={scheduleForApplication}
                         open={scheduleOpen}
                         onOpenChange={setScheduleOpen}
-                        onSave={onSaveInterviewRound}
+                        onSave={props.variant !== "interested" ? props.onSaveInterviewRound : () => {}}
                         trigger={scheduleTrigger}
                       />
                     ) : (
@@ -234,11 +267,11 @@ export function ApplicationDetailDialog({
                     <span>{deadlineLabel}</span>
                   </>
                 )}
-                {application.jobPostingUrl && (
+                {entity.jobPostingUrl && (
                   <>
                     <span className="text-muted-foreground">링크</span>
                     <a
-                      href={application.jobPostingUrl}
+                      href={entity.jobPostingUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary underline underline-offset-2"
@@ -250,18 +283,25 @@ export function ApplicationDetailDialog({
               </div>
             )}
 
-            {showAnalysis && (
+            {showAnalysis && application && (
               <div>
                 <p className={cn(SECTION_LABEL, "mb-1.5")}>기업분석 · 예상 질문</p>
                 <AnalyzeCompanyPanel key={application.id} application={application} />
               </div>
             )}
 
-            {application.techStack.length > 0 && (
+            {isInterested && (
+              <div>
+                <p className={cn(SECTION_LABEL, "mb-1.5")}>프로젝트 매칭</p>
+                <MatchProjectsPanel key={entity.id} company={entity as InterestedCompany} />
+              </div>
+            )}
+
+            {entity.techStack.length > 0 && (
               <div className="flex flex-col gap-1.5">
                 <p className={SECTION_LABEL}>기술스택</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {application.techStack.map((tech) => {
+                  {entity.techStack.map((tech) => {
                     const owned = myProjectTechStack.some((ownedTech) => techSatisfies(tech, ownedTech));
                     return (
                       <span
@@ -280,7 +320,7 @@ export function ApplicationDetailDialog({
               </div>
             )}
 
-            {application.description && (
+            {entity.description && (
               <div>
                 {parsedDescription ? (
                   <div className="flex flex-col gap-3">
@@ -300,23 +340,21 @@ export function ApplicationDetailDialog({
                     ))}
                   </div>
                 ) : (
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                    {application.description}
-                  </p>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{entity.description}</p>
                 )}
               </div>
             )}
 
-            {application.memo && (
+            {entity.memo && (
               <div>
                 <p className={cn(SECTION_LABEL, "mb-1.5")}>메모</p>
                 <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                  {application.memo}
+                  {entity.memo}
                 </p>
               </div>
             )}
 
-            <ScreenshotGallery paths={application.screenshotPaths} />
+            <ScreenshotGallery paths={entity.screenshotPaths} />
           </div>
         ) : (
           <div className="flex flex-col gap-3 overflow-y-auto px-5 py-4">
@@ -329,18 +367,20 @@ export function ApplicationDetailDialog({
             <input
               value={position}
               onChange={(e) => setPosition(e.target.value)}
-              placeholder="직무"
+              placeholder={isInterested ? "직무 (선택)" : "직무"}
               className={inputClassName}
             />
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">지원일</label>
-              <input
-                type="date"
-                value={appliedAt}
-                onChange={(e) => setAppliedAt(e.target.value)}
-                className={inputClassName}
-              />
-            </div>
+            {!isInterested && (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted-foreground">지원일</label>
+                <input
+                  type="date"
+                  value={appliedAt}
+                  onChange={(e) => setAppliedAt(e.target.value)}
+                  className={inputClassName}
+                />
+              </div>
+            )}
             <div className="flex flex-col gap-1">
               <label className="text-xs text-muted-foreground">마감일</label>
               <input
@@ -356,12 +396,7 @@ export function ApplicationDetailDialog({
               placeholder="공고 링크 (선택)"
               className={inputClassName}
             />
-            <input
-              value={techStack}
-              onChange={(e) => setTechStack(e.target.value)}
-              placeholder="기술스택 (쉼표로 구분)"
-              className={inputClassName}
-            />
+            <TagInput value={techStack} onChange={setTechStack} placeholder="입력 후 Enter" />
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -395,23 +430,27 @@ export function ApplicationDetailDialog({
         )}
       </DialogContent>
 
-      <CodingTestScheduleDialog
-        application={application.stage === "coding_test" && scheduleOpen ? application : null}
-        schedule={schedule ?? null}
-        onSelect={(id, scheduledAt) => {
-          onSaveCodingTestSchedule(id, scheduledAt);
-          setScheduleOpen(false);
-        }}
-        onOpenChange={setScheduleOpen}
-      />
+      {application && (
+        <CodingTestScheduleDialog
+          application={application.stage === "coding_test" && scheduleOpen ? application : null}
+          schedule={scheduleForApplication}
+          onSelect={(id, scheduledAt) => {
+            if (props.variant !== "interested") props.onSaveCodingTestSchedule(id, scheduledAt);
+            setScheduleOpen(false);
+          }}
+          onOpenChange={setScheduleOpen}
+        />
+      )}
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent onClick={stopClick}>
           <DialogHeader>
-            <DialogTitle>이 공고를 삭제할까요?</DialogTitle>
+            <DialogTitle>{isInterested ? "이 관심기업을 삭제할까요?" : "이 공고를 삭제할까요?"}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            스크린샷과 기업분석 기록도 함께 삭제돼요.
+            {isInterested
+              ? "스크린샷과 매칭 기록도 함께 삭제돼요."
+              : "스크린샷과 기업분석 기록도 함께 삭제돼요."}
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>
@@ -420,7 +459,7 @@ export function ApplicationDetailDialog({
             <Button
               variant="destructive"
               onClick={() => {
-                onDelete?.(application.id);
+                onDelete?.(entity.id);
                 setConfirmOpen(false);
                 onOpenChange(false);
               }}

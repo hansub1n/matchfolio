@@ -27,7 +27,6 @@ import {
   CodingTestScheduleDialog,
   InterviewSchedulePopover,
 } from "@/widgets/kanban-board";
-import { InterestedCompanyDetailDialog } from "@/widgets/watchlist";
 
 import { buildCalendarMonth, type CalendarEvent } from "../model/build-calendar-month";
 import { buildUpcomingSchedule, type UnscheduledItem } from "../model/build-upcoming-schedule";
@@ -358,9 +357,11 @@ export function CalendarView({
         onSaveInterviewRound={handleSetInterviewRound}
         onSaveCodingTestSchedule={handleSetCodingTestSchedule}
       />
-      <InterestedCompanyDetailDialog
+      <ApplicationDetailDialog
+        key={`detail-company-${detailCompany?.id ?? "none"}`}
+        variant="interested"
         company={detailCompany}
-        onOpenChange={(open) => {
+        onOpenChange={(open: boolean) => {
           if (!open) setDetailCompanyId(null);
         }}
         onUpdate={handleUpdateInterestedCompany}

@@ -8,9 +8,10 @@ import {
   type InterestedCompany,
   type UpdateInterestedCompanyInput,
 } from "@/entities/interested-company";
+import { CreateApplicationDialog } from "@/features/create-application";
+import { ApplicationDetailDialog } from "@/widgets/kanban-board";
 
 import { InterestedCompanyCard } from "./interested-company-card";
-import { InterestedCompanyDetailDialog } from "./interested-company-detail-dialog";
 
 export function Watchlist({ companies }: { companies: InterestedCompany[] }) {
   const [items, setItems] = useState(companies);
@@ -21,6 +22,7 @@ export function Watchlist({ companies }: { companies: InterestedCompany[] }) {
   }
   const [detailId, setDetailId] = useState<string | null>(null);
   const detailCompany = items.find((c) => c.id === detailId) ?? null;
+  const [applyCompany, setApplyCompany] = useState<InterestedCompany | null>(null);
 
   function handleUpdate(id: string, input: UpdateInterestedCompanyInput) {
     setItems((prev) =>
@@ -61,12 +63,40 @@ export function Watchlist({ companies }: { companies: InterestedCompany[] }) {
           onConvert={handleConvert}
         />
       ))}
-      <InterestedCompanyDetailDialog
+      <ApplicationDetailDialog
+        key={`detail-${detailCompany?.id ?? "none"}`}
+        variant="interested"
         company={detailCompany}
         onOpenChange={(open) => {
           if (!open) setDetailId(null);
         }}
         onUpdate={handleUpdate}
+        onDelete={handleDelete}
+        onApply={setApplyCompany}
+      />
+      <CreateApplicationDialog
+        key={`apply-${applyCompany?.id ?? "none"}`}
+        trigger={null}
+        open={applyCompany !== null}
+        onOpenChange={(open) => !open && setApplyCompany(null)}
+        initialValues={
+          applyCompany
+            ? {
+                company: applyCompany.company,
+                position: applyCompany.position ?? "",
+                deadline: applyCompany.deadline,
+                jobPostingUrl: applyCompany.jobPostingUrl,
+                techStack: applyCompany.techStack,
+                description: applyCompany.description,
+                memo: applyCompany.memo,
+                screenshotPaths: applyCompany.screenshotPaths,
+              }
+            : undefined
+        }
+        onCreated={() => {
+          if (applyCompany) handleConvert(applyCompany.id);
+          setApplyCompany(null);
+        }}
       />
     </div>
   );
