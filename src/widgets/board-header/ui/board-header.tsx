@@ -23,7 +23,7 @@ export function BoardHeader({
   const thisWeek = heatmap.weeks.at(-1) ?? [];
 
   return (
-    <div className="flex items-center justify-between gap-4 border-b px-6 py-3">
+    <div className="flex shrink-0 items-center justify-between gap-4 border-b px-6 py-3">
       <p className="text-[17px] font-medium tracking-tight">
         {headline.prefix}
         {headline.highlight && (

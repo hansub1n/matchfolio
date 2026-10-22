@@ -123,6 +123,7 @@ export function ApplicationStats({
       )}
 
       <ApplicationDetailDialog
+        key={`detail-${detailApplication?.id ?? "none"}`}
         application={detailApplication}
         schedule={detailId ? (latestSchedules.get(detailId) ?? null) : null}
         onOpenChange={(open) => {

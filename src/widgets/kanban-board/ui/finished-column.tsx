@@ -17,10 +17,14 @@ const FILTERS: { value: OutcomeFilter; label: string }[] = [
 
 export function FinishedColumn({
   applications,
+  onSaveInterviewRound,
+  onCardClick,
   onOpenDetail,
   onDelete,
 }: {
   applications: Application[];
+  onSaveInterviewRound: (id: string, round: string, scheduledAt: string | null) => void;
+  onCardClick: (id: string) => void;
   onOpenDetail: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
@@ -34,7 +38,10 @@ export function FinishedColumn({
     <KanbanColumn
       id="finished"
       title="종료"
+      variant="outline"
       applications={filtered}
+      onSaveInterviewRound={onSaveInterviewRound}
+      onCardClick={onCardClick}
       onOpenDetail={onOpenDetail}
       onDelete={onDelete}
       headerExtra={

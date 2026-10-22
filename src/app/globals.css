@@ -11,6 +11,19 @@
   --color-highlight-foreground: var(--highlight-foreground);
   --color-urgent: var(--urgent);
   --color-urgent-foreground: var(--urgent-foreground);
+  --color-lane: var(--lane);
+  --color-avatar-1-bg: var(--avatar-1-bg);
+  --color-avatar-1-fg: var(--avatar-1-fg);
+  --color-avatar-2-bg: var(--avatar-2-bg);
+  --color-avatar-2-fg: var(--avatar-2-fg);
+  --color-avatar-3-bg: var(--avatar-3-bg);
+  --color-avatar-3-fg: var(--avatar-3-fg);
+  --color-avatar-4-bg: var(--avatar-4-bg);
+  --color-avatar-4-fg: var(--avatar-4-fg);
+  --color-avatar-5-bg: var(--avatar-5-bg);
+  --color-avatar-5-fg: var(--avatar-5-fg);
+  --color-avatar-6-bg: var(--avatar-6-bg);
+  --color-avatar-6-fg: var(--avatar-6-fg);
   --font-sans: "Pretendard Variable", var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
@@ -94,6 +107,19 @@
   --heat-2: var(--highlight);
   --heat-3: #a6cc2e;
   --heat-4: #5e7a0e;
+  --lane: oklch(0.975 0 0);
+  --avatar-1-bg: oklch(0.9 0.05 200);
+  --avatar-1-fg: oklch(0.32 0.08 200);
+  --avatar-2-bg: oklch(0.9 0.05 260);
+  --avatar-2-fg: oklch(0.34 0.09 260);
+  --avatar-3-bg: oklch(0.9 0.05 300);
+  --avatar-3-fg: oklch(0.34 0.09 300);
+  --avatar-4-bg: oklch(0.9 0.05 340);
+  --avatar-4-fg: oklch(0.35 0.08 340);
+  --avatar-5-bg: oklch(0.88 0.05 80);
+  --avatar-5-fg: oklch(0.33 0.07 80);
+  --avatar-6-bg: oklch(0.88 0.05 160);
+  --avatar-6-fg: oklch(0.3 0.07 160);
 }
 
 .dark {
@@ -137,6 +163,19 @@
   --heat-2: var(--highlight);
   --heat-3: oklch(0.62 0.15 126);
   --heat-4: oklch(0.42 0.1 126);
+  --lane: oklch(0.25 0 0);
+  --avatar-1-bg: oklch(0.3 0.06 200);
+  --avatar-1-fg: oklch(0.85 0.06 200);
+  --avatar-2-bg: oklch(0.3 0.07 260);
+  --avatar-2-fg: oklch(0.85 0.07 260);
+  --avatar-3-bg: oklch(0.3 0.07 300);
+  --avatar-3-fg: oklch(0.85 0.07 300);
+  --avatar-4-bg: oklch(0.3 0.06 340);
+  --avatar-4-fg: oklch(0.85 0.06 340);
+  --avatar-5-bg: oklch(0.28 0.06 80);
+  --avatar-5-fg: oklch(0.82 0.06 80);
+  --avatar-6-bg: oklch(0.26 0.06 160);
+  --avatar-6-fg: oklch(0.82 0.06 160);
 }
 
 @keyframes heatmap-pulse {

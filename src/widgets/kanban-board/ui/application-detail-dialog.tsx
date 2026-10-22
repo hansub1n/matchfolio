@@ -23,23 +23,27 @@ const inputClassName =
 export function ApplicationDetailDialog({
   application,
   schedule,
+  initialMode = "view",
   onOpenChange,
   onUpdate,
 }: {
   application: Application | null;
   schedule?: Schedule | null;
+  initialMode?: "view" | "edit";
   onOpenChange: (open: boolean) => void;
   onUpdate: (id: string, input: UpdateApplicationInput) => void;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [company, setCompany] = useState("");
-  const [position, setPosition] = useState("");
-  const [appliedAt, setAppliedAt] = useState("");
-  const [deadline, setDeadline] = useState("");
-  const [jobPostingUrl, setJobPostingUrl] = useState("");
-  const [techStack, setTechStack] = useState("");
-  const [description, setDescription] = useState("");
-  const [memo, setMemo] = useState("");
+  // 호출하는 쪽에서 application 바뀔 때마다 key를 바꿔 매번 새로 마운트시키는
+  // 전제로 작성했다 — 그래야 아래 초기값들이 "이번에 연 지원 건" 기준으로 맞다.
+  const [editing, setEditing] = useState(initialMode === "edit");
+  const [company, setCompany] = useState(application?.company ?? "");
+  const [position, setPosition] = useState(application?.position ?? "");
+  const [appliedAt, setAppliedAt] = useState(application?.appliedAt ?? "");
+  const [deadline, setDeadline] = useState(application?.deadline ?? "");
+  const [jobPostingUrl, setJobPostingUrl] = useState(application?.jobPostingUrl ?? "");
+  const [techStack, setTechStack] = useState(application?.techStack.join(", ") ?? "");
+  const [description, setDescription] = useState(application?.description ?? "");
+  const [memo, setMemo] = useState(application?.memo ?? "");
 
   const deadlineLabel = formatDeadline(application?.deadline ?? null);
   const appliedAtLabel = application?.appliedAt

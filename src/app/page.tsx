@@ -28,7 +28,7 @@ export default async function Home() {
   return (
     <main className="flex flex-1 flex-col py-8">
       <Tabs defaultValue="board" className="flex-1">
-        <div className="flex items-center justify-between border-b border-border px-6 pb-6">
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-6 pb-6">
           <h1 className="text-xl font-bold tracking-tight">matchfolio</h1>
           <TabsList>
             <TabsTrigger value="board">

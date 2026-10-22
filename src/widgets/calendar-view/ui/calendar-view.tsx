@@ -22,12 +22,12 @@ import { Button } from "@/shared/ui/button";
 import {
   ApplicationDetailDialog,
   CodingTestScheduleDialog,
-  InterviewRoundDialog,
+  InterviewSchedulePopover,
 } from "@/widgets/kanban-board";
 import { InterestedCompanyDetailDialog } from "@/widgets/watchlist";
 
 import { buildCalendarMonth, type CalendarEvent } from "../model/build-calendar-month";
-import { buildUpcomingSchedule } from "../model/build-upcoming-schedule";
+import { buildUpcomingSchedule, type UnscheduledItem } from "../model/build-upcoming-schedule";
 
 const WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
 const MAX_VISIBLE_CHIPS = 2;
@@ -61,6 +61,57 @@ function formatUpcomingDate(date: string, time: string | null, today: string): s
   return time ? `${label} ${time}` : label;
 }
 
+function UnscheduledRow({
+  item,
+  application,
+  schedule,
+  onSaveInterviewRound,
+  onRequestCodingTest,
+}: {
+  item: UnscheduledItem;
+  application: Application | null;
+  schedule: Schedule | null;
+  onSaveInterviewRound: (id: string, round: string, scheduledAt: string | null) => void;
+  onRequestCodingTest: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const isCodingTest = item.label === "코테";
+
+  const trigger = (
+    <Button
+      variant="outline"
+      size="xs"
+      onClick={() => {
+        if (isCodingTest) onRequestCodingTest(item.applicationId);
+        else setOpen(true);
+      }}
+    >
+      날짜 입력
+    </Button>
+  );
+
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="truncate text-sm">
+        <span className="font-medium">{item.company}</span>{" "}
+        <span className="text-muted-foreground">{item.label}</span>
+      </span>
+      {!isCodingTest && application ? (
+        <InterviewSchedulePopover
+          application={application}
+          schedule={schedule}
+          open={open}
+          onOpenChange={setOpen}
+          onSave={onSaveInterviewRound}
+          trigger={trigger}
+        />
+      ) : (
+        trigger
+      )}
+    </div>
+  );
+}
+
 export function CalendarView({
   applications,
   interestedCompanies,
@@ -86,9 +137,6 @@ export function CalendarView({
 
   const {
     latestSchedules,
-    pendingRoundApplication,
-    pendingRoundSchedule,
-    setPendingRoundId,
     pendingCodingTestApplication,
     pendingCodingTestSchedule,
     setPendingCodingTestId,
@@ -257,25 +305,18 @@ export function CalendarView({
               <div className="flex flex-col gap-3 border-t border-border pt-3">
                 <p className="text-[11px] text-muted-foreground">일정 미정</p>
                 {unscheduled.map((item) => (
-                  <div key={item.applicationId} className="flex items-center justify-between gap-2">
-                    <span className="truncate text-sm">
-                      <span className="font-medium">{item.company}</span>{" "}
-                      <span className="text-muted-foreground">{item.label}</span>
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="xs"
-                      onClick={() => {
-                        if (item.label === "코테") {
-                          setPendingCodingTestId(item.applicationId);
-                        } else {
-                          setPendingRoundId(item.applicationId);
-                        }
-                      }}
-                    >
-                      날짜 입력
-                    </Button>
-                  </div>
+                  <UnscheduledRow
+                    key={item.applicationId}
+                    item={item}
+                    application={applications.find((a) => a.id === item.applicationId) ?? null}
+                    schedule={
+                      scheduleItems.find(
+                        (s) => s.applicationId === item.applicationId && s.stage === "interview"
+                      ) ?? null
+                    }
+                    onSaveInterviewRound={handleSetInterviewRound}
+                    onRequestCodingTest={setPendingCodingTestId}
+                  />
                 ))}
               </div>
             )}
@@ -283,15 +324,6 @@ export function CalendarView({
         )}
       </div>
 
-      <InterviewRoundDialog
-        key={`round-${pendingRoundApplication?.id ?? "none"}`}
-        application={pendingRoundApplication}
-        schedule={pendingRoundSchedule}
-        onSelect={handleSetInterviewRound}
-        onOpenChange={(open) => {
-          if (!open) setPendingRoundId(null);
-        }}
-      />
       <CodingTestScheduleDialog
         key={`coding-test-${pendingCodingTestApplication?.id ?? "none"}`}
         application={pendingCodingTestApplication}
@@ -302,6 +334,7 @@ export function CalendarView({
         }}
       />
       <ApplicationDetailDialog
+        key={`detail-${detailApplication?.id ?? "none"}`}
         application={detailApplication}
         schedule={detailId ? (latestSchedules.get(detailId) ?? null) : null}
         onOpenChange={(open) => {

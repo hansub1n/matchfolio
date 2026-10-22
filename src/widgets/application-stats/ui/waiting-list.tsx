@@ -2,7 +2,7 @@
 
 import { ChevronRight } from "lucide-react";
 
-import { monogramColor } from "@/shared/lib/monogram-color";
+import { CompanyMonogram } from "@/shared/ui/company-monogram";
 
 import type { InProgressItem } from "../model/compute-stats";
 
@@ -43,12 +43,7 @@ export function WaitingList({
             onClick={() => onSelect(item.id)}
             className="flex items-center gap-2.5 py-1.5 text-left"
           >
-            <span
-              className="flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-medium"
-              style={{ backgroundColor: monogramColor(item.company) }}
-            >
-              {item.company.charAt(0)}
-            </span>
+            <CompanyMonogram company={item.company} size={24} />
             <span className="truncate text-sm font-medium">{item.company}</span>
             <span className="truncate text-sm text-muted-foreground">
               {describeStage(item)}

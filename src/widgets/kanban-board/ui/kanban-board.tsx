@@ -22,7 +22,6 @@ import { applyStageChange, type BoardColumnId } from "../model/apply-stage-chang
 import { ApplicationDetailDialog } from "./application-detail-dialog";
 import { CodingTestScheduleDialog } from "./coding-test-schedule-dialog";
 import { FinishedColumn } from "./finished-column";
-import { InterviewRoundDialog } from "./interview-round-dialog";
 import { KanbanColumn } from "./kanban-column";
 import { ResultPickerDialog } from "./result-picker-dialog";
 
@@ -48,9 +47,8 @@ export function KanbanBoard({
 
   const {
     latestSchedules,
-    pendingRoundApplication,
-    pendingRoundSchedule,
-    setPendingRoundId,
+    autoOpenRoundId,
+    setAutoOpenRoundId,
     pendingCodingTestApplication,
     pendingCodingTestSchedule,
     setPendingCodingTestId,
@@ -65,11 +63,28 @@ export function KanbanBoard({
     [scheduleItems]
   );
 
+  // 면접 차수 진행 바(카드 하단)용 — 지금까지 몇 차수를 거쳤는지는 그 지원 건의
+  // interview 스케줄 행 개수로 센다(차수마다 한 행씩 쌓이므로).
+  const interviewRoundCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const s of scheduleItems) {
+      if (s.stage !== "interview") continue;
+      counts.set(s.applicationId, (counts.get(s.applicationId) ?? 0) + 1);
+    }
+    return counts;
+  }, [scheduleItems]);
+
   const [pendingOutcomeId, setPendingOutcomeId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [detailMode, setDetailMode] = useState<"view" | "edit">("view");
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
+
+  function openDetail(id: string, mode: "view" | "edit") {
+    setDetailMode(mode);
+    setDetailId(id);
+  }
 
   function handleDragEnd({ active, over }: DragEndEvent) {
     if (!over) return;
@@ -91,7 +106,7 @@ export function KanbanBoard({
     }).catch(console.error);
 
     if (target === "interview" && !latestSchedules.get(draggedId)) {
-      setPendingRoundId(draggedId);
+      setAutoOpenRoundId(draggedId);
     }
 
     if (target === "coding_test" && !codingTestMarked.has(draggedId)) {
@@ -133,7 +148,7 @@ export function KanbanBoard({
 
   return (
     <DndContext id="kanban-board" sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="flex gap-4 overflow-x-auto px-6 pb-4">
+      <div className="grid flex-1 grid-cols-[repeat(4,minmax(240px,1fr))] items-stretch gap-3 overflow-x-auto px-6 pb-4">
         {APPLICATION_STAGES.map((stage) => {
           const columnApplications = items.filter(
             (app) => app.stage === stage.value && app.outcome === "in_progress"
@@ -146,16 +161,29 @@ export function KanbanBoard({
               title={stage.label}
               applications={columnApplications}
               schedules={latestSchedules}
-              onRequestInterviewRound={setPendingRoundId}
+              interviewRoundCounts={interviewRoundCounts}
+              autoOpenRoundId={autoOpenRoundId}
+              onAutoOpenHandled={() => setAutoOpenRoundId(null)}
+              emptyPlaceholder={
+                stage.value === "document" ? (
+                  <div className="rounded-lg border border-dashed border-border p-4 text-center text-[11px] text-muted-foreground">
+                    공고 스크린샷을 끌어다 놓으세요
+                  </div>
+                ) : undefined
+              }
+              onSaveInterviewRound={handleSetInterviewRound}
               onRequestCodingTestSchedule={setPendingCodingTestId}
-              onOpenDetail={setDetailId}
+              onCardClick={(id) => openDetail(id, "view")}
+              onOpenDetail={(id) => openDetail(id, "edit")}
               onDelete={handleDeleteApplication}
             />
           );
         })}
         <FinishedColumn
           applications={items.filter((app) => app.outcome !== "in_progress")}
-          onOpenDetail={setDetailId}
+          onSaveInterviewRound={handleSetInterviewRound}
+          onCardClick={(id) => openDetail(id, "view")}
+          onOpenDetail={(id) => openDetail(id, "edit")}
           onDelete={handleDeleteApplication}
         />
       </div>
@@ -164,15 +192,6 @@ export function KanbanBoard({
         onSelect={handleSetOutcome}
         onOpenChange={(open) => {
           if (!open) setPendingOutcomeId(null);
-        }}
-      />
-      <InterviewRoundDialog
-        key={`round-${pendingRoundApplication?.id ?? "none"}`}
-        application={pendingRoundApplication}
-        schedule={pendingRoundSchedule}
-        onSelect={handleSetInterviewRound}
-        onOpenChange={(open) => {
-          if (!open) setPendingRoundId(null);
         }}
       />
       <CodingTestScheduleDialog
@@ -185,8 +204,10 @@ export function KanbanBoard({
         }}
       />
       <ApplicationDetailDialog
+        key={`detail-${detailApplication?.id ?? "none"}`}
         application={detailApplication}
         schedule={detailSchedule ?? null}
+        initialMode={detailMode}
         onOpenChange={(open) => {
           if (!open) setDetailId(null);
         }}
