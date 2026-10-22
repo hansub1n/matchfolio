@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { buildRoundChips, resolveRoundSave, roundsAfter } from "./resolve-interview-round";
 import type { Schedule } from "./types";
-import { buildRoundChips, shouldUpdateExistingSchedule } from "./resolve-interview-round";
 
 function buildSchedule(overrides: Partial<Schedule> = {}): Schedule {
   return {
@@ -15,43 +15,61 @@ function buildSchedule(overrides: Partial<Schedule> = {}): Schedule {
   };
 }
 
-describe("shouldUpdateExistingSchedule", () => {
-  it("creates a new row when there's no existing schedule yet", () => {
-    expect(shouldUpdateExistingSchedule(undefined, "1차")).toBe(false);
+describe("buildRoundChips", () => {
+  it("기록이 없으면 1차/2차/최종만 보여준다", () => {
+    expect(buildRoundChips([])).toEqual(["1차", "2차", "최종"]);
   });
 
-  it("creates a new row when the latest schedule is for coding_test, not interview", () => {
-    const existing = buildSchedule({ stage: "coding_test", roundLabel: null });
-    expect(shouldUpdateExistingSchedule(existing, "1차")).toBe(false);
+  it("기록된 차수 전부 + 다음 번호 + 최종을 보여준다", () => {
+    expect(buildRoundChips(["1차", "2차", "3차"])).toEqual(["1차", "2차", "3차", "4차", "최종"]);
   });
 
-  it("updates in place when correcting the same round's schedule", () => {
-    const existing = buildSchedule({ roundLabel: "1차" });
-    expect(shouldUpdateExistingSchedule(existing, "1차")).toBe(true);
+  it("최종까지 기록됐으면 다음 번호 없이 최종에서 끝난다", () => {
+    expect(buildRoundChips(["1차", "최종"])).toEqual(["1차", "최종"]);
   });
 
-  it("creates a new row when advancing to a different round, keeping the old round's history", () => {
-    const existing = buildSchedule({ roundLabel: "1차" });
-    expect(shouldUpdateExistingSchedule(existing, "2차")).toBe(false);
+  it("커스텀(번호 없는) 차수여도 최종은 선택지로 남는다", () => {
+    expect(buildRoundChips(["1차", "임원면접"])).toEqual(["1차", "임원면접", "최종"]);
   });
 });
 
-describe("buildRoundChips", () => {
-  it("shows 1차/2차/최종 when there's no current round yet", () => {
-    expect(buildRoundChips(null)).toEqual(["1차", "2차", "최종"]);
+describe("roundsAfter", () => {
+  it("선택한 차수보다 나중에 기록된 차수만 반환한다", () => {
+    expect(roundsAfter(["1차", "2차", "3차"], "1차")).toEqual(["2차", "3차"]);
+    expect(roundsAfter(["1차", "2차", "3차"], "3차")).toEqual([]);
   });
 
-  it("includes the current round and everything after it, dropping earlier rounds", () => {
-    expect(buildRoundChips("1차")).toEqual(["1차", "2차", "3차", "최종"]);
-    expect(buildRoundChips("2차")).toEqual(["2차", "3차", "최종"]);
-    expect(buildRoundChips("3차")).toEqual(["3차", "최종"]);
+  it("기록에 없는 차수를 넘기면 빈 배열을 반환한다", () => {
+    expect(roundsAfter(["1차", "2차"], "4차")).toEqual([]);
+  });
+});
+
+describe("resolveRoundSave", () => {
+  it("처음 보는 차수면 새로 만들 대상이라 existingRound가 없다", () => {
+    const schedules = [buildSchedule({ id: "s1", roundLabel: "1차" })];
+    expect(resolveRoundSave(schedules, "2차")).toEqual({ existingRound: null, roundsToDelete: [] });
   });
 
-  it("shows only the current round once it's the last one", () => {
-    expect(buildRoundChips("최종")).toEqual(["최종"]);
+  it("같은 차수를 다시 저장하면 그 행을 고치고 지울 건 없다", () => {
+    const schedules = [buildSchedule({ id: "s1", roundLabel: "1차" })];
+    const result = resolveRoundSave(schedules, "1차");
+    expect(result.existingRound?.id).toBe("s1");
+    expect(result.roundsToDelete).toEqual([]);
   });
 
-  it("falls back to just the current round when it isn't a recognized round name", () => {
-    expect(buildRoundChips("임원면접")).toEqual(["임원면접"]);
+  it("이전 차수로 되돌리면 그 뒤에 기록된 행들을 지울 대상으로 돌려준다", () => {
+    const s1 = buildSchedule({ id: "s1", roundLabel: "1차", createdAt: "2026-01-01T00:00:00Z" });
+    const s2 = buildSchedule({ id: "s2", roundLabel: "2차", createdAt: "2026-01-02T00:00:00Z" });
+    const s3 = buildSchedule({ id: "s3", roundLabel: "3차", createdAt: "2026-01-03T00:00:00Z" });
+    const result = resolveRoundSave([s1, s2, s3], "1차");
+    expect(result.existingRound?.id).toBe("s1");
+    expect(result.roundsToDelete.map((s) => s.id).sort()).toEqual(["s2", "s3"]);
+  });
+
+  it("코딩테스트 행은 같은 차수로 취급하지 않는다", () => {
+    const schedules = [
+      buildSchedule({ id: "s1", stage: "coding_test", roundLabel: null }),
+    ];
+    expect(resolveRoundSave(schedules, "1차").existingRound).toBeNull();
   });
 });

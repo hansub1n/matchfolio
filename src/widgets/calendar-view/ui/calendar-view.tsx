@@ -17,7 +17,7 @@ import {
   type UpdateInterestedCompanyInput,
 } from "@/entities/interested-company";
 import type { MyProject } from "@/entities/my-project";
-import { useScheduleRequests, type Schedule } from "@/entities/schedule";
+import { recordedInterviewRounds, useScheduleRequests, type Schedule } from "@/entities/schedule";
 import { getDdayTier, type DdayTier } from "@/shared/lib/dday";
 import { formatDateTime } from "@/shared/lib/format-date-time";
 import { todayKST } from "@/shared/lib/kst-date";
@@ -65,12 +65,14 @@ function UnscheduledRow({
   item,
   application,
   schedule,
+  recordedRounds,
   onSaveInterviewRound,
   onRequestCodingTest,
 }: {
   item: UnscheduledItem;
   application: Application | null;
   schedule: Schedule | null;
+  recordedRounds: string[];
   onSaveInterviewRound: (id: string, round: string, scheduledAt: string | null) => void;
   onRequestCodingTest: (id: string) => void;
 }) {
@@ -100,6 +102,7 @@ function UnscheduledRow({
         <InterviewSchedulePopover
           application={application}
           schedule={schedule}
+          recordedRounds={recordedRounds}
           open={open}
           onOpenChange={setOpen}
           onSave={onSaveInterviewRound}
@@ -325,6 +328,7 @@ export function CalendarView({
                         (s) => s.applicationId === item.applicationId && s.stage === "interview"
                       ) ?? null
                     }
+                    recordedRounds={recordedInterviewRounds(scheduleItems, item.applicationId)}
                     onSaveInterviewRound={handleSetInterviewRound}
                     onRequestCodingTest={setPendingCodingTestId}
                   />
@@ -348,6 +352,7 @@ export function CalendarView({
         key={`detail-${detailApplication?.id ?? "none"}`}
         application={detailApplication}
         schedule={detailId ? (latestSchedules.get(detailId) ?? null) : null}
+        interviewRounds={detailId ? recordedInterviewRounds(scheduleItems, detailId) : []}
         myProjectTechStack={myProjectTechStack}
         onOpenChange={(open) => {
           if (!open) setDetailId(null);

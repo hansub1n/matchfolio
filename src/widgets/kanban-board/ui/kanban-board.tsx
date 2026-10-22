@@ -17,7 +17,7 @@ import {
   type UpdateApplicationInput,
 } from "@/entities/application";
 import type { MyProject } from "@/entities/my-project";
-import { useScheduleRequests, type Schedule } from "@/entities/schedule";
+import { recordedInterviewRounds, useScheduleRequests, type Schedule } from "@/entities/schedule";
 
 import { applyStageChange, type BoardColumnId } from "../model/apply-stage-change";
 import { ApplicationDetailDialog } from "./application-detail-dialog";
@@ -67,16 +67,15 @@ export function KanbanBoard({
     [scheduleItems]
   );
 
-  // 면접 차수 진행 바(카드 하단)용 — 지금까지 몇 차수를 거쳤는지는 그 지원 건의
-  // interview 스케줄 행 개수로 센다(차수마다 한 행씩 쌓이므로).
-  const interviewRoundCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const s of scheduleItems) {
-      if (s.stage !== "interview") continue;
-      counts.set(s.applicationId, (counts.get(s.applicationId) ?? 0) + 1);
+  // 면접 차수 진행 바(카드 하단)용 — 지금까지 거친 차수 라벨들을 기록 순서대로
+  // 모아둔다(같은 차수 중복 행이 있어도 라벨 기준으로 한 번만 센다).
+  const interviewRounds = useMemo(() => {
+    const rounds = new Map<string, string[]>();
+    for (const app of items) {
+      rounds.set(app.id, recordedInterviewRounds(scheduleItems, app.id));
     }
-    return counts;
-  }, [scheduleItems]);
+    return rounds;
+  }, [scheduleItems, items]);
 
   const [pendingOutcomeId, setPendingOutcomeId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -165,7 +164,7 @@ export function KanbanBoard({
               title={stage.label}
               applications={columnApplications}
               schedules={latestSchedules}
-              interviewRoundCounts={interviewRoundCounts}
+              interviewRounds={interviewRounds}
               autoOpenRoundId={autoOpenRoundId}
               onAutoOpenHandled={() => setAutoOpenRoundId(null)}
               emptyPlaceholder={
@@ -211,6 +210,7 @@ export function KanbanBoard({
         key={`detail-${detailApplication?.id ?? "none"}`}
         application={detailApplication}
         schedule={detailSchedule ?? null}
+        interviewRounds={detailApplication ? interviewRounds.get(detailApplication.id) ?? [] : []}
         myProjectTechStack={myProjectTechStack}
         initialMode={detailMode}
         onOpenChange={(open) => {

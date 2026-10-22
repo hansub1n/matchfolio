@@ -15,7 +15,7 @@ export function KanbanColumn({
   title,
   applications,
   schedules,
-  interviewRoundCounts,
+  interviewRounds,
   autoOpenRoundId,
   onAutoOpenHandled,
   variant = "default",
@@ -31,7 +31,7 @@ export function KanbanColumn({
   title: string;
   applications: Application[];
   schedules?: Map<string, Schedule>;
-  interviewRoundCounts?: Map<string, number>;
+  interviewRounds?: Map<string, string[]>;
   autoOpenRoundId?: string | null;
   onAutoOpenHandled?: () => void;
   variant?: "default" | "outline";
@@ -68,7 +68,7 @@ export function KanbanColumn({
             key={application.id}
             application={application}
             schedule={schedules?.get(application.id) ?? null}
-            interviewRoundCount={interviewRoundCounts?.get(application.id) ?? 0}
+            interviewRounds={interviewRounds?.get(application.id) ?? []}
             autoOpenRound={autoOpenRoundId === application.id}
             onAutoOpenHandled={onAutoOpenHandled}
             onSaveInterviewRound={onSaveInterviewRound}

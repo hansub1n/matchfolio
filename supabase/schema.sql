@@ -42,7 +42,12 @@ create table schedules (
   stage text not null check (stage in ('coding_test', 'interview')),
   round_label text, -- '1차', '2차', '임원면접' 등. 코딩테스트는 보통 비워둠.
   scheduled_at timestamptz, -- null이면 일정 미정.
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- 같은 지원 건에 같은 차수(혹은 코딩테스트) 행이 중복 insert되는 걸 DB
+  -- 차원에서도 막는다. round_label이 null인 coding_test끼리도 중복으로
+  -- 치도록 nulls not distinct를 쓴다(Postgres 15+).
+  constraint schedules_application_stage_round_unique
+    unique nulls not distinct (application_id, stage, round_label)
 );
 
 create table interview_prep (

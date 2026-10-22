@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { cn } from "cn";
 
 import type { Application } from "@/entities/application";
-import { buildRoundChips, type Schedule } from "@/entities/schedule";
+import { buildRoundChips, roundsAfter, type Schedule } from "@/entities/schedule";
 import { Button } from "@/shared/ui/button";
 import { Popover, PopoverAnchor, PopoverContent } from "@/shared/ui/popover";
 
@@ -31,6 +31,7 @@ const CUSTOM = "__custom__";
 export function InterviewSchedulePopover({
   application,
   schedule,
+  recordedRounds,
   open,
   defaultNext = false,
   trigger,
@@ -39,15 +40,18 @@ export function InterviewSchedulePopover({
 }: {
   application: Application;
   schedule: Schedule | null;
+  recordedRounds: string[];
   open: boolean;
   defaultNext?: boolean;
   trigger: React.ReactNode;
   onOpenChange: (open: boolean) => void;
   onSave: (id: string, round: string, scheduledAt: string | null) => void;
 }) {
-  const currentRound = schedule?.roundLabel ?? null;
-  const chips = buildRoundChips(currentRound);
-  const defaultChip = defaultNext ? (chips[1] ?? chips[0]) : (currentRound ?? chips[0]);
+  const currentRound = recordedRounds[recordedRounds.length - 1] ?? null;
+  const chips = buildRoundChips(recordedRounds);
+  const defaultChip = defaultNext
+    ? (chips[recordedRounds.length] ?? chips[0])
+    : (currentRound ?? chips[0]);
   const initialDateTime = splitDateTime(schedule?.scheduledAt);
 
   const [selected, setSelected] = useState(defaultChip);
@@ -70,6 +74,9 @@ export function InterviewSchedulePopover({
   function resolvedRound(): string {
     return selected === CUSTOM ? customValue.trim() : selected;
   }
+
+  // 현재보다 앞 차수를 고르면, 저장 시 같이 지워질 뒤쪽 기록을 미리 보여준다.
+  const revertWarningRounds = roundsAfter(recordedRounds, selected);
 
   function commit(scheduledAt: string | null) {
     const round = resolvedRound();
@@ -103,10 +110,11 @@ export function InterviewSchedulePopover({
       }
       savedRef.current = false;
     } else if (!savedRef.current) {
-      // 바깥 클릭/Esc로 닫힘. 새 차수를 고르던 중이었다면 그 차수만 기록하고,
-      // 기존 차수를 보정하던 중이었다면 그냥 둔다 — 이미 저장된 시간을 실수로
-      // 날리지 않기 위해서다.
-      if (selected !== currentRound) {
+      // 바깥 클릭/Esc로 닫힘. 아직 기록에 없는(새로 진행하려는) 차수를 고르던
+      // 중이었다면 그 차수만 기록하고, 이미 기록된 차수(현재든 과거든)를 보던
+      // 중이었다면 그냥 둔다 — 특히 과거 차수를 실수로 봤다가 그 뒤 기록을
+      // 실수로 지워버리는 일이 없도록, 되돌리기는 명시적으로 저장을 눌러야만 된다.
+      if (!recordedRounds.includes(selected)) {
         commit(null);
       }
     }
@@ -152,6 +160,12 @@ export function InterviewSchedulePopover({
             직접 입력
           </button>
         </div>
+
+        {revertWarningRounds.length > 0 && (
+          <p className="text-[11px] text-muted-foreground">
+            {revertWarningRounds.join("·")} 기록이 지워져요
+          </p>
+        )}
 
         {selected === CUSTOM && (
           <input

@@ -12,7 +12,7 @@ import {
   type UpdateApplicationInput,
 } from "@/entities/application";
 import type { MyProject } from "@/entities/my-project";
-import { useScheduleRequests, type Schedule } from "@/entities/schedule";
+import { recordedInterviewRounds, useScheduleRequests, type Schedule } from "@/entities/schedule";
 import { todayKST } from "@/shared/lib/kst-date";
 import { CreateApplicationDialog } from "@/features/create-application";
 import { ApplicationDetailDialog } from "@/widgets/kanban-board";
@@ -148,6 +148,7 @@ export function ApplicationStats({
         key={`detail-${detailApplication?.id ?? "none"}`}
         application={detailApplication}
         schedule={detailId ? (latestSchedules.get(detailId) ?? null) : null}
+        interviewRounds={detailId ? recordedInterviewRounds(scheduleItems, detailId) : []}
         myProjectTechStack={myProjectTechStack}
         onOpenChange={(open) => {
           if (!open) setDetailId(null);

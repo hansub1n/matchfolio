@@ -41,15 +41,21 @@ export interface CreateScheduleInput {
   scheduledAt?: string | null;
 }
 
-export async function createSchedule(input: CreateScheduleInput): Promise<Schedule> {
+// insert 대신 upsert를 쓴다 — (application_id, stage, round_label) 유니크 제약과
+// 맞물려, 앱 쪽 판단이 어떤 이유로든 틀려서 이미 있는 행과 또 같은 조합으로
+// 저장을 시도해도 DB가 중복을 만들지 않고 그 행을 고치는 쪽으로 떨어진다.
+export async function upsertSchedule(input: CreateScheduleInput): Promise<Schedule> {
   const { data, error } = await supabase
     .from("schedules")
-    .insert({
-      application_id: input.applicationId,
-      stage: input.stage,
-      round_label: input.roundLabel,
-      scheduled_at: input.scheduledAt,
-    })
+    .upsert(
+      {
+        application_id: input.applicationId,
+        stage: input.stage,
+        round_label: input.roundLabel ?? null,
+        scheduled_at: input.scheduledAt,
+      },
+      { onConflict: "application_id,stage,round_label" }
+    )
     .select()
     .single();
 
@@ -75,4 +81,11 @@ export async function updateSchedule(id: string, input: UpdateScheduleInput): Pr
 
   if (error) throw error;
   return toSchedule(data);
+}
+
+// 이전 차수로 되돌릴 때, 그 뒤에 쌓인 차수 행들을 지우는 용도.
+export async function deleteSchedules(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await supabase.from("schedules").delete().in("id", ids);
+  if (error) throw error;
 }

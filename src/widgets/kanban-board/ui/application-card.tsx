@@ -57,7 +57,7 @@ function stopClick(e: React.MouseEvent) {
 export function ApplicationCard({
   application,
   schedule,
-  interviewRoundCount = 0,
+  interviewRounds = [],
   autoOpenRound,
   onAutoOpenHandled,
   onSaveInterviewRound,
@@ -68,7 +68,7 @@ export function ApplicationCard({
 }: {
   application: Application;
   schedule?: Schedule | null;
-  interviewRoundCount?: number;
+  interviewRounds?: string[];
   autoOpenRound?: boolean;
   onAutoOpenHandled?: () => void;
   onSaveInterviewRound: (id: string, round: string, scheduledAt: string | null) => void;
@@ -275,17 +275,19 @@ export function ApplicationCard({
                 {isInterviewing ? (
                   <span className="flex items-center gap-1.5 text-muted-foreground">
                     <span className="flex items-center gap-0.5">
-                      {Array.from({ length: Math.max(interviewRoundCount, 1) }).map((_, i) => (
+                      {Array.from({ length: Math.max(interviewRounds.length, 1) }).map((_, i) => (
                         <span
                           key={i}
                           className={cn(
                             "h-1 w-3.5 rounded-full",
-                            i < interviewRoundCount - 1 ? "bg-foreground" : "bg-border"
+                            i < interviewRounds.length - 1 ? "bg-foreground" : "bg-border"
                           )}
                         />
                       ))}
                     </span>
-                    {schedule?.roundLabel ? `${schedule.roundLabel} 면접` : "면접"}
+                    {interviewRounds.length > 0
+                      ? `${interviewRounds[interviewRounds.length - 1]} 면접`
+                      : "면접"}
                   </span>
                 ) : (
                   <span className="text-muted-foreground">코딩테스트</span>
@@ -294,6 +296,7 @@ export function ApplicationCard({
                   <InterviewSchedulePopover
                     application={application}
                     schedule={schedule ?? null}
+                    recordedRounds={interviewRounds}
                     open={scheduleOpen}
                     defaultNext={scheduleDefaultNext}
                     onOpenChange={setScheduleOpen}

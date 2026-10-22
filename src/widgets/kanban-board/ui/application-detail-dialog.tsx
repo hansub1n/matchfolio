@@ -77,6 +77,7 @@ type ApplicationVariantProps = CommonProps & {
   variant?: "application";
   application: Application | null;
   schedule?: Schedule | null;
+  interviewRounds?: string[];
   onUpdate: (id: string, input: UpdateApplicationInput) => void;
   onSaveInterviewRound: (id: string, round: string, scheduledAt: string | null) => void;
   onSaveCodingTestSchedule: (id: string, scheduledAt: string | null) => void;
@@ -245,6 +246,7 @@ export function ApplicationDetailDialog(props: Props) {
                       <InterviewSchedulePopover
                         application={application}
                         schedule={scheduleForApplication}
+                        recordedRounds={props.variant !== "interested" ? props.interviewRounds ?? [] : []}
                         open={scheduleOpen}
                         onOpenChange={setScheduleOpen}
                         onSave={props.variant !== "interested" ? props.onSaveInterviewRound : () => {}}
