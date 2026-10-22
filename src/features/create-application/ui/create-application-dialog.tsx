@@ -1,9 +1,7 @@
 "use client";
 
 import {
-  useRef,
   useState,
-  type ChangeEvent,
   type ClipboardEvent,
   type FormEvent,
   type ReactNode,
@@ -13,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { createApplication } from "@/entities/application";
 import { extractJobPosting } from "@/features/extract-job-posting";
 import { todayKST } from "@/shared/lib/kst-date";
+import { useObjectUrl } from "@/shared/lib/use-object-url";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -22,9 +21,26 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/shared/ui/dialog";
+import { Dropzone } from "@/shared/ui/dropzone";
+import { ExtractingPanel } from "@/shared/ui/extracting-panel";
+import { TagInput } from "@/shared/ui/tag-input";
 
 const inputClassName =
   "rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+
+type Step = "drop" | "extracting" | "form";
+type AiField = "company" | "position" | "deadline" | "techStack" | "description";
+
+function FieldLabel({ children, aiFilled }: { children: ReactNode; aiFilled: boolean }) {
+  return (
+    <label className="flex items-center gap-1 text-xs text-muted-foreground">
+      {children}
+      {aiFilled && (
+        <span title="AI가 채웠어요" className="inline-block size-1.5 rounded-full bg-highlight" />
+      )}
+    </label>
+  );
+}
 
 export interface CreateApplicationInitialValues {
   company?: string;
@@ -51,68 +67,88 @@ export function CreateApplicationDialog({
   onCreated?: () => void;
 } = {}) {
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [openState, setOpenState] = useState(false);
   const open = openProp ?? openState;
   const setOpen = onOpenChangeProp ?? setOpenState;
+
+  const [step, setStep] = useState<Step>(initialValues ? "form" : "drop");
+  const [previewFile, setPreviewFile] = useState<File | null>(null);
+  const previewUrl = useObjectUrl(previewFile);
+
   const [company, setCompany] = useState(initialValues?.company ?? "");
   const [position, setPosition] = useState(initialValues?.position ?? "");
   const [appliedAt, setAppliedAt] = useState(todayKST());
   const [deadline, setDeadline] = useState(initialValues?.deadline ?? "");
   const [jobPostingUrl, setJobPostingUrl] = useState(initialValues?.jobPostingUrl ?? "");
-  const [techStack, setTechStack] = useState(initialValues?.techStack?.join(", ") ?? "");
+  const [techStack, setTechStack] = useState<string[]>(initialValues?.techStack ?? []);
   const [description, setDescription] = useState(initialValues?.description ?? "");
   const [memo, setMemo] = useState(initialValues?.memo ?? "");
   const [screenshotPaths, setScreenshotPaths] = useState<string[]>(
     initialValues?.screenshotPaths ?? []
   );
-  const [extracting, setExtracting] = useState(false);
+  const [aiFilled, setAiFilled] = useState<Set<AiField>>(new Set());
   const [extractError, setExtractError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   function reset() {
+    setStep(initialValues ? "form" : "drop");
+    setPreviewFile(null);
     setCompany(initialValues?.company ?? "");
     setPosition(initialValues?.position ?? "");
     setAppliedAt(todayKST());
     setDeadline(initialValues?.deadline ?? "");
     setJobPostingUrl(initialValues?.jobPostingUrl ?? "");
-    setTechStack(initialValues?.techStack?.join(", ") ?? "");
+    setTechStack(initialValues?.techStack ?? []);
     setDescription(initialValues?.description ?? "");
     setMemo(initialValues?.memo ?? "");
     setScreenshotPaths(initialValues?.screenshotPaths ?? []);
+    setAiFilled(new Set());
+    setExtractError(null);
   }
 
   async function extractFromFiles(files: File[]) {
-    setExtracting(true);
+    setPreviewFile(files[0] ?? null);
+    setStep("extracting");
     setExtractError(null);
     try {
       const extracted = await extractJobPosting(files);
       setCompany(extracted.company);
       setPosition(extracted.position);
       setDeadline(extracted.deadline ?? "");
-      setTechStack(extracted.techStack.join(", "));
+      setTechStack(extracted.techStack);
       setDescription(extracted.description);
       setScreenshotPaths(extracted.screenshotPaths);
+      const filled = new Set<AiField>();
+      if (extracted.company) filled.add("company");
+      if (extracted.position) filled.add("position");
+      if (extracted.deadline) filled.add("deadline");
+      if (extracted.techStack.length > 0) filled.add("techStack");
+      if (extracted.description) filled.add("description");
+      setAiFilled(filled);
+      setStep("form");
     } catch (error) {
       console.warn("스크린샷 추출 실패:", error);
       setExtractError(error instanceof Error ? error.message : "알 수 없는 오류");
-    } finally {
-      setExtracting(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      setStep("drop");
     }
   }
 
-  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    if (files.length > 0) extractFromFiles(files);
-  }
-
   function handlePaste(e: ClipboardEvent) {
+    if (step !== "drop") return;
     const files = Array.from(e.clipboardData.items)
       .filter((item) => item.type.startsWith("image/"))
       .map((item) => item.getAsFile())
       .filter((file): file is File => file !== null);
     if (files.length > 0) extractFromFiles(files);
+  }
+
+  function clearAiFilled(field: AiField) {
+    setAiFilled((prev) => {
+      if (!prev.has(field)) return prev;
+      const next = new Set(prev);
+      next.delete(field);
+      return next;
+    });
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -130,10 +166,7 @@ export function CreateApplicationDialog({
         screenshotPaths,
         description: description.trim() || null,
         memo: memo.trim() || null,
-        techStack: techStack
-          .split(",")
-          .map((tech) => tech.trim())
-          .filter(Boolean),
+        techStack,
       });
       reset();
       setOpen(false);
@@ -146,95 +179,164 @@ export function CreateApplicationDialog({
     }
   }
 
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+    if (!nextOpen) reset();
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       {trigger !== null && (
         <DialogTrigger asChild>{trigger ?? <Button>+ 카드 추가</Button>}</DialogTrigger>
       )}
-      <DialogContent onPaste={handlePaste}>
+      <DialogContent onPaste={handlePaste} className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>카드 추가</DialogTitle>
+          <DialogTitle>공고 추가</DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col gap-1.5">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleFileChange}
-            disabled={extracting}
-            className="text-sm"
-          />
-          <p className="text-xs text-muted-foreground">
-            {extracting
-              ? "스크린샷에서 정보를 추출하는 중..."
-              : "공고가 길어서 여러 장으로 나눠 캡처했다면 한꺼번에 선택하거나 붙여넣어도(Ctrl+V/Cmd+V) 돼요."}
-          </p>
-          {extractError && <p className="text-xs text-destructive">{extractError}</p>}
-        </div>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <input
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
-            placeholder="회사명"
-            className={inputClassName}
-          />
-          <input
-            value={position}
-            onChange={(e) => setPosition(e.target.value)}
-            placeholder="직무"
-            className={inputClassName}
-          />
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted-foreground">지원일</label>
-            <input
-              type="date"
-              value={appliedAt}
-              onChange={(e) => setAppliedAt(e.target.value)}
-              className={inputClassName}
-            />
+
+        {step === "drop" && (
+          <div className="flex flex-col gap-2">
+            <Dropzone onFiles={extractFromFiles} />
+            <button
+              type="button"
+              onClick={() => setStep("form")}
+              className="self-center text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              직접 입력할게요
+            </button>
+            {extractError && <p className="text-xs text-destructive">{extractError}</p>}
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted-foreground">마감일</label>
-            <input
-              type="date"
-              value={deadline}
-              onChange={(e) => setDeadline(e.target.value)}
-              className={inputClassName}
-            />
-          </div>
-          <input
-            value={jobPostingUrl}
-            onChange={(e) => setJobPostingUrl(e.target.value)}
-            placeholder="공고 링크 (선택)"
-            className={inputClassName}
-          />
-          <input
-            value={techStack}
-            onChange={(e) => setTechStack(e.target.value)}
-            placeholder="기술스택 (쉼표로 구분, 예: React, TypeScript)"
-            className={inputClassName}
-          />
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="공고 요약 (스크린샷 업로드 시 자동 채워짐)"
-            rows={3}
-            className={inputClassName}
-          />
-          <textarea
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
-            placeholder="메모 (선택)"
-            rows={2}
-            className={inputClassName}
-          />
-          <DialogFooter>
-            <Button type="submit" disabled={pending}>
-              {pending ? "추가 중..." : "추가"}
-            </Button>
-          </DialogFooter>
-        </form>
+        )}
+
+        {step === "extracting" && <ExtractingPanel previewUrl={previewUrl} label="공고 읽는 중" />}
+
+        {step === "form" && (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            {screenshotPaths.length > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="flex flex-wrap gap-1.5">
+                  {screenshotPaths.map((path) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={path}
+                      src={`/api/screenshot?path=${encodeURIComponent(path)}`}
+                      alt=""
+                      className="h-12 w-12 rounded-md object-cover object-top ring-1 ring-foreground/10"
+                    />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStep("drop")}
+                  className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  다시 올리기
+                </button>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-1">
+              <FieldLabel aiFilled={aiFilled.has("company")}>회사명</FieldLabel>
+              <input
+                value={company}
+                onChange={(e) => {
+                  setCompany(e.target.value);
+                  clearAiFilled("company");
+                }}
+                className={inputClassName}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <FieldLabel aiFilled={aiFilled.has("position")}>직무</FieldLabel>
+              <input
+                value={position}
+                onChange={(e) => {
+                  setPosition(e.target.value);
+                  clearAiFilled("position");
+                }}
+                className={inputClassName}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted-foreground">지원일</label>
+                <input
+                  type="date"
+                  value={appliedAt}
+                  onChange={(e) => setAppliedAt(e.target.value)}
+                  className={inputClassName}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <FieldLabel aiFilled={aiFilled.has("deadline")}>마감일</FieldLabel>
+                <input
+                  type="date"
+                  value={deadline}
+                  onChange={(e) => {
+                    setDeadline(e.target.value);
+                    clearAiFilled("deadline");
+                  }}
+                  className={inputClassName}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">공고 링크</label>
+              <input
+                value={jobPostingUrl}
+                onChange={(e) => setJobPostingUrl(e.target.value)}
+                className={inputClassName}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <FieldLabel aiFilled={aiFilled.has("techStack")}>기술스택</FieldLabel>
+              <TagInput
+                value={techStack}
+                onChange={(tags) => {
+                  setTechStack(tags);
+                  clearAiFilled("techStack");
+                }}
+                placeholder="입력 후 Enter"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <FieldLabel aiFilled={aiFilled.has("description")}>공고 요약</FieldLabel>
+              <textarea
+                value={description}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  clearAiFilled("description");
+                }}
+                rows={6}
+                className={inputClassName}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">메모</label>
+              <textarea
+                value={memo}
+                onChange={(e) => setMemo(e.target.value)}
+                rows={2}
+                className={inputClassName}
+              />
+            </div>
+
+            <DialogFooter className="py-3">
+              <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)}>
+                취소
+              </Button>
+              <Button type="submit" disabled={pending || !company.trim() || !position.trim()}>
+                {pending ? "추가 중..." : "추가"}
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );
