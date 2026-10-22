@@ -23,10 +23,12 @@ export function MyProjects({
   projects,
   applications,
   allProjectMatches,
+  onNavigateToCompany,
 }: {
   projects: MyProject[];
   applications: Application[];
   allProjectMatches: ProjectMatchWithCompany[];
+  onNavigateToCompany?: (company: string) => void;
 }) {
   const [items, setItems] = useState(projects);
   const [prevProjects, setPrevProjects] = useState(projects);
@@ -119,11 +121,14 @@ export function MyProjects({
       <MyProjectDetailDialog
         key={`detail-${detailProject?.id ?? "none"}`}
         project={detailProject}
+        allProjectMatches={allProjectMatches}
         initialMode={detailMode}
         onOpenChange={(open) => {
           if (!open) setDetailId(null);
         }}
         onUpdate={handleUpdate}
+        onDelete={handleDelete}
+        onNavigateToCompany={onNavigateToCompany}
       />
     </div>
   );

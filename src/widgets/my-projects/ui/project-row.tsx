@@ -4,6 +4,7 @@ import { useState } from "react";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 
 import type { MyProject } from "@/entities/my-project";
+import { splitNameSubtitle } from "@/shared/lib/split-name-subtitle";
 import { Button } from "@/shared/ui/button";
 import { CompanyMonogram } from "@/shared/ui/company-monogram";
 import {
@@ -21,13 +22,6 @@ import {
 } from "@/shared/ui/dropdown-menu";
 
 import type { BestMatch } from "../model/compute-best-match";
-
-// "런픽 (Run-Pick)"처럼 뒤에 괄호 부제가 붙어 있으면 분리해서 다르게 보여준다.
-function splitNameSubtitle(name: string): { main: string; subtitle: string | null } {
-  const match = name.match(/^(.*?)\s*(\([^)]*\))\s*$/);
-  if (!match) return { main: name, subtitle: null };
-  return { main: match[1], subtitle: match[2] };
-}
 
 function formatTechSummary(techStack: string[]): string {
   const shown = techStack.slice(0, 5);
