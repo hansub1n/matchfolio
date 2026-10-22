@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   PointerSensor,
@@ -35,6 +36,7 @@ export function KanbanBoard({
   schedules: Schedule[];
   myProjects: MyProject[];
 }) {
+  const router = useRouter();
   const myProjectTechStack = [...new Set(myProjects.flatMap((p) => p.techStack))];
   const [items, setItems] = useState(applications);
   const [prevApplications, setPrevApplications] = useState(applications);
@@ -106,7 +108,9 @@ export function KanbanBoard({
     updateApplication(draggedId, {
       stage: target,
       ...(leavingFinished ? { outcome: "in_progress" as const } : {}),
-    }).catch(console.error);
+    })
+      .then(() => router.refresh())
+      .catch(console.error);
 
     if (target === "interview" && !latestSchedules.get(draggedId)) {
       setAutoOpenRoundId(draggedId);
@@ -120,7 +124,9 @@ export function KanbanBoard({
   function handleSetOutcome(id: string, outcome: "passed" | "failed") {
     setItems((prev) => prev.map((app) => (app.id === id ? { ...app, outcome } : app)));
     setPendingOutcomeId(null);
-    updateApplication(id, { outcome }).catch(console.error);
+    updateApplication(id, { outcome })
+      .then(() => router.refresh())
+      .catch(console.error);
   }
 
   function handleUpdateApplication(id: string, input: UpdateApplicationInput) {
@@ -135,14 +141,18 @@ export function KanbanBoard({
           : app
       )
     );
-    updateApplication(id, input).catch(console.error);
+    updateApplication(id, input)
+      .then(() => router.refresh())
+      .catch(console.error);
   }
 
   function handleDeleteApplication(id: string) {
     const app = items.find((a) => a.id === id);
     setItems((prev) => prev.filter((a) => a.id !== id));
     setDetailId(null);
-    deleteApplication(id, { screenshotPaths: app?.screenshotPaths }).catch(console.error);
+    deleteApplication(id, { screenshotPaths: app?.screenshotPaths })
+      .then(() => router.refresh())
+      .catch(console.error);
   }
 
   const pendingOutcomeApplication = items.find((app) => app.id === pendingOutcomeId) ?? null;
