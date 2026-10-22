@@ -5,24 +5,15 @@ function parseRoundNumber(round: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
-function nextNumberedRound(round: string): string | null {
+export function nextNumberedRound(round: string): string | null {
   const n = parseRoundNumber(round);
   return n === null ? null : `${n + 1}차`;
 }
 
-// 면접 일정 Popover의 차수 칩 목록 — 기록된 차수를 전부 보여주고(앞 차수도 숨기지
-// 않음), 번호가 매겨진 차수면 다음 번호 하나, 그리고 최종(아직 안 왔다면)을
-// 뒤에 덧붙인다. 아직 하나도 기록이 없으면 1차/2차/최종만 보여준다.
-export function buildRoundChips(recordedRounds: string[]): string[] {
-  if (recordedRounds.length === 0) return ["1차", "2차", "최종"];
-
-  const currentRound = recordedRounds[recordedRounds.length - 1];
-  const chips = [...recordedRounds];
-  const next = nextNumberedRound(currentRound);
-  if (next && !chips.includes(next)) chips.push(next);
-  if (currentRound !== "최종" && !chips.includes("최종")) chips.push("최종");
-  return chips;
-}
+// 면접 일정 Popover의 고정 차수 칩 — 대부분 1~2차 안에서 끝나서, 차수가 쌓일
+// 때마다 칩이 계속 늘어나지 않도록 1차/2차만 고정으로 보여준다. 3차 이상이나
+// 최종, 커스텀 차수는 "직접 입력"으로 다룬다.
+export const ROUND_CHIPS = ["1차", "2차"];
 
 // recordedRounds 안에서 round보다 "뒤"(나중에 기록된) 차수들 — 이전 차수로
 // 되돌릴 때 사라질 기록을 미리 보여주는 경고 문구용.

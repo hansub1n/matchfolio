@@ -214,7 +214,18 @@ export function ApplicationCard({
                   <span className="sr-only">더보기</span>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" onPointerDown={stopDrag} onClick={stopClick}>
+              <DropdownMenuContent
+                align="end"
+                onPointerDown={stopDrag}
+                onClick={stopClick}
+                onCloseAutoFocus={(e) => {
+                  // 메뉴가 닫히며 "더보기" 버튼으로 포커스를 되돌리는 기본 동작이,
+                  // 방금 연 Popover 입장에서는 "포커스가 바깥으로 나감"으로 보여
+                  // 열자마자 바로 닫혀버린다. Popover/Dialog 모두 스스로 포커스를
+                  // 챙기니 여기서 되돌릴 필요가 없다.
+                  e.preventDefault();
+                }}
+              >
                 <DropdownMenuItem onSelect={() => onOpenDetail?.(application.id)}>
                   <Pencil className="size-3.5" />
                   수정

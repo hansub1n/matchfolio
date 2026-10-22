@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { cn } from "cn";
 
 import type { Application } from "@/entities/application";
-import { buildRoundChips, roundsAfter, type Schedule } from "@/entities/schedule";
+import { nextNumberedRound, ROUND_CHIPS, roundsAfter, type Schedule } from "@/entities/schedule";
 import { Button } from "@/shared/ui/button";
 import { Popover, PopoverAnchor, PopoverContent } from "@/shared/ui/popover";
 
@@ -24,6 +24,15 @@ function combineDateTime(date: string, time: string): string | null {
 }
 
 const CUSTOM = "__custom__";
+
+// 1차/2차 고정 칩에 없는 차수(3차 이상, 최종, 커스텀 라벨)를 기본 선택으로
+// 잡아야 할 때는 "직접 입력"을 미리 골라두고 값을 채워준다 — 칩 목록 자체를
+// 늘리지 않으면서도 그 차수를 바로 보여줄 수 있다.
+function resolveSelection(round: string | null): { chip: string; custom: string } {
+  if (!round) return { chip: ROUND_CHIPS[0], custom: "" };
+  if (ROUND_CHIPS.includes(round)) return { chip: round, custom: "" };
+  return { chip: CUSTOM, custom: round };
+}
 
 // 카드/목록 항목 각자가 자기 트리거(일정 버튼, "다음 차수로 진행" 메뉴)에 맞춰
 // 외부에서 open/defaultNext를 들고 있는 완전 제어형 컴포넌트 — 드롭다운 메뉴
@@ -48,20 +57,21 @@ export function InterviewSchedulePopover({
   onSave: (id: string, round: string, scheduledAt: string | null) => void;
 }) {
   const currentRound = recordedRounds[recordedRounds.length - 1] ?? null;
-  const chips = buildRoundChips(recordedRounds);
-  const defaultChip = defaultNext
-    ? (chips[recordedRounds.length] ?? chips[0])
-    : (currentRound ?? chips[0]);
+  const targetRound = defaultNext
+    ? (currentRound ? (nextNumberedRound(currentRound) ?? "") : ROUND_CHIPS[0])
+    : currentRound;
+  const defaultSelection = resolveSelection(targetRound);
   const initialDateTime = splitDateTime(schedule?.scheduledAt);
 
-  const [selected, setSelected] = useState(defaultChip);
-  const [customValue, setCustomValue] = useState("");
+  const [selected, setSelected] = useState(defaultSelection.chip);
+  const [customValue, setCustomValue] = useState(defaultSelection.custom);
   const [date, setDate] = useState(selected === currentRound ? initialDateTime.date : "");
   const [time, setTime] = useState(selected === currentRound ? initialDateTime.time : "");
   const savedRef = useRef(false);
 
   function selectChip(chip: string) {
     setSelected(chip);
+    setCustomValue("");
     if (chip === currentRound) {
       setDate(initialDateTime.date);
       setTime(initialDateTime.time);
@@ -76,7 +86,7 @@ export function InterviewSchedulePopover({
   }
 
   // 현재보다 앞 차수를 고르면, 저장 시 같이 지워질 뒤쪽 기록을 미리 보여준다.
-  const revertWarningRounds = roundsAfter(recordedRounds, selected);
+  const revertWarningRounds = roundsAfter(recordedRounds, resolvedRound());
 
   function commit(scheduledAt: string | null) {
     const round = resolvedRound();
@@ -99,9 +109,9 @@ export function InterviewSchedulePopover({
   function handleOpenChange(next: boolean) {
     if (next) {
       // 새로 열릴 때마다 이번 트리거(기본 차수) 기준으로 다시 초기화한다.
-      setSelected(defaultChip);
-      setCustomValue("");
-      if (defaultChip === currentRound) {
+      setSelected(defaultSelection.chip);
+      setCustomValue(defaultSelection.custom);
+      if (defaultSelection.chip === currentRound) {
         setDate(initialDateTime.date);
         setTime(initialDateTime.time);
       } else {
@@ -114,7 +124,8 @@ export function InterviewSchedulePopover({
       // 중이었다면 그 차수만 기록하고, 이미 기록된 차수(현재든 과거든)를 보던
       // 중이었다면 그냥 둔다 — 특히 과거 차수를 실수로 봤다가 그 뒤 기록을
       // 실수로 지워버리는 일이 없도록, 되돌리기는 명시적으로 저장을 눌러야만 된다.
-      if (!recordedRounds.includes(selected)) {
+      const resolved = resolvedRound();
+      if (resolved && !recordedRounds.includes(resolved)) {
         commit(null);
       }
     }
@@ -132,7 +143,7 @@ export function InterviewSchedulePopover({
         <p className="text-sm font-medium">{application.company} · 면접 일정</p>
 
         <div className="flex flex-wrap gap-1.5">
-          {chips.map((chip) => (
+          {ROUND_CHIPS.map((chip) => (
             <button
               key={chip}
               type="button"
@@ -171,7 +182,7 @@ export function InterviewSchedulePopover({
           <input
             value={customValue}
             onChange={(e) => setCustomValue(e.target.value)}
-            placeholder="임원면접"
+            placeholder="3차, 임원면접 등"
             className="rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             autoFocus
           />

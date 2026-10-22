@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildRoundChips, resolveRoundSave, roundsAfter } from "./resolve-interview-round";
+import { nextNumberedRound, resolveRoundSave, roundsAfter } from "./resolve-interview-round";
 import type { Schedule } from "./types";
 
 function buildSchedule(overrides: Partial<Schedule> = {}): Schedule {
@@ -15,21 +15,15 @@ function buildSchedule(overrides: Partial<Schedule> = {}): Schedule {
   };
 }
 
-describe("buildRoundChips", () => {
-  it("기록이 없으면 1차/2차/최종만 보여준다", () => {
-    expect(buildRoundChips([])).toEqual(["1차", "2차", "최종"]);
+describe("nextNumberedRound", () => {
+  it("숫자+차 형태면 다음 번호를 돌려준다", () => {
+    expect(nextNumberedRound("1차")).toBe("2차");
+    expect(nextNumberedRound("2차")).toBe("3차");
   });
 
-  it("기록된 차수 전부 + 다음 번호 + 최종을 보여준다", () => {
-    expect(buildRoundChips(["1차", "2차", "3차"])).toEqual(["1차", "2차", "3차", "4차", "최종"]);
-  });
-
-  it("최종까지 기록됐으면 다음 번호 없이 최종에서 끝난다", () => {
-    expect(buildRoundChips(["1차", "최종"])).toEqual(["1차", "최종"]);
-  });
-
-  it("커스텀(번호 없는) 차수여도 최종은 선택지로 남는다", () => {
-    expect(buildRoundChips(["1차", "임원면접"])).toEqual(["1차", "임원면접", "최종"]);
+  it("번호가 없는 차수(최종, 커스텀)는 null을 돌려준다", () => {
+    expect(nextNumberedRound("최종")).toBeNull();
+    expect(nextNumberedRound("임원면접")).toBeNull();
   });
 });
 
