@@ -3,9 +3,9 @@ import { BarChart3, CalendarDays, FolderGit2, LayoutGrid, Star } from "lucide-re
 import { getApplications } from "@/entities/application";
 import { getInterestedCompanies } from "@/entities/interested-company";
 import { getMyProjects } from "@/entities/my-project";
+import { getAllProjectMatches } from "@/entities/project-match";
 import { getSchedules } from "@/entities/schedule";
 import { CreateInterestedCompanyDialog } from "@/features/create-interested-company";
-import { CreateMyProjectDialog } from "@/features/create-my-project";
 import { ApplicationStats } from "@/widgets/application-stats";
 import { BoardHeader } from "@/widgets/board-header";
 import { CalendarView } from "@/widgets/calendar-view";
@@ -18,11 +18,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [applications, companies, myProjects, schedules] = await Promise.all([
+  const [applications, companies, myProjects, schedules, allProjectMatches] = await Promise.all([
     getApplications(),
     getInterestedCompanies(),
     getMyProjects(),
     getSchedules(),
+    getAllProjectMatches(),
   ]);
 
   return (
@@ -66,11 +67,12 @@ export default async function Home() {
           </div>
           <Watchlist companies={companies} />
         </TabsContent>
-        <TabsContent value="my-projects" className="flex flex-col gap-4">
-          <div className="flex justify-end px-6">
-            <CreateMyProjectDialog />
-          </div>
-          <MyProjects projects={myProjects} />
+        <TabsContent value="my-projects">
+          <MyProjects
+            projects={myProjects}
+            applications={applications}
+            allProjectMatches={allProjectMatches}
+          />
         </TabsContent>
         <TabsContent value="stats">
           <ApplicationStats applications={applications} schedules={schedules} />

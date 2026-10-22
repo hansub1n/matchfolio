@@ -9,7 +9,7 @@ export function CompanyMonogram({
   muted = false,
 }: {
   company: string;
-  size?: 22 | 24;
+  size?: 22 | 24 | 28;
   muted?: boolean;
 }) {
   const color = getCompanyColor(company);

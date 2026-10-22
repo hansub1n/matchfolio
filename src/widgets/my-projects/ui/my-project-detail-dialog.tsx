@@ -18,18 +18,22 @@ const inputClassName =
 
 export function MyProjectDetailDialog({
   project,
+  initialMode = "view",
   onOpenChange,
   onUpdate,
 }: {
   project: MyProject | null;
+  initialMode?: "view" | "edit";
   onOpenChange: (open: boolean) => void;
   onUpdate: (id: string, input: UpdateMyProjectInput) => void;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [techStack, setTechStack] = useState("");
-  const [highlights, setHighlights] = useState("");
+  // 호출하는 쪽에서 project가 바뀔 때마다 key를 바꿔 매번 새로 마운트시키는
+  // 전제로 작성했다 — 그래야 아래 초기값들이 "이번에 연 프로젝트" 기준으로 맞다.
+  const [editing, setEditing] = useState(initialMode === "edit");
+  const [name, setName] = useState(project?.name ?? "");
+  const [description, setDescription] = useState(project?.description ?? "");
+  const [techStack, setTechStack] = useState(project?.techStack.join(", ") ?? "");
+  const [highlights, setHighlights] = useState(project?.highlights.join(", ") ?? "");
 
   function handleOpenChange(open: boolean) {
     if (!open) {

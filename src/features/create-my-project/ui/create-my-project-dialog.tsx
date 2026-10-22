@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import { createMyProject } from "@/entities/my-project";
@@ -18,9 +18,19 @@ import {
 const inputClassName =
   "rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
-export function CreateMyProjectDialog() {
+export function CreateMyProjectDialog({
+  trigger,
+  open: openProp,
+  onOpenChange: onOpenChangeProp,
+}: {
+  trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+} = {}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openProp ?? openState;
+  const setOpen = onOpenChangeProp ?? setOpenState;
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [techStack, setTechStack] = useState("");
@@ -88,9 +98,9 @@ export function CreateMyProjectDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>+ 프로젝트 추가</Button>
-      </DialogTrigger>
+      {trigger !== null && (
+        <DialogTrigger asChild>{trigger ?? <Button>+ 프로젝트 추가</Button>}</DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>내 프로젝트 추가</DialogTitle>
