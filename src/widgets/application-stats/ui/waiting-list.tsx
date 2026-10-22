@@ -2,6 +2,7 @@
 
 import { ChevronRight } from "lucide-react";
 
+import { formatDateTime } from "@/shared/lib/format-date-time";
 import { CompanyMonogram } from "@/shared/ui/company-monogram";
 
 import type { InProgressItem } from "../model/compute-stats";
@@ -19,9 +20,7 @@ function describeStage(item: InProgressItem) {
 
 function describeSchedule(item: InProgressItem) {
   if (item.stage === "document") return null;
-  return item.scheduledAt
-    ? new Date(item.scheduledAt).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })
-    : "일정 미정";
+  return formatDateTime(item.scheduledAt) ?? "일정 미정";
 }
 
 export function WaitingList({

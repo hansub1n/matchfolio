@@ -8,6 +8,7 @@ import { cn } from "cn";
 import { APPLICATION_STAGES, type Application } from "@/entities/application";
 import type { Schedule } from "@/entities/schedule";
 import { type DdayTier } from "@/shared/lib/dday";
+import { formatDateTime } from "@/shared/lib/format-date-time";
 import { formatDeadlineBadge } from "@/shared/lib/format-deadline";
 import { todayKST } from "@/shared/lib/kst-date";
 import { Button } from "@/shared/ui/button";
@@ -31,13 +32,6 @@ import { InterviewSchedulePopover } from "./interview-schedule-popover";
 const STAGE_LABELS = Object.fromEntries(
   APPLICATION_STAGES.map((stage) => [stage.value, stage.label])
 );
-
-function formatScheduleTime(scheduledAt: string | null): string | null {
-  if (!scheduledAt) return null;
-  const d = new Date(scheduledAt);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getMonth() + 1}.${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 // 카드 D-day 배지 전용 색 규칙 — 캘린더 탭 칩과 달리 지남/D-4 이상은 배경 없이
 // 텍스트만 바꾼다(카드가 작아서 칩 배경을 여러 개 칠하면 더 복잡해 보임).
@@ -123,7 +117,7 @@ export function ApplicationCard({
     application.stage === "document" && !isFinished
       ? formatDeadlineBadge(application.deadline, todayKST())
       : null;
-  const scheduleTimeLabel = formatScheduleTime(schedule?.scheduledAt ?? null);
+  const scheduleTimeLabel = formatDateTime(schedule?.scheduledAt ?? null);
 
   function handleScheduleButtonClick() {
     if (application.stage === "coding_test") {

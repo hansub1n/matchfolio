@@ -6,11 +6,13 @@ import { useRouter } from "next/navigation";
 import {
   buildYearHeatmap,
   computeLongestStreak,
+  deleteApplication,
   updateApplication,
   type Application,
   type UpdateApplicationInput,
 } from "@/entities/application";
-import { latestScheduleByApplication, type Schedule } from "@/entities/schedule";
+import type { MyProject } from "@/entities/my-project";
+import { useScheduleRequests, type Schedule } from "@/entities/schedule";
 import { todayKST } from "@/shared/lib/kst-date";
 import { CreateApplicationDialog } from "@/features/create-application";
 import { ApplicationDetailDialog } from "@/widgets/kanban-board";
@@ -29,9 +31,11 @@ const SECTION = "mt-8 border-t pt-8";
 export function ApplicationStats({
   applications,
   schedules,
+  myProjects,
 }: {
   applications: Application[];
   schedules: Schedule[];
+  myProjects: MyProject[];
 }) {
   const router = useRouter();
   const stats = computeApplicationStats(applications, schedules);
@@ -43,12 +47,30 @@ export function ApplicationStats({
   ).sort((a, b) => b - a);
   const yearHeatmap = buildYearHeatmap(applications, selectedYear, today);
   const longestStreak = computeLongestStreak(yearHeatmap);
-  const latestSchedules = latestScheduleByApplication(schedules);
+  const myProjectTechStack = [...new Set(myProjects.flatMap((p) => p.techStack))];
+
+  const [scheduleItems, setScheduleItems] = useState(schedules);
+  const [prevSchedules, setPrevSchedules] = useState(schedules);
+  if (schedules !== prevSchedules) {
+    setPrevSchedules(schedules);
+    setScheduleItems(schedules);
+  }
+  const { latestSchedules, handleSetInterviewRound, handleSetCodingTestSchedule } =
+    useScheduleRequests(applications, scheduleItems, setScheduleItems);
+
   const [detailId, setDetailId] = useState<string | null>(null);
   const detailApplication = applications.find((app) => app.id === detailId) ?? null;
 
   function handleUpdate(id: string, input: UpdateApplicationInput) {
     updateApplication(id, input)
+      .then(() => router.refresh())
+      .catch(console.error);
+  }
+
+  function handleDelete(id: string) {
+    const app = applications.find((a) => a.id === id);
+    setDetailId(null);
+    deleteApplication(id, { screenshotPaths: app?.screenshotPaths })
       .then(() => router.refresh())
       .catch(console.error);
   }
@@ -126,10 +148,14 @@ export function ApplicationStats({
         key={`detail-${detailApplication?.id ?? "none"}`}
         application={detailApplication}
         schedule={detailId ? (latestSchedules.get(detailId) ?? null) : null}
+        myProjectTechStack={myProjectTechStack}
         onOpenChange={(open) => {
           if (!open) setDetailId(null);
         }}
         onUpdate={handleUpdate}
+        onDelete={handleDelete}
+        onSaveInterviewRound={handleSetInterviewRound}
+        onSaveCodingTestSchedule={handleSetCodingTestSchedule}
       />
     </div>
   );

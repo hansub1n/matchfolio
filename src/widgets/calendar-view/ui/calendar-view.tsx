@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "cn";
 
 import {
+  deleteApplication,
   updateApplication,
   type Application,
   type UpdateApplicationInput,
@@ -15,8 +16,10 @@ import {
   type InterestedCompany,
   type UpdateInterestedCompanyInput,
 } from "@/entities/interested-company";
+import type { MyProject } from "@/entities/my-project";
 import { useScheduleRequests, type Schedule } from "@/entities/schedule";
 import { getDdayTier, type DdayTier } from "@/shared/lib/dday";
+import { formatDateTime } from "@/shared/lib/format-date-time";
 import { todayKST } from "@/shared/lib/kst-date";
 import { Button } from "@/shared/ui/button";
 import {
@@ -56,9 +59,7 @@ function tierClasses(tier: DdayTier): string {
 
 function formatUpcomingDate(date: string, time: string | null, today: string): string {
   if (date === today) return time ? `오늘 ${time}` : "오늘";
-  const d = new Date(`${date}T00:00:00`);
-  const label = `${d.getMonth() + 1}.${d.getDate()} ${["일", "월", "화", "수", "목", "금", "토"][d.getDay()]}`;
-  return time ? `${label} ${time}` : label;
+  return formatDateTime(time ? `${date}T${time}` : date) ?? "";
 }
 
 function UnscheduledRow({
@@ -116,12 +117,15 @@ export function CalendarView({
   applications,
   interestedCompanies,
   schedules,
+  myProjects,
 }: {
   applications: Application[];
   interestedCompanies: InterestedCompany[];
   schedules: Schedule[];
+  myProjects: MyProject[];
 }) {
   const router = useRouter();
+  const myProjectTechStack = [...new Set(myProjects.flatMap((p) => p.techStack))];
   const today = todayKST();
   const [year, setYear] = useState(Number(today.slice(0, 4)));
   const [month, setMonth] = useState(Number(today.slice(5, 7)));
@@ -182,6 +186,14 @@ export function CalendarView({
 
   function handleUpdateInterestedCompany(id: string, input: UpdateInterestedCompanyInput) {
     updateInterestedCompany(id, input)
+      .then(() => router.refresh())
+      .catch(console.error);
+  }
+
+  function handleDeleteApplication(id: string) {
+    const app = applications.find((a) => a.id === id);
+    setDetailId(null);
+    deleteApplication(id, { screenshotPaths: app?.screenshotPaths })
       .then(() => router.refresh())
       .catch(console.error);
   }
@@ -337,10 +349,14 @@ export function CalendarView({
         key={`detail-${detailApplication?.id ?? "none"}`}
         application={detailApplication}
         schedule={detailId ? (latestSchedules.get(detailId) ?? null) : null}
+        myProjectTechStack={myProjectTechStack}
         onOpenChange={(open) => {
           if (!open) setDetailId(null);
         }}
         onUpdate={handleUpdateApplication}
+        onDelete={handleDeleteApplication}
+        onSaveInterviewRound={handleSetInterviewRound}
+        onSaveCodingTestSchedule={handleSetCodingTestSchedule}
       />
       <InterestedCompanyDetailDialog
         company={detailCompany}

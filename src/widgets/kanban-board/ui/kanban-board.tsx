@@ -16,6 +16,7 @@ import {
   type Application,
   type UpdateApplicationInput,
 } from "@/entities/application";
+import type { MyProject } from "@/entities/my-project";
 import { useScheduleRequests, type Schedule } from "@/entities/schedule";
 
 import { applyStageChange, type BoardColumnId } from "../model/apply-stage-change";
@@ -28,10 +29,13 @@ import { ResultPickerDialog } from "./result-picker-dialog";
 export function KanbanBoard({
   applications,
   schedules,
+  myProjects,
 }: {
   applications: Application[];
   schedules: Schedule[];
+  myProjects: MyProject[];
 }) {
+  const myProjectTechStack = [...new Set(myProjects.flatMap((p) => p.techStack))];
   const [items, setItems] = useState(applications);
   const [prevApplications, setPrevApplications] = useState(applications);
   if (applications !== prevApplications) {
@@ -207,11 +211,15 @@ export function KanbanBoard({
         key={`detail-${detailApplication?.id ?? "none"}`}
         application={detailApplication}
         schedule={detailSchedule ?? null}
+        myProjectTechStack={myProjectTechStack}
         initialMode={detailMode}
         onOpenChange={(open) => {
           if (!open) setDetailId(null);
         }}
         onUpdate={handleUpdateApplication}
+        onDelete={handleDeleteApplication}
+        onSaveInterviewRound={handleSetInterviewRound}
+        onSaveCodingTestSchedule={handleSetCodingTestSchedule}
       />
     </DndContext>
   );
