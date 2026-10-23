@@ -93,6 +93,9 @@ create table project_matches (
   id uuid primary key default gen_random_uuid(),
   interested_company_id uuid not null references interested_companies(id) on delete cascade unique,
   matches jsonb not null default '[]',
+  -- 전체 추천 한 줄. matches 각 항목의 evidence/gaps/pitch/projectId는 jsonb라
+  -- 컬럼 없이도 들어간다.
+  recommendation text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

@@ -141,16 +141,21 @@ export function MyProjectDetailDialog({
             <div>
               <p className="mb-1.5 text-[11px] text-muted-foreground">잘 맞는 공고</p>
               {matches.length > 0 ? (
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-2.5">
                   {matches.map((match) => (
                     <button
                       key={match.company}
                       type="button"
                       onClick={() => onNavigateToCompany?.(match.company)}
-                      className="flex items-center justify-between gap-2 text-left hover:text-foreground"
+                      className="flex flex-col gap-0.5 text-left hover:text-foreground"
                     >
-                      <span className="font-medium">{match.company}</span>
-                      <span className="num text-muted-foreground">{match.fitScore}점</span>
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="font-medium">{match.company}</span>
+                        <span className="num text-muted-foreground">{match.fitScore}점</span>
+                      </span>
+                      {match.summary && (
+                        <span className="text-[11.5px] text-muted-foreground">{match.summary}</span>
+                      )}
                     </button>
                   ))}
                 </div>

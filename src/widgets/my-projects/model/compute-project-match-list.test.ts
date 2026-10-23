@@ -13,11 +13,11 @@ describe("computeProjectMatchList", () => {
     const rows = [
       buildRow({
         company: "토스",
-        matches: [{ projectName: "런픽", fitScore: 72, reason: "", highlightPoints: [] }],
+        matches: [{ projectName: "런픽", fitScore: 72, reason: "근거A", highlightPoints: [] }],
       }),
       buildRow({
         company: "당근",
-        matches: [{ projectName: "런픽", fitScore: 91, reason: "", highlightPoints: [] }],
+        matches: [{ projectName: "런픽", fitScore: 91, reason: "근거B", highlightPoints: [] }],
       }),
       buildRow({
         company: "라인",
@@ -25,8 +25,30 @@ describe("computeProjectMatchList", () => {
       }),
     ];
     expect(computeProjectMatchList("런픽", rows)).toEqual([
-      { company: "당근", fitScore: 91 },
-      { company: "토스", fitScore: 72 },
+      { company: "당근", fitScore: 91, summary: "근거B" },
+      { company: "토스", fitScore: 72, summary: "근거A" },
+    ]);
+  });
+
+  it("신버전 매치면 summary 필드를 쓴다", () => {
+    const rows = [
+      buildRow({
+        company: "토스",
+        matches: [
+          {
+            projectId: "p1",
+            projectName: "런픽",
+            fitScore: 80,
+            summary: "신버전 요약",
+            evidence: [],
+            gaps: [],
+            pitch: "",
+          },
+        ],
+      }),
+    ];
+    expect(computeProjectMatchList("런픽", rows)).toEqual([
+      { company: "토스", fitScore: 80, summary: "신버전 요약" },
     ]);
   });
 
