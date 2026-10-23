@@ -4,6 +4,10 @@ import { GoogleGenAI } from "@google/genai";
 import Groq from "groq-sdk";
 import sharp from "sharp";
 
+import {
+  normalizeExtraction,
+  type ExtractedJobPosting,
+} from "@/features/extract-job-posting/model/normalize-extraction";
 import { env } from "@/shared/config/env";
 import { JOB_POSTING_SCREENSHOTS_BUCKET } from "@/shared/config/constants";
 import { supabaseAdmin } from "@/shared/api/supabase-admin";
@@ -62,14 +66,6 @@ function buildPrompt(imageCount: number) {
     : "이 채용공고 스크린샷에서 회사명, 직무, 마감일, 기술스택 태그를 추출하고, 주요업무/자격요건/우대사항을 소제목과 불릿으로 정리해줘.";
 }
 
-interface ExtractedJobPosting {
-  company: string;
-  position: string;
-  deadline: string | null;
-  techStack: string[];
-  description: string;
-}
-
 async function extractWithGemini(
   buffers: { buffer: Buffer; mimeType: string }[]
 ): Promise<ExtractedJobPosting> {
@@ -100,8 +96,7 @@ async function extractWithGemini(
       });
 
       const extracted = JSON.parse(response.text ?? "{}");
-      if (!extracted.deadline) extracted.deadline = null;
-      return extracted;
+      return normalizeExtraction(extracted);
     } catch (error) {
       console.error(`extract-job-posting(gemini) attempt ${attempt} failed:`, error);
       if (isGeminiRetryable(error) && attempt < maxAttempts) {
@@ -149,8 +144,7 @@ async function extractWithGroq(
       );
 
       const extracted = JSON.parse(response.choices[0]?.message?.content ?? "{}");
-      if (!extracted.deadline) extracted.deadline = null;
-      return extracted;
+      return normalizeExtraction(extracted);
     } catch (error) {
       console.error(`extract-job-posting(groq) attempt ${attempt} failed:`, error);
       if (isGroqRetryable(error) && attempt < maxAttempts) {
