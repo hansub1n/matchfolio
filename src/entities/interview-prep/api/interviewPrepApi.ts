@@ -1,12 +1,29 @@
 import { supabase } from "@/shared/api/supabase";
 
-import type { InterviewPrep, InterviewPrepSource } from "../model/types";
+import type {
+  InterviewPrep,
+  InterviewPrepBriefing,
+  InterviewPrepFact,
+  InterviewPrepMotivation,
+  InterviewPrepQuestion,
+  InterviewPrepSection,
+  InterviewPrepSource,
+} from "../model/types";
 
 interface InterviewPrepRow {
   id: string;
   application_id: string;
-  company_analysis: string;
-  interview_questions: string[];
+  summary: string | null;
+  facts: InterviewPrepFact[] | null;
+  briefing: InterviewPrepBriefing | null;
+  sections: InterviewPrepSection[] | null;
+  questions: InterviewPrepQuestion[] | null;
+  confidence: "high" | "low" | null;
+  project_questions: InterviewPrepQuestion[] | null;
+  motivation: InterviewPrepMotivation[] | null;
+  project_questions_updated_at: string | null;
+  company_analysis: string | null;
+  interview_questions: string[] | null;
   sources: InterviewPrepSource[];
   created_at: string;
   updated_at: string;
@@ -16,6 +33,15 @@ function toInterviewPrep(row: InterviewPrepRow): InterviewPrep {
   return {
     id: row.id,
     applicationId: row.application_id,
+    summary: row.summary,
+    facts: row.facts,
+    briefing: row.briefing,
+    sections: row.sections,
+    questions: row.questions,
+    confidence: row.confidence,
+    projectQuestions: row.project_questions,
+    motivation: row.motivation,
+    projectQuestionsUpdatedAt: row.project_questions_updated_at,
     companyAnalysis: row.company_analysis,
     interviewQuestions: row.interview_questions,
     sources: row.sources,

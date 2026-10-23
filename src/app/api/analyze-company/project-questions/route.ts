@@ -1,0 +1,29 @@
+import { NextResponse } from "next/server";
+
+import { isSameOrigin } from "@/shared/lib/request-guard";
+
+import { generateProjectQuestions } from "./generate";
+
+// 재시도 3회 × 35초 + 백오프 ≈ 108초가 최악의 경우.
+export const maxDuration = 120;
+
+export async function POST(request: Request) {
+  if (!isSameOrigin(request)) {
+    return NextResponse.json({ error: "허용되지 않은 요청입니다." }, { status: 403 });
+  }
+
+  const body = await request.json();
+  const { applicationId } = body as { applicationId: string };
+
+  if (!applicationId) {
+    return NextResponse.json({ error: "applicationId는 필수입니다." }, { status: 400 });
+  }
+
+  const result = await generateProjectQuestions(applicationId);
+
+  if ("error" in result) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
+  }
+
+  return NextResponse.json(result);
+}

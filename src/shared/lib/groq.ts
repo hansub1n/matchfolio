@@ -24,6 +24,17 @@ function isTimeout(error: unknown) {
   return error instanceof Groq.APIConnectionTimeoutError || error instanceof Groq.APIUserAbortError;
 }
 
+// strict json_schema 모드는 스키마가 복잡할수록(필드가 많을수록) 모델이 스키마를
+// 못 맞춰서 "json_validate_failed" 400으로 실패하는 경우가 체감상 꽤 있다(커뮤니티
+// 보고로도 ~10%). 요청 자체가 잘못된 게 아니라 생성 품질 문제라 재시도하면 보통
+// 넘어간다.
+function isJsonValidateFailed(error: unknown) {
+  return (
+    error instanceof Groq.BadRequestError &&
+    (error.message ?? "").includes("json_validate_failed")
+  );
+}
+
 export function isQuotaExceeded(error: unknown) {
   if (!(error instanceof Groq.RateLimitError)) return false;
   const retryAfterSeconds = getRetryAfterSeconds(error);
@@ -32,6 +43,7 @@ export function isQuotaExceeded(error: unknown) {
 
 export function isRetryable(error: unknown) {
   if (isTimeout(error)) return true;
+  if (isJsonValidateFailed(error)) return true;
   if (error instanceof Groq.RateLimitError) {
     const retryAfterSeconds = getRetryAfterSeconds(error);
     return retryAfterSeconds !== null && retryAfterSeconds <= RATE_LIMIT_RETRY_AFTER_THRESHOLD_SECONDS;
@@ -49,5 +61,12 @@ export function describeGroqError(error: unknown) {
   if (isRetryable(error)) {
     return "AI 서버가 일시적으로 혼잡합니다. 잠시 후 다시 시도해주세요.";
   }
-  return error instanceof Error ? error.message : "알 수 없는 오류";
+  if (error instanceof Error) return error.message;
+  // Supabase(PostgrestError) 등 Error를 상속하지 않는 에러 객체도 많아서,
+  // message 필드가 있으면 그걸 그대로 보여준다 — 안 그러면 DB 컬럼 누락처럼
+  // 원인이 분명한 에러까지 전부 "알 수 없는 오류"로 뭉개져서 디버깅이 안 된다.
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
+    return error.message;
+  }
+  return "알 수 없는 오류";
 }
