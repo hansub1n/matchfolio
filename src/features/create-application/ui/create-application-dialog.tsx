@@ -153,6 +153,11 @@ export function CreateApplicationDialog({
     startInitialExtraction();
   }, []);
 
+  function switchToManualInput() {
+    setExtractError(null);
+    setStep("form");
+  }
+
   function handlePaste(e: ClipboardEvent) {
     if (step !== "drop") return;
     const files = Array.from(e.clipboardData.items)
@@ -223,14 +228,26 @@ export function CreateApplicationDialog({
         {step === "drop" && (
           <div className="flex flex-col gap-2">
             <Dropzone onFiles={extractFromFiles} />
-            <button
-              type="button"
-              onClick={() => setStep("form")}
-              className="self-center text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-            >
-              직접 입력할게요
-            </button>
-            {extractError && <p className="text-xs text-destructive">{extractError}</p>}
+            {extractError ? (
+              <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2.5">
+                <p className="text-xs text-foreground">{extractError}</p>
+                <button
+                  type="button"
+                  onClick={switchToManualInput}
+                  className="shrink-0 rounded-full border bg-card px-3 py-1.5 text-xs hover:bg-accent"
+                >
+                  직접 입력하기
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={switchToManualInput}
+                className="self-center text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              >
+                직접 입력할게요
+              </button>
+            )}
           </div>
         )}
 

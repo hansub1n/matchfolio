@@ -1,12 +1,8 @@
 import "server-only";
 import Groq from "groq-sdk";
 
-// Groq에서 셀프서브로 쓸 수 있는 비전(이미지 입력) 모델은 2026-10 기준 이거 하나뿐이라
-// 스크린샷 추출(extract-job-posting)에서만 쓴다. (console.groq.com/docs/vision)
-export const GROQ_VISION_MODEL = "qwen/qwen3.8-27b";
-
-// 텍스트만 다루는 나머지 라우트(기업분석/프로젝트 추출/프로젝트 매칭)는 비전이 필요
-// 없어서, 한국어 포함 다국어 벤치마크가 공개돼 있고 더 큰 gpt-oss-120b를 쓴다.
+// 텍스트만 다루는 라우트(기업분석/프로젝트 추출/프로젝트 매칭) 전용. 스크린샷 추출은
+// Gemini만 쓴다 — 예전 Groq 비전 폴백(Qwen)은 한국어 공고를 못 읽고 내용을 지어내서 뺐다.
 export const GROQ_TEXT_MODEL = "openai/gpt-oss-120b";
 
 // 분당 한도 초과는 retry-after가 짧고, 일일 한도 초과는 더 길게 온다.

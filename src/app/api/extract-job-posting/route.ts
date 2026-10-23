@@ -1,49 +1,28 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
-import Groq from "groq-sdk";
 import sharp from "sharp";
 
+import { runWithModelFallback } from "@/features/extract-job-posting/model/model-fallback";
 import {
   normalizeExtraction,
   type ExtractedJobPosting,
 } from "@/features/extract-job-posting/model/normalize-extraction";
 import { buildScreenshotPath } from "@/features/extract-job-posting/model/screenshot-path";
+import { computeTileRects } from "@/features/extract-job-posting/model/split-tall-image";
 import { getRequestUser } from "@/shared/api/supabase-server";
 import { env } from "@/shared/config/env";
 import { JOB_POSTING_SCREENSHOTS_BUCKET } from "@/shared/config/constants";
-import { isRetryable as isGeminiRetryable, GEMINI_MODEL } from "@/shared/lib/gemini";
-import { describeGroqError, GROQ_VISION_MODEL, isRetryable as isGroqRetryable } from "@/shared/lib/groq";
+import { GEMINI_FALLBACK_MODEL, GEMINI_MODEL, isOverloaded } from "@/shared/lib/gemini";
 import { consumeAiQuota, quotaExceededResponse } from "@/shared/lib/ai-quota";
 import { isSameOrigin, unauthorizedResponse } from "@/shared/lib/request-guard";
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+// 시도 3번(1순위, 503 재시도, 2순위) × 25초 + 재시도 대기 1.5초가 최악의 경우.
+export const maxDuration = 90;
 
-// qwen/qwen3.8-27b(Groq 폴백)가 받는 이미지 1장당 최대 픽셀 수 / 요청당 최대 장수.
-const MAX_GROQ_IMAGE_PIXELS = 33_177_600;
-const MAX_GROQ_IMAGES = 3;
-
-async function toGroqImageDataUrl(buffer: Buffer, mimeType: string): Promise<string> {
-  const metadata = await sharp(buffer).metadata();
-  const pixels = (metadata.width ?? 0) * (metadata.height ?? 0);
-
-  if (pixels <= MAX_GROQ_IMAGE_PIXELS || !metadata.width) {
-    return `data:${mimeType};base64,${buffer.toString("base64")}`;
-  }
-
-  const scale = Math.sqrt(MAX_GROQ_IMAGE_PIXELS / pixels);
-  const resized = await sharp(buffer)
-    .resize({ width: Math.floor(metadata.width * scale) })
-    .toBuffer();
-
-  return `data:${mimeType};base64,${resized.toString("base64")}`;
-}
-
-// 재시도 2회 × 25초 + 백오프가 Gemini/Groq 각각 최악의 경우라, 폴백까지 가면 최대
-// 두 배가 된다 (Vercel Hobby 기본 300초 안에 넉넉히 들어옴).
-export const maxDuration = 150;
+const ATTEMPT_TIMEOUT_MS = 25000;
+const OVERLOAD_RETRY_DELAY_MS = 1500;
+const EXTRACTION_FAILED_MESSAGE = "지금 AI 요청이 몰려서 읽지 못했어요. 잠시 후 다시 시도해주세요";
 
 const EXTRACTION_SCHEMA = {
   type: "object",
@@ -51,11 +30,16 @@ const EXTRACTION_SCHEMA = {
     company: { type: "string" },
     position: { type: "string" },
     deadline: { type: "string", description: "YYYY-MM-DD, 없으면 빈 문자열" },
-    techStack: { type: "array", items: { type: "string" } },
+    techStack: {
+      type: "array",
+      items: { type: "string" },
+      description:
+        "공고에 적힌 구체적인 기술 이름만(언어/프레임워크/라이브러리/DB/클라우드/도구, 예: React, TypeScript, AWS). 최대 10개. 업무 분야('빅데이터 분석', '사이버 보안'), 전공·자격, 설명 문구는 넣지 말고, 괄호 안 설명 없이 기술 이름만.",
+    },
     description: {
       type: "string",
       description:
-        "'주요업무', '자격요건', '우대사항' 소제목마다 줄바꿈으로 구분하고, 각 항목 아래에 '- '로 시작하는 불릿 1~3개를 줄바꿈으로 나열. 내용이 없는 소제목은 생략.",
+        "HTML 태그·엔티티 없는 평문. '주요업무', '자격요건', '우대사항' 소제목마다 줄바꿈으로 구분하고, 각 항목 아래에 '- '로 시작하는 불릿 1~3개를 줄바꿈으로 나열. 스크린샷에 보이는 내용만 쓰고 지어내지 말 것. 내용이 없는 소제목은 생략.",
     },
   },
   required: ["company", "position", "deadline", "techStack", "description"],
@@ -68,95 +52,55 @@ function buildPrompt(imageCount: number) {
     : "이 채용공고 스크린샷에서 회사명, 직무, 마감일, 기술스택 태그를 추출하고, 주요업무/자격요건/우대사항을 소제목과 불릿으로 정리해줘.";
 }
 
-async function extractWithGemini(
-  buffers: { buffer: Buffer; mimeType: string }[]
-): Promise<ExtractedJobPosting> {
-  const ai = new GoogleGenAI({ apiKey: env.gemini.apiKey });
-  const maxAttempts = 2;
-  const attemptTimeoutMs = 25000;
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const response = await ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: [
-          {
-            role: "user",
-            parts: [
-              ...buffers.map(({ buffer, mimeType }) => ({
-                inlineData: { data: buffer.toString("base64"), mimeType },
-              })),
-              { text: buildPrompt(buffers.length) },
-            ],
-          },
-        ],
-        config: {
-          responseMimeType: "application/json",
-          responseJsonSchema: EXTRACTION_SCHEMA,
-          abortSignal: AbortSignal.timeout(attemptTimeoutMs),
-        },
-      });
-
-      const extracted = JSON.parse(response.text ?? "{}");
-      return normalizeExtraction(extracted);
-    } catch (error) {
-      console.error(`extract-job-posting(gemini) attempt ${attempt} failed:`, error);
-      if (isGeminiRetryable(error) && attempt < maxAttempts) {
-        await sleep(1000 * attempt);
-        continue;
-      }
-      throw error;
-    }
-  }
-  throw new Error("Gemini 추출 실패");
+interface ImagePart {
+  buffer: Buffer;
+  mimeType: string;
 }
 
-async function extractWithGroq(
-  buffers: { buffer: Buffer; mimeType: string }[]
-): Promise<ExtractedJobPosting> {
-  const groq = new Groq({ apiKey: env.groq.apiKey });
-  const maxAttempts = 2;
-  const attemptTimeoutMs = 25000;
-  const limited = buffers.slice(0, MAX_GROQ_IMAGES);
-
-  const imageParts = await Promise.all(
-    limited.map(async ({ buffer, mimeType }) => ({
-      type: "image_url" as const,
-      image_url: { url: await toGroqImageDataUrl(buffer, mimeType) },
-    }))
-  );
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const response = await groq.chat.completions.create(
-        {
-          model: GROQ_VISION_MODEL,
-          messages: [
-            {
-              role: "user",
-              content: [...imageParts, { type: "text", text: buildPrompt(imageParts.length) }],
-            },
-          ],
-          response_format: {
-            type: "json_schema",
-            json_schema: { name: "job_posting_extraction", schema: EXTRACTION_SCHEMA, strict: true },
-          },
-        },
-        { signal: AbortSignal.timeout(attemptTimeoutMs) }
-      );
-
-      const extracted = JSON.parse(response.choices[0]?.message?.content ?? "{}");
-      return normalizeExtraction(extracted);
-    } catch (error) {
-      console.error(`extract-job-posting(groq) attempt ${attempt} failed:`, error);
-      if (isGroqRetryable(error) && attempt < maxAttempts) {
-        await sleep(1000 * attempt);
-        continue;
-      }
-      throw error;
+// 세로로 아주 긴 캡처는 조각으로 나눠 보낸다(computeTileRects 참고). 나머지는 그대로.
+async function toModelImages(images: ImagePart[]): Promise<ImagePart[]> {
+  const parts: ImagePart[] = [];
+  for (const image of images) {
+    const { width = 0, height = 0 } = await sharp(image.buffer).metadata();
+    const rects = computeTileRects(width, height);
+    if (rects.length === 1) {
+      parts.push(image);
+      continue;
+    }
+    for (const rect of rects) {
+      const tile = await sharp(image.buffer)
+        .extract({ left: 0, top: rect.top, width, height: rect.height })
+        .png()
+        .toBuffer();
+      parts.push({ buffer: tile, mimeType: "image/png" });
     }
   }
-  throw new Error("Groq 추출 실패");
+  return parts;
+}
+
+async function extractWithGemini(images: ImagePart[], model: string): Promise<ExtractedJobPosting> {
+  // SDK 자체 재시도(기본 5회, 최대 60초 간격)는 끈다 — 재시도/폴백 순서는 runWithModelFallback이 정한다.
+  const ai = new GoogleGenAI({ apiKey: env.gemini.apiKey, httpOptions: { retryOptions: { attempts: 1 } } });
+  const response = await ai.models.generateContent({
+    model,
+    contents: [
+      {
+        role: "user",
+        parts: [
+          ...images.map(({ buffer, mimeType }) => ({
+            inlineData: { data: buffer.toString("base64"), mimeType },
+          })),
+          { text: buildPrompt(images.length) },
+        ],
+      },
+    ],
+    config: {
+      responseMimeType: "application/json",
+      responseJsonSchema: EXTRACTION_SCHEMA,
+      abortSignal: AbortSignal.timeout(ATTEMPT_TIMEOUT_MS),
+    },
+  });
+  return normalizeExtraction(JSON.parse(response.text ?? "{}"));
 }
 
 export async function POST(request: Request) {
@@ -177,7 +121,7 @@ export async function POST(request: Request) {
   if (!quota) return quotaExceededResponse();
 
   const screenshotPaths: string[] = [];
-  const buffers: { buffer: Buffer; mimeType: string }[] = [];
+  const images: ImagePart[] = [];
 
   for (const file of files) {
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -194,23 +138,28 @@ export async function POST(request: Request) {
     }
 
     screenshotPaths.push(screenshotPath);
-    buffers.push({ buffer, mimeType });
+    images.push({ buffer, mimeType });
   }
 
   try {
-    const extracted = await extractWithGemini(buffers);
+    const modelImages = await toModelImages(images);
+    const extracted = await runWithModelFallback(
+      (model) => {
+        console.log(`extract-job-posting: ${model}로 추출 (이미지 ${modelImages.length}장)`);
+        return extractWithGemini(modelImages, model);
+      },
+      {
+        primary: GEMINI_MODEL,
+        fallback: GEMINI_FALLBACK_MODEL,
+        isOverloaded,
+        retryDelayMs: OVERLOAD_RETRY_DELAY_MS,
+      }
+    );
     return NextResponse.json({ screenshotPaths, ...extracted });
-  } catch (geminiError) {
-    console.warn("Gemini 추출 실패, Groq(Qwen)로 폴백:", geminiError);
-    try {
-      const extracted = await extractWithGroq(buffers);
-      return NextResponse.json({ screenshotPaths, ...extracted });
-    } catch (groqError) {
-      await quota.refund();
-      return NextResponse.json(
-        { error: `이미지 분석에 실패했습니다: ${describeGroqError(groqError)}` },
-        { status: 500 }
-      );
-    }
+  } catch (error) {
+    // 정확도가 낮은 다른 모델로 지어낸 값을 채우느니 실패를 알린다(직접 입력으로 넘어갈 수 있음).
+    console.error("extract-job-posting 실패:", error);
+    await quota.refund();
+    return NextResponse.json({ error: EXTRACTION_FAILED_MESSAGE }, { status: 503 });
   }
 }

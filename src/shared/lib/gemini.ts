@@ -1,51 +1,13 @@
 import "server-only";
 
-// 스크린샷 추출(extract-job-posting)에서 Gemini를 1순위로 쓰고, 실패하면 Groq(Qwen
-// 비전)로 폴백한다. 나머지 텍스트 전용 라우트는 Groq만 쓰므로 이 헬퍼는 그 라우트
-// 전용이다.
+// 스크린샷 추출(extract-job-posting) 전용. 1순위 모델이 혼잡하면 같은 Gemini의 다른
+// 모델로 넘어간다 — 혼잡 시점이 모델마다 달라서 실제로 폴백 효과가 있다. 정확도가
+// 낮은 다른 회사 모델(예전 Qwen 폴백)은 공고 내용을 지어내서 쓰지 않는다.
 export const GEMINI_MODEL = "gemini-3.8-flash";
+export const GEMINI_FALLBACK_MODEL = "gemini-3.5-flash";
 
-// 분당 한도 초과는 retryDelay가 짧고, 일일 한도 초과는 몇 시간 단위로 길다.
-const RATE_LIMIT_RETRY_THRESHOLD_SECONDS = 60;
-
-function getRetryDelaySeconds(error: unknown) {
+// 서버 혼잡(503 UNAVAILABLE). 보통 금방 풀려서 잠깐 뒤 같은 모델로 한 번 더 시도할 가치가 있다.
+export function isOverloaded(error: unknown) {
   const message = error instanceof Error ? error.message : "";
-  const match = message.match(/"retryDelay":"([\d.]+)s"/);
-  return match ? Number(match[1]) : null;
-}
-
-export function isQuotaExceeded(error: unknown) {
-  const message = error instanceof Error ? error.message : "";
-  if (!message.includes("RESOURCE_EXHAUSTED")) return false;
-  const retryDelaySeconds = getRetryDelaySeconds(error);
-  return retryDelaySeconds === null || retryDelaySeconds > RATE_LIMIT_RETRY_THRESHOLD_SECONDS;
-}
-
-// @google/genai는 AbortSignal 타임아웃을 TimeoutError가 아니라
-// AbortError("This operation was aborted")로 감싸서 던진다.
-function isTimeout(error: unknown) {
-  return error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
-}
-
-export function isRetryable(error: unknown) {
-  if (isTimeout(error)) return true;
-  const message = error instanceof Error ? error.message : "";
-  if (message.includes("RESOURCE_EXHAUSTED")) {
-    const retryDelaySeconds = getRetryDelaySeconds(error);
-    return retryDelaySeconds !== null && retryDelaySeconds <= RATE_LIMIT_RETRY_THRESHOLD_SECONDS;
-  }
   return message.includes("UNAVAILABLE") || message.includes('"code":503');
-}
-
-export function describeGeminiError(error: unknown) {
-  if (isQuotaExceeded(error)) {
-    return "오늘 Gemini 무료 사용량을 모두 썼습니다.";
-  }
-  if (isTimeout(error)) {
-    return "응답 생성이 너무 오래 걸려 중단됐습니다.";
-  }
-  if (isRetryable(error)) {
-    return "Gemini 서버가 일시적으로 혼잡합니다.";
-  }
-  return error instanceof Error ? error.message : "알 수 없는 오류";
 }
