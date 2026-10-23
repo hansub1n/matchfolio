@@ -5,7 +5,12 @@ import { useDraggable } from "@dnd-kit/core";
 import { ArrowRight, Calendar, CalendarPlus, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { cn } from "cn";
 
-import { APPLICATION_STAGES, hasActiveDeadline, type Application } from "@/entities/application";
+import {
+  APPLICATION_STAGES,
+  formatWaitingDays,
+  hasActiveDeadline,
+  type Application,
+} from "@/entities/application";
 import type { Schedule } from "@/entities/schedule";
 import { type DdayTier } from "@/shared/lib/dday";
 import { formatDateTime } from "@/shared/lib/format-date-time";
@@ -104,9 +109,14 @@ export function ApplicationCard({
   const isFinished = application.outcome !== "in_progress";
   const isPassed = application.outcome === "passed";
   const isFailed = application.outcome === "failed";
+  const waitingLabel =
+    application.stage === "document" && !isFinished
+      ? formatWaitingDays(application.appliedAt, todayKST())
+      : null;
   const isInterviewing = application.stage === "interview" && !isFinished;
   const isCodingTest = application.stage === "coding_test" && !isFinished;
-  const showBottomRow = isInterviewing || isCodingTest || isFailed || isPassed;
+  const showBottomRow =
+    isInterviewing || isCodingTest || isFailed || isPassed || waitingLabel !== null;
 
   const failureLabel =
     application.stage === "interview" && schedule?.roundLabel
@@ -275,6 +285,8 @@ export function ApplicationCard({
           <div className="mt-2 flex items-center justify-between border-t border-border pt-2 text-[11px]">
             {isFailed ? (
               <span className="text-destructive">{failureLabel}</span>
+            ) : waitingLabel ? (
+              <span className="text-muted-foreground">{waitingLabel}</span>
             ) : isPassed ? (
               <span className="text-foreground">
                 <span className="bg-[linear-gradient(transparent_58%,var(--highlight)_58%)] px-0.5">

@@ -4,11 +4,17 @@ import { useState } from "react";
 import { Calendar, CalendarPlus } from "lucide-react";
 import { cn } from "cn";
 
-import { APPLICATION_STAGES, type Application, type UpdateApplicationInput } from "@/entities/application";
+import {
+  APPLICATION_STAGES,
+  formatWaitingDays,
+  type Application,
+  type UpdateApplicationInput,
+} from "@/entities/application";
 import type { Schedule } from "@/entities/schedule";
 import { AnalyzeCompanyPanel } from "@/features/analyze-company";
 import { MatchProjectsPanel } from "@/features/match-projects";
 import { formatDateTime } from "@/shared/lib/format-date-time";
+import { todayKST } from "@/shared/lib/kst-date";
 import { techSatisfies } from "@/shared/lib/tech-aliases";
 import { Button } from "@/shared/ui/button";
 import { CompanyMonogram } from "@/shared/ui/company-monogram";
@@ -56,7 +62,12 @@ function getStatusLine(
   if (application.stage === "interview") {
     return { text: schedule?.roundLabel ? `면접 · ${schedule.roundLabel}` : "면접", variant: "normal" };
   }
-  return { text: `${STAGE_LABELS[application.stage]} 진행 중`, variant: "normal" };
+  const waiting =
+    application.stage === "document" ? formatWaitingDays(application.appliedAt, todayKST()) : null;
+  return {
+    text: `${STAGE_LABELS[application.stage]} 진행 중${waiting ? ` · ${waiting}` : ""}`,
+    variant: "normal",
+  };
 }
 
 function getScheduleLabel(application: Application, schedule: Schedule | null | undefined): string {
