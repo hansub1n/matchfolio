@@ -1,6 +1,6 @@
 create table applications (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid,
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   company text not null,
   -- 관심 단계에서는 직무가 정해지지 않았을 수 있다.
   position text,
@@ -33,6 +33,7 @@ create table applications (
 
 create table schedules (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   application_id uuid not null references applications(id) on delete cascade,
   stage text not null check (stage in ('coding_test', 'interview')),
   round_label text, -- '1차', '2차', '임원면접' 등. 코딩테스트는 보통 비워둠.
@@ -47,6 +48,7 @@ create table schedules (
 
 create table interview_prep (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   application_id uuid not null references applications(id) on delete cascade unique,
   -- 구조화 이전 레코드용. 새 분석부터는 채우지 않는다(아래 summary/sections/
   -- questions/confidence를 쓴다) — 둘 다 nullable인 건 둘 중 하나만 채워지기 때문.
@@ -76,7 +78,7 @@ create table interview_prep (
 
 create table my_projects (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid,
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   name text not null,
   description text,
   tech_stack text[] not null default '{}',
@@ -86,6 +88,7 @@ create table my_projects (
 
 create table project_matches (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   application_id uuid not null references applications(id) on delete cascade unique,
   matches jsonb not null default '[]',
   -- 전체 추천 한 줄. matches 각 항목의 evidence/gaps/pitch/projectId는 jsonb라
@@ -94,3 +97,45 @@ create table project_matches (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- 사용자별 데이터 분리(011). 익명 로그인 세션의 auth.uid()로 본인 행만 읽고 쓴다.
+-- 자식 테이블은 쓸 때 부모 지원카드도 본인 것인지 확인한다.
+create index applications_user_id_idx on applications (user_id);
+create index schedules_user_id_idx on schedules (user_id);
+create index interview_prep_user_id_idx on interview_prep (user_id);
+create index my_projects_user_id_idx on my_projects (user_id);
+create index project_matches_user_id_idx on project_matches (user_id);
+
+alter table applications enable row level security;
+create policy "본인 데이터만" on applications for all to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
+
+alter table my_projects enable row level security;
+create policy "본인 데이터만" on my_projects for all to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
+
+alter table schedules enable row level security;
+create policy "본인 데이터만" on schedules for all to authenticated
+  using (user_id = (select auth.uid()))
+  with check (
+    user_id = (select auth.uid())
+    and exists (select 1 from applications a where a.id = application_id and a.user_id = (select auth.uid()))
+  );
+
+alter table interview_prep enable row level security;
+create policy "본인 데이터만" on interview_prep for all to authenticated
+  using (user_id = (select auth.uid()))
+  with check (
+    user_id = (select auth.uid())
+    and exists (select 1 from applications a where a.id = application_id and a.user_id = (select auth.uid()))
+  );
+
+alter table project_matches enable row level security;
+create policy "본인 데이터만" on project_matches for all to authenticated
+  using (user_id = (select auth.uid()))
+  with check (
+    user_id = (select auth.uid())
+    and exists (select 1 from applications a where a.id = application_id and a.user_id = (select auth.uid()))
+  );
