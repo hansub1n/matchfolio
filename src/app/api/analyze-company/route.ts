@@ -263,7 +263,7 @@ export async function POST(request: Request) {
   const needsProjectQuestions =
     !existingPrep || existingPrep.project_questions === null || existingPrep.motivation === null;
 
-  const { web, news } = await searchCompany(company, position);
+  const { web, news } = await searchCompany(company, position ?? "");
 
   const searchContext =
     web.length > 0
@@ -282,7 +282,7 @@ export async function POST(request: Request) {
   const prompt = `다음은 한 채용 지원자가 지원한 공고와 그 회사에 대한 웹 검색 결과다.
 
 회사명: ${company}
-직무: ${position}
+직무: ${position ?? "(정보 없음)"}
 기술스택: ${techStack.join(", ") || "(정보 없음)"}
 공고 요약: ${description ?? "(정보 없음)"}
 

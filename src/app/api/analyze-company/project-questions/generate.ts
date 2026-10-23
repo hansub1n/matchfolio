@@ -125,7 +125,7 @@ export async function generateProjectQuestions(
   const prompt = `다음은 한 채용 지원자가 지원한 공고와, 지원자가 등록한 프로젝트, 그리고 지원자가 자주 지원하는 공고에서 요구하지만 아직 프로젝트로 못 채운 기술 목록이다.
 
 회사명: ${company}
-직무: ${position}
+직무: ${position ?? "(정보 없음)"}
 기술스택: ${techStack.join(", ") || "(정보 없음)"}
 공고 요약: ${description ?? "(정보 없음)"}
 회사 사업 내용(기업분석 결과): ${businessPoints.join(" / ") || "(정보 없음)"}

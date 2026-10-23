@@ -1,15 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import {
-  deleteInterestedCompany,
-  updateInterestedCompany,
-  type InterestedCompany,
-  type UpdateInterestedCompanyInput,
-} from "@/entities/interested-company";
+  applyToApplication,
+  deleteApplication,
+  updateApplication,
+  type Application,
+  type UpdateApplicationInput,
+} from "@/entities/application";
 import type { ProjectMatchWithCompany } from "@/entities/project-match";
-import { CreateApplicationDialog } from "@/features/create-application";
 import { CreateInterestedCompanyDialog } from "@/features/create-interested-company";
 import { todayKST } from "@/shared/lib/kst-date";
 import { ApplicationDetailDialog } from "@/widgets/kanban-board";
@@ -23,10 +24,12 @@ export function Watchlist({
   allProjectMatches,
   myProjectCount,
 }: {
-  companies: InterestedCompany[];
+  // stage가 'interested'인 지원카드만 넘어온다.
+  companies: Application[];
   allProjectMatches: ProjectMatchWithCompany[];
   myProjectCount: number;
 }) {
+  const router = useRouter();
   const [items, setItems] = useState(companies);
   const [prevCompanies, setPrevCompanies] = useState(companies);
   if (companies !== prevCompanies) {
@@ -35,9 +38,8 @@ export function Watchlist({
   }
   const [detailId, setDetailId] = useState<string | null>(null);
   const detailCompany = items.find((c) => c.id === detailId) ?? null;
-  const [applyCompany, setApplyCompany] = useState<InterestedCompany | null>(null);
 
-  function handleUpdate(id: string, input: UpdateInterestedCompanyInput) {
+  function handleUpdate(id: string, input: UpdateApplicationInput) {
     setItems((prev) =>
       prev.map((company) =>
         company.id === id
@@ -49,20 +51,23 @@ export function Watchlist({
           : company
       )
     );
-    updateInterestedCompany(id, input).catch(console.error);
+    updateApplication(id, input).catch(console.error);
   }
 
   function handleDelete(id: string) {
     const company = items.find((c) => c.id === id);
     setItems((prev) => prev.filter((c) => c.id !== id));
     setDetailId(null);
-    deleteInterestedCompany(id, { screenshotPaths: company?.screenshotPaths }).catch(console.error);
+    deleteApplication(id, { screenshotPaths: company?.screenshotPaths }).catch(console.error);
   }
 
-  function handleConvert(id: string) {
-    // 전환된 지원카드가 같은 스크린샷 경로를 그대로 쓰므로 Storage 파일은 지우지 않는다.
-    setItems((prev) => prev.filter((c) => c.id !== id));
-    deleteInterestedCompany(id).catch(console.error);
+  // 같은 카드의 단계만 서류로 넘긴다 — 매칭/분석 결과와 스크린샷이 그대로 남는다.
+  function handleApply(company: Application) {
+    setItems((prev) => prev.filter((c) => c.id !== company.id));
+    setDetailId(null);
+    applyToApplication(company.id)
+      .then(() => router.refresh())
+      .catch(console.error);
   }
 
   const today = todayKST();
@@ -104,7 +109,7 @@ export function Watchlist({
             company={company}
             bestProject={computeBestProject(company.company, allProjectMatches)}
             onOpenDetail={setDetailId}
-            onApply={setApplyCompany}
+            onApply={handleApply}
           />
         ))}
       </div>
@@ -120,7 +125,7 @@ export function Watchlist({
                 bestProject={computeBestProject(company.company, allProjectMatches)}
                 past
                 onOpenDetail={setDetailId}
-                onApply={setApplyCompany}
+                onApply={handleApply}
               />
             ))}
           </div>
@@ -137,31 +142,7 @@ export function Watchlist({
         }}
         onUpdate={handleUpdate}
         onDelete={handleDelete}
-        onApply={setApplyCompany}
-      />
-      <CreateApplicationDialog
-        key={`apply-${applyCompany?.id ?? "none"}`}
-        trigger={null}
-        open={applyCompany !== null}
-        onOpenChange={(open) => !open && setApplyCompany(null)}
-        initialValues={
-          applyCompany
-            ? {
-                company: applyCompany.company,
-                position: applyCompany.position ?? "",
-                deadline: applyCompany.deadline,
-                jobPostingUrl: applyCompany.jobPostingUrl,
-                techStack: applyCompany.techStack,
-                description: applyCompany.description,
-                memo: applyCompany.memo,
-                screenshotPaths: applyCompany.screenshotPaths,
-              }
-            : undefined
-        }
-        onCreated={() => {
-          if (applyCompany) handleConvert(applyCompany.id);
-          setApplyCompany(null);
-        }}
+        onApply={handleApply}
       />
     </div>
   );

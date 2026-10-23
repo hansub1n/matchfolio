@@ -3,7 +3,7 @@
 import { useState, type ClipboardEvent, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
-import { createInterestedCompany } from "@/entities/interested-company";
+import { createApplication } from "@/entities/application";
 import { extractJobPosting } from "@/features/extract-job-posting";
 import { useObjectUrl } from "@/shared/lib/use-object-url";
 import { Button } from "@/shared/ui/button";
@@ -132,8 +132,9 @@ export function CreateInterestedCompanyDialog({
 
     setPending(true);
     try {
-      await createInterestedCompany({
+      await createApplication({
         company: company.trim(),
+        stage: "interested",
         position: position.trim() || null,
         deadline: deadline || null,
         jobPostingUrl: jobPostingUrl.trim() || null,

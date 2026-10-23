@@ -1,12 +1,14 @@
 import { supabase } from "@/shared/api/supabase";
 import { JOB_POSTING_SCREENSHOTS_BUCKET } from "@/shared/config/constants";
+import { todayKST } from "@/shared/lib/kst-date";
 
+import { buildApplyInput } from "../model/stage";
 import type { Application, ApplicationOutcome, ApplicationStage } from "../model/types";
 
 interface ApplicationRow {
   id: string;
   company: string;
-  position: string;
+  position: string | null;
   stage: ApplicationStage;
   outcome: ApplicationOutcome;
   applied_at: string | null;
@@ -51,7 +53,7 @@ export async function getApplications(): Promise<Application[]> {
 
 export interface CreateApplicationInput {
   company: string;
-  position: string;
+  position?: string | null;
   stage?: ApplicationStage;
   outcome?: ApplicationOutcome;
   appliedAt?: string | null;
@@ -90,7 +92,7 @@ export async function createApplication(
 
 export interface UpdateApplicationInput {
   company?: string;
-  position?: string;
+  position?: string | null;
   stage?: ApplicationStage;
   outcome?: ApplicationOutcome;
   appliedAt?: string | null;
@@ -122,6 +124,10 @@ export async function updateApplication(
     .eq("id", id);
 
   if (error) throw error;
+}
+
+export async function applyToApplication(id: string): Promise<void> {
+  await updateApplication(id, buildApplyInput(todayKST()));
 }
 
 export async function deleteApplication(

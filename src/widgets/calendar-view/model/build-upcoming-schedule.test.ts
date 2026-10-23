@@ -50,7 +50,7 @@ describe("buildUpcomingSchedule", () => {
       buildSchedule({ id: "s2", applicationId: "2", scheduledAt: "2026-10-22T05:00:00Z" }), // 미래
       buildSchedule({ id: "s3", applicationId: "1", roundLabel: "2차", scheduledAt: "2026-10-20T05:00:00Z" }), // 오늘
     ];
-    const { upcoming } = buildUpcomingSchedule(applications, [], schedules, today);
+    const { upcoming } = buildUpcomingSchedule(applications, schedules, today);
     expect(upcoming.map((e) => e.id)).toEqual(["schedule-s3", "schedule-s2"]);
   });
 
@@ -63,7 +63,7 @@ describe("buildUpcomingSchedule", () => {
         scheduledAt: `2026-10-${21 + i}T05:00:00Z`,
       })
     );
-    const { upcoming } = buildUpcomingSchedule(applications, [], schedules, today, 8);
+    const { upcoming } = buildUpcomingSchedule(applications, schedules, today, 8);
     expect(upcoming).toHaveLength(8);
   });
 
@@ -74,7 +74,7 @@ describe("buildUpcomingSchedule", () => {
     const schedules = [
       buildSchedule({ id: "s1", applicationId: "1", stage: "interview", roundLabel: "2차", scheduledAt: null }),
     ];
-    const { unscheduled } = buildUpcomingSchedule(applications, [], schedules, today);
+    const { unscheduled } = buildUpcomingSchedule(applications, schedules, today);
     expect(unscheduled).toEqual([{ applicationId: "1", company: "토스", label: "2차" }]);
   });
 
@@ -82,7 +82,7 @@ describe("buildUpcomingSchedule", () => {
     const applications = [
       buildApplication({ id: "1", company: "토스", stage: "coding_test", outcome: "in_progress" }),
     ];
-    const { unscheduled } = buildUpcomingSchedule(applications, [], [], today);
+    const { unscheduled } = buildUpcomingSchedule(applications, [], today);
     expect(unscheduled).toEqual([{ applicationId: "1", company: "토스", label: "코테" }]);
   });
 
@@ -94,7 +94,7 @@ describe("buildUpcomingSchedule", () => {
     const schedules = [
       buildSchedule({ id: "s1", applicationId: "1", stage: "interview", scheduledAt: "2026-10-22T05:00:00Z" }),
     ];
-    const { unscheduled } = buildUpcomingSchedule(applications, [], schedules, today);
+    const { unscheduled } = buildUpcomingSchedule(applications, schedules, today);
     expect(unscheduled).toEqual([]);
   });
 });

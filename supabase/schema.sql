@@ -1,28 +1,17 @@
-create table interested_companies (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid,
-  company text not null,
-  position text,
-  deadline date,
-  job_posting_url text,
-  screenshot_paths text[] not null default '{}',
-  description text,
-  memo text,
-  tech_stack text[] not null default '{}',
-  created_at timestamptz not null default now()
-);
-
 create table applications (
   id uuid primary key default gen_random_uuid(),
   user_id uuid,
   company text not null,
-  position text not null,
+  -- 관심 단계에서는 직무가 정해지지 않았을 수 있다.
+  position text,
   -- stage: 지금 어떤 전형을 진행 중인지. outcome: 그 전형의 결과.
+  -- interested는 아직 지원하지 않은 관심 공고(구 interested_companies, 009에서
+  -- 통합) — 통계/잔디의 "지원" 집계에서 빠지고, 마감일은 이 단계에서만 의미가 있다.
   -- 둘을 분리해둬서 "면접에서 떨어졌다"(stage=interview, outcome=failed)처럼
   -- 어느 단계에서 탈락했는지가 남는다. 서류합격은 컬럼이 아니라 document에서
   -- coding_test/interview로 넘어가는 이동 그 자체라 별도 값이 없다.
   stage text not null default 'document'
-    check (stage in ('document', 'coding_test', 'interview')),
+    check (stage in ('interested', 'document', 'coding_test', 'interview')),
   outcome text not null default 'in_progress'
     check (outcome in ('in_progress', 'passed', 'failed')),
   applied_at date,
@@ -91,7 +80,7 @@ create table my_projects (
 
 create table project_matches (
   id uuid primary key default gen_random_uuid(),
-  interested_company_id uuid not null references interested_companies(id) on delete cascade unique,
+  application_id uuid not null references applications(id) on delete cascade unique,
   matches jsonb not null default '[]',
   -- 전체 추천 한 줄. matches 각 항목의 evidence/gaps/pitch/projectId는 jsonb라
   -- 컬럼 없이도 들어간다.

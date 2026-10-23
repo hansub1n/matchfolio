@@ -2,7 +2,7 @@
 
 import { cn } from "cn";
 
-import type { InterestedCompany } from "@/entities/interested-company";
+import type { Application } from "@/entities/application";
 import { type DdayTier } from "@/shared/lib/dday";
 import { formatDeadlineBadge } from "@/shared/lib/format-deadline";
 import { todayKST } from "@/shared/lib/kst-date";
@@ -40,11 +40,11 @@ export function InterestedCompanyRow({
   onOpenDetail,
   onApply,
 }: {
-  company: InterestedCompany;
+  company: Application;
   bestProject: BestProject | null;
   past?: boolean;
   onOpenDetail?: (id: string) => void;
-  onApply?: (company: InterestedCompany) => void;
+  onApply?: (company: Application) => void;
 }) {
   const deadlineBadge = formatDeadlineBadge(company.deadline, todayKST());
 

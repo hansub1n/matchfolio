@@ -182,6 +182,17 @@ describe("buildMonthLabels", () => {
   });
 });
 
+describe("관심 단계 제외", () => {
+  it("appliedAt이 있어도 stage=interested는 잔디에 세지 않는다", () => {
+    const apps = [
+      buildApplication({ id: "1", stage: "document", appliedAt: "2026-10-20" }),
+      buildApplication({ id: "2", stage: "interested", appliedAt: "2026-10-20" }),
+    ];
+    expect(buildHeatmap(apps, 4, "2026-10-21").totalCount).toBe(1);
+    expect(buildYearHeatmap(apps, 2026, "2026-10-21").totalCount).toBe(1);
+  });
+});
+
 describe("buildYearHeatmap", () => {
   it("starts the first week on the Monday before Jan 1, marking pre-Jan-1 days as out of year", () => {
     // 2026-01-01은 목요일 -> 그 주 월~수(2025-12-29~31)는 작년 날짜.

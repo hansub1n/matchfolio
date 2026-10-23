@@ -5,7 +5,7 @@ import { useDraggable } from "@dnd-kit/core";
 import { ArrowRight, Calendar, CalendarPlus, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { cn } from "cn";
 
-import { APPLICATION_STAGES, type Application } from "@/entities/application";
+import { APPLICATION_STAGES, hasActiveDeadline, type Application } from "@/entities/application";
 import type { Schedule } from "@/entities/schedule";
 import { type DdayTier } from "@/shared/lib/dday";
 import { formatDateTime } from "@/shared/lib/format-date-time";
@@ -113,10 +113,10 @@ export function ApplicationCard({
       ? `${schedule.roundLabel} 면접 탈락`
       : `${STAGE_LABELS[application.stage]} 탈락`;
 
-  const deadlineBadge =
-    application.stage === "document" && !isFinished
-      ? formatDeadlineBadge(application.deadline, todayKST())
-      : null;
+  // 마감은 아직 지원하지 않은 관심 단계에만 의미가 있다(서류부터는 이미 지원함).
+  const deadlineBadge = hasActiveDeadline(application)
+    ? formatDeadlineBadge(application.deadline, todayKST())
+    : null;
   const scheduleTimeLabel = formatDateTime(schedule?.scheduledAt ?? null);
 
   function handleScheduleButtonClick() {

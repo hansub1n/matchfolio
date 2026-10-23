@@ -6,16 +6,12 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "cn";
 
 import {
+  applyToApplication,
   deleteApplication,
   updateApplication,
   type Application,
   type UpdateApplicationInput,
 } from "@/entities/application";
-import {
-  updateInterestedCompany,
-  type InterestedCompany,
-  type UpdateInterestedCompanyInput,
-} from "@/entities/interested-company";
 import type { MyProject } from "@/entities/my-project";
 import { recordedInterviewRounds, useScheduleRequests, type Schedule } from "@/entities/schedule";
 import { getDdayTier, type DdayTier } from "@/shared/lib/dday";
@@ -117,12 +113,10 @@ function UnscheduledRow({
 
 export function CalendarView({
   applications,
-  interestedCompanies,
   schedules,
   myProjects,
 }: {
   applications: Application[];
-  interestedCompanies: InterestedCompany[];
   schedules: Schedule[];
   myProjects: MyProject[];
 }) {
@@ -150,16 +144,11 @@ export function CalendarView({
     handleSetCodingTestSchedule,
   } = useScheduleRequests(applications, scheduleItems, setScheduleItems);
 
-  const calendar = buildCalendarMonth(applications, interestedCompanies, scheduleItems, year, month, today);
-  const { upcoming, unscheduled } = buildUpcomingSchedule(
-    applications,
-    interestedCompanies,
-    scheduleItems,
-    today
-  );
+  const calendar = buildCalendarMonth(applications, scheduleItems, year, month, today);
+  const { upcoming, unscheduled } = buildUpcomingSchedule(applications, scheduleItems, today);
 
   const detailApplication = applications.find((app) => app.id === detailId) ?? null;
-  const detailCompany = interestedCompanies.find((c) => c.id === detailCompanyId) ?? null;
+  const detailCompany = applications.find((app) => app.id === detailCompanyId) ?? null;
 
   function goTo(offset: number) {
     const next = addMonthOffset(year, month, offset);
@@ -186,8 +175,9 @@ export function CalendarView({
       .catch(console.error);
   }
 
-  function handleUpdateInterestedCompany(id: string, input: UpdateInterestedCompanyInput) {
-    updateInterestedCompany(id, input)
+  function handleApply(company: Application) {
+    setDetailCompanyId(null);
+    applyToApplication(company.id)
       .then(() => router.refresh())
       .catch(console.error);
   }
@@ -371,7 +361,8 @@ export function CalendarView({
         onOpenChange={(open: boolean) => {
           if (!open) setDetailCompanyId(null);
         }}
-        onUpdate={handleUpdateInterestedCompany}
+        onUpdate={handleUpdateApplication}
+        onApply={handleApply}
       />
     </div>
   );

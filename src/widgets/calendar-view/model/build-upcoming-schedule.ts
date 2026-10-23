@@ -1,5 +1,4 @@
 import type { Application } from "@/entities/application";
-import type { InterestedCompany } from "@/entities/interested-company";
 import type { Schedule } from "@/entities/schedule";
 
 import { buildCalendarEvents, type CalendarEvent } from "./build-calendar-events";
@@ -23,12 +22,11 @@ const UNSCHEDULED_STAGES = ["coding_test", "interview"] as const;
 
 export function buildUpcomingSchedule(
   applications: Application[],
-  interestedCompanies: InterestedCompany[],
   schedules: Schedule[],
   today: string,
   limit = 8
 ): UpcomingScheduleData {
-  const eventsByDate = buildCalendarEvents(applications, interestedCompanies, schedules);
+  const eventsByDate = buildCalendarEvents(applications, schedules);
 
   const upcoming = [...eventsByDate.entries()]
     .filter(([date]) => date >= today)

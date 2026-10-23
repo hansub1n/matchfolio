@@ -8,6 +8,8 @@ import { CompanyMonogram } from "@/shared/ui/company-monogram";
 import type { InProgressItem } from "../model/compute-stats";
 
 const STAGE_LABEL: Record<InProgressItem["stage"], string> = {
+  // compute-stats가 관심 단계를 빼서 실제로는 안 나오지만 타입상 필요.
+  interested: "관심",
   document: "서류 검토 중",
   coding_test: "코딩테스트",
   interview: "면접",

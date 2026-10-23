@@ -1,14 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import type { InterestedCompany } from "@/entities/interested-company";
+import type { Application } from "@/entities/application";
 
 import { countDueThisWeek, groupByDeadline } from "./group-by-deadline";
 
-function company(id: string, deadline: string | null): InterestedCompany {
+function company(id: string, deadline: string | null): Application {
   return {
     id,
     company: id,
     position: null,
+    stage: "interested",
+    outcome: "in_progress",
+    appliedAt: null,
     deadline,
     jobPostingUrl: null,
     screenshotPaths: [],
@@ -16,6 +19,7 @@ function company(id: string, deadline: string | null): InterestedCompany {
     memo: null,
     techStack: [],
     createdAt: "2026-10-01T00:00:00.000Z",
+    updatedAt: "2026-10-01T00:00:00.000Z",
   };
 }
 

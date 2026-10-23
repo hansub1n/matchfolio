@@ -30,20 +30,18 @@ async function fetchProjectNameMap(): Promise<Map<string, string>> {
 
 interface ProjectMatchesRow {
   id: string;
-  interested_company_id: string;
+  application_id: string;
   recommendation: string | null;
   matches: StoredMatch[];
   created_at: string;
   updated_at: string;
 }
 
-export async function getProjectMatches(
-  interestedCompanyId: string
-): Promise<ProjectMatches | null> {
+export async function getProjectMatches(applicationId: string): Promise<ProjectMatches | null> {
   const { data, error } = await supabase
     .from("project_matches")
     .select("*")
-    .eq("interested_company_id", interestedCompanyId)
+    .eq("application_id", applicationId)
     .maybeSingle<ProjectMatchesRow>();
 
   if (error) throw error;
@@ -52,7 +50,7 @@ export async function getProjectMatches(
   const nameById = await fetchProjectNameMap();
   return {
     id: data.id,
-    interestedCompanyId: data.interested_company_id,
+    applicationId: data.application_id,
     recommendation: data.recommendation,
     matches: data.matches.map((m) => resolveMatch(m, nameById)),
     createdAt: data.created_at,
@@ -62,7 +60,7 @@ export async function getProjectMatches(
 
 interface ProjectMatchesWithCompanyRow {
   matches: StoredMatch[];
-  interested_companies: { company: string } | null;
+  applications: { company: string } | null;
 }
 
 // "내 프로젝트" 탭에서 프로젝트별로 "가장 잘 맞는 공고"를 보여주려고, 회사별로
@@ -70,14 +68,14 @@ interface ProjectMatchesWithCompanyRow {
 export async function getAllProjectMatches(): Promise<ProjectMatchWithCompany[]> {
   const { data, error } = await supabase
     .from("project_matches")
-    .select("matches, interested_companies(company)")
+    .select("matches, applications(company)")
     .returns<ProjectMatchesWithCompanyRow[]>();
 
   if (error) throw error;
 
   const nameById = await fetchProjectNameMap();
   return (data ?? []).map((row) => ({
-    company: row.interested_companies?.company ?? "",
+    company: row.applications?.company ?? "",
     matches: row.matches.map((m) => resolveMatch(m, nameById)),
   }));
 }

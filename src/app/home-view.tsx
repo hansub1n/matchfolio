@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { BarChart3, CalendarDays, FolderGit2, LayoutGrid, Star } from "lucide-react";
 
-import type { Application } from "@/entities/application";
-import type { InterestedCompany } from "@/entities/interested-company";
+import { isSubmitted, type Application } from "@/entities/application";
 import type { MyProject } from "@/entities/my-project";
 import type { ProjectMatchWithCompany } from "@/entities/project-match";
 import type { Schedule } from "@/entities/schedule";
@@ -18,25 +17,27 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 
 export function HomeView({
   applications,
-  companies,
   myProjects,
   schedules,
   allProjectMatches,
 }: {
   applications: Application[];
-  companies: InterestedCompany[];
   myProjects: MyProject[];
   schedules: Schedule[];
   allProjectMatches: ProjectMatchWithCompany[];
 }) {
   const [tab, setTab] = useState("board");
+  // 관심 단계도 같은 applications에 있지만, 화면 구조를 바꾸기 전(이번 단계)까지는
+  // 보드/내 프로젝트는 지원한 카드만, 관심기업 탭은 관심 단계만 보여준다.
+  const submitted = applications.filter(isSubmitted);
+  const interested = applications.filter((app) => !isSubmitted(app));
 
   // 프로젝트 모달의 "잘 맞는 공고" 클릭 — 지원 중이면 보드, 아니면 관심기업
   // 탭으로 옮겨준다. 정확히 어떤 카드인지까지 자동으로 열어주진 않는다.
   function handleNavigateToCompany(company: string) {
-    if (applications.some((app) => app.company === company)) {
+    if (submitted.some((app) => app.company === company)) {
       setTab("board");
-    } else if (companies.some((c) => c.company === company)) {
+    } else if (interested.some((app) => app.company === company)) {
       setTab("watchlist");
     }
   }
@@ -69,16 +70,12 @@ export function HomeView({
           </TabsList>
         </div>
         <TabsContent value="board" className="flex flex-col gap-4">
-          <BoardHeader
-            applications={applications}
-            interestedCompanies={companies}
-            schedules={schedules}
-          />
-          <KanbanBoard applications={applications} schedules={schedules} myProjects={myProjects} />
+          <BoardHeader applications={applications} schedules={schedules} />
+          <KanbanBoard applications={submitted} schedules={schedules} myProjects={myProjects} />
         </TabsContent>
         <TabsContent value="watchlist">
           <Watchlist
-            companies={companies}
+            companies={interested}
             allProjectMatches={allProjectMatches}
             myProjectCount={myProjects.length}
           />
@@ -86,7 +83,7 @@ export function HomeView({
         <TabsContent value="my-projects">
           <MyProjects
             projects={myProjects}
-            applications={applications}
+            applications={submitted}
             allProjectMatches={allProjectMatches}
             onNavigateToCompany={handleNavigateToCompany}
           />
@@ -101,7 +98,6 @@ export function HomeView({
         <TabsContent value="calendar">
           <CalendarView
             applications={applications}
-            interestedCompanies={companies}
             schedules={schedules}
             myProjects={myProjects}
           />

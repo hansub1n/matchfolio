@@ -5,7 +5,6 @@ import { Calendar, CalendarPlus } from "lucide-react";
 import { cn } from "cn";
 
 import { APPLICATION_STAGES, type Application, type UpdateApplicationInput } from "@/entities/application";
-import type { InterestedCompany, UpdateInterestedCompanyInput } from "@/entities/interested-company";
 import type { Schedule } from "@/entities/schedule";
 import { AnalyzeCompanyPanel } from "@/features/analyze-company";
 import { MatchProjectsPanel } from "@/features/match-projects";
@@ -89,10 +88,11 @@ type ApplicationVariantProps = CommonProps & {
 
 type InterestedVariantProps = CommonProps & {
   variant: "interested";
-  company: InterestedCompany | null;
+  // stage가 'interested'인 지원카드. 지원 전이라 "지원하기"/프로젝트 매칭이 붙는다.
+  company: Application | null;
   myProjectCount?: number;
-  onUpdate: (id: string, input: UpdateInterestedCompanyInput) => void;
-  onApply?: (company: InterestedCompany) => void;
+  onUpdate: (id: string, input: UpdateApplicationInput) => void;
+  onApply?: (company: Application) => void;
 };
 
 type Props = ApplicationVariantProps | InterestedVariantProps;
@@ -172,7 +172,7 @@ export function ApplicationDetailDialog(props: Props) {
     } else {
       props.onUpdate(entity.id, {
         ...base,
-        position: position.trim(),
+        position: position.trim() || null,
         appliedAt: appliedAt || null,
       });
     }
@@ -208,7 +208,7 @@ export function ApplicationDetailDialog(props: Props) {
           {!editing && isInterested && (
             <Button
               size="sm"
-              onClick={() => props.variant === "interested" && props.onApply?.(entity as InterestedCompany)}
+              onClick={() => props.variant === "interested" && props.onApply?.(entity)}
             >
               지원하기
             </Button>
@@ -301,7 +301,7 @@ export function ApplicationDetailDialog(props: Props) {
             {isInterested && (
               <MatchProjectsPanel
                 key={entity.id}
-                company={entity as InterestedCompany}
+                company={entity}
                 myProjectCount={props.variant === "interested" ? (props.myProjectCount ?? 0) : 0}
               />
             )}

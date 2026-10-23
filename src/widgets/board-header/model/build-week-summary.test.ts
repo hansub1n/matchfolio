@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import type { Application } from "@/entities/application";
-import type { InterestedCompany } from "@/entities/interested-company";
 import type { Schedule } from "@/entities/schedule";
 
 import { buildWeekSummary } from "./build-week-summary";
@@ -28,22 +27,6 @@ function buildApplication(overrides: Partial<Application> = {}): Application {
   };
 }
 
-function buildCompany(overrides: Partial<InterestedCompany> = {}): InterestedCompany {
-  return {
-    id: "c1",
-    company: "라인",
-    position: null,
-    deadline: null,
-    jobPostingUrl: null,
-    screenshotPaths: [],
-    description: null,
-    memo: null,
-    techStack: [],
-    createdAt: "2026-01-01T00:00:00Z",
-    ...overrides,
-  };
-}
-
 function buildSchedule(overrides: Partial<Schedule> = {}): Schedule {
   return {
     id: "s1",
@@ -58,7 +41,7 @@ function buildSchedule(overrides: Partial<Schedule> = {}): Schedule {
 
 describe("buildWeekSummary", () => {
   it("reports no schedule when nothing falls this week", () => {
-    const summary = buildWeekSummary([], [], [], TODAY);
+    const summary = buildWeekSummary([], [], TODAY);
     expect(summary.deadlineCount).toBe(0);
     expect(summary.interviewCount).toBe(0);
     expect(summary.headline).toEqual({
@@ -68,39 +51,22 @@ describe("buildWeekSummary", () => {
     });
   });
 
-  it("counts document-stage in-progress deadlines this week, excluding other stages and dates", () => {
+  it("counts interested-stage deadlines this week, excluding submitted cards and other weeks", () => {
     const summary = buildWeekSummary(
       [
-        buildApplication({ id: "1", stage: "document", outcome: "in_progress", deadline: "2026-10-23" }),
-        buildApplication({ id: "2", stage: "document", outcome: "in_progress", deadline: "2026-10-26" }), // 다음주
-        buildApplication({
-          id: "3",
-          stage: "interview",
-          outcome: "in_progress",
-          deadline: "2026-10-23",
-        }), // 이미 서류를 넘어감 — 마감 의미 없음
+        buildApplication({ id: "1", stage: "interested", deadline: "2026-10-23" }),
+        buildApplication({ id: "2", stage: "interested", deadline: "2026-10-26" }), // 다음주
+        buildApplication({ id: "3", stage: "document", deadline: "2026-10-23" }), // 이미 지원함 — 마감 의미 없음
       ],
-      [],
       [],
       TODAY
     );
     expect(summary.deadlineCount).toBe(1);
   });
 
-  it("counts interested-company deadlines this week alongside application deadlines", () => {
-    const summary = buildWeekSummary(
-      [buildApplication({ id: "1", deadline: "2026-10-20" })],
-      [buildCompany({ id: "c1", deadline: "2026-10-25" })],
-      [],
-      TODAY
-    );
-    expect(summary.deadlineCount).toBe(2);
-  });
-
   it("counts each application's latest schedule only, within this week", () => {
     const summary = buildWeekSummary(
       [buildApplication({ id: "1", stage: "interview" })],
-      [],
       [
         buildSchedule({
           id: "s1",
@@ -123,7 +89,6 @@ describe("buildWeekSummary", () => {
   it("doesn't count schedules with no date yet", () => {
     const summary = buildWeekSummary(
       [buildApplication({ id: "1", stage: "interview" })],
-      [],
       [buildSchedule({ applicationId: "1", scheduledAt: null })],
       TODAY
     );
@@ -133,11 +98,10 @@ describe("buildWeekSummary", () => {
   it("builds a combined headline when both deadlines and interviews exist this week", () => {
     const summary = buildWeekSummary(
       [
-        buildApplication({ id: "1", deadline: "2026-10-20" }),
-        buildApplication({ id: "2", deadline: "2026-10-21" }),
+        buildApplication({ id: "1", stage: "interested", deadline: "2026-10-20" }),
+        buildApplication({ id: "2", stage: "interested", deadline: "2026-10-21" }),
         buildApplication({ id: "3", stage: "interview" }),
       ],
-      [],
       [buildSchedule({ applicationId: "3", scheduledAt: "2026-10-23T09:00:00+09:00" })],
       TODAY
     );
@@ -151,7 +115,6 @@ describe("buildWeekSummary", () => {
   it("builds an interview-only headline when there are no deadlines this week", () => {
     const summary = buildWeekSummary(
       [buildApplication({ id: "1", stage: "interview" })],
-      [],
       [buildSchedule({ applicationId: "1", scheduledAt: "2026-10-23T09:00:00+09:00" })],
       TODAY
     );

@@ -1,4 +1,4 @@
-import type { Application, ApplicationStage } from "@/entities/application";
+import { isSubmitted, type Application, type ApplicationStage } from "@/entities/application";
 import { latestScheduleByApplication, type Schedule } from "@/entities/schedule";
 
 const ROUND_ORDER = ["1차", "2차", "최종"];
@@ -82,9 +82,11 @@ export interface ApplicationStats {
 }
 
 export function computeApplicationStats(
-  applications: Application[],
+  allApplications: Application[],
   schedules: Schedule[] = []
 ): ApplicationStats {
+  // 관심 단계는 아직 지원하지 않은 공고라 총 지원/퍼널/기술 집계 전부에서 뺀다.
+  const applications = allApplications.filter(isSubmitted);
   const total = applications.length;
   const latestSchedules = latestScheduleByApplication(schedules);
 

@@ -222,4 +222,25 @@ describe("computeApplicationStats", () => {
       });
     });
   });
+
+  describe("관심 단계 제외", () => {
+    it("stage=interested는 총 지원/진행 중/퍼널/기술 집계 어디에도 들어가지 않는다", () => {
+      const stats = computeApplicationStats([
+        buildApplication({ id: "1", stage: "document", techStack: ["React"] }),
+        buildApplication({ id: "2", stage: "interested", techStack: ["React", "Vue"] }),
+      ]);
+
+      expect(stats.total).toBe(1);
+      expect(stats.inProgressCount).toBe(1);
+      expect(stats.funnel[0].count).toBe(1);
+      expect(stats.funnel[1].pending).toBe(1);
+      expect(stats.inProgressList.map((i) => i.id)).toEqual(["1"]);
+      expect(stats.techStackCounts).toEqual([{ tech: "React", count: 1 }]);
+    });
+
+    it("관심 단계만 있으면 지원 0건으로 본다", () => {
+      const stats = computeApplicationStats([buildApplication({ stage: "interested" })]);
+      expect(stats.total).toBe(0);
+    });
+  });
 });

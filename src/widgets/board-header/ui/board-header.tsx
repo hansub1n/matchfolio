@@ -1,5 +1,4 @@
 import { buildHeatmap, type Application } from "@/entities/application";
-import type { InterestedCompany } from "@/entities/interested-company";
 import type { Schedule } from "@/entities/schedule";
 import { CreateApplicationDialog } from "@/features/create-application";
 import { todayKST } from "@/shared/lib/kst-date";
@@ -9,15 +8,13 @@ import { BoardHeatmap } from "./board-heatmap";
 
 export function BoardHeader({
   applications,
-  interestedCompanies,
   schedules,
 }: {
   applications: Application[];
-  interestedCompanies: InterestedCompany[];
   schedules: Schedule[];
 }) {
   const today = todayKST();
-  const { headline } = buildWeekSummary(applications, interestedCompanies, schedules, today);
+  const { headline } = buildWeekSummary(applications, schedules, today);
   const todayCount = applications.filter((app) => app.appliedAt === today).length;
   const heatmap = buildHeatmap(applications, 52, today);
   const thisWeek = heatmap.weeks.at(-1) ?? [];

@@ -1,7 +1,6 @@
 import { format, startOfWeek } from "date-fns";
 
-import type { Application } from "@/entities/application";
-import type { InterestedCompany } from "@/entities/interested-company";
+import { hasActiveDeadline, type Application } from "@/entities/application";
 import { latestScheduleByApplication, type Schedule } from "@/entities/schedule";
 import { todayKST, toKSTDateString } from "@/shared/lib/kst-date";
 
@@ -44,17 +43,16 @@ function buildWeekHeadline(deadlineCount: number, interviewCount: number): Headl
 // "이번 주"는 월~일 전체 — 이미 지난 요일의 마감/면접도 "이번 주에 있었던" 일정으로 센다.
 export function buildWeekSummary(
   applications: Application[],
-  interestedCompanies: InterestedCompany[],
   schedules: Schedule[],
   today: string = todayKST()
 ): WeekSummary {
   const { monday, sunday } = currentWeekRange(today);
   const inRange = (date: string | null) => !!date && date >= monday && date <= sunday;
 
-  const applicationDeadlines = applications.filter(
-    (app) => app.stage === "document" && app.outcome === "in_progress" && inRange(app.deadline)
+  // 마감은 아직 지원하지 않은 관심 단계에만 의미가 있다.
+  const deadlineCount = applications.filter(
+    (app) => hasActiveDeadline(app) && inRange(app.deadline)
   ).length;
-  const companyDeadlines = interestedCompanies.filter((c) => inRange(c.deadline)).length;
 
   const latestSchedules = latestScheduleByApplication(schedules);
   const interviewCount = [...latestSchedules.values()].filter((s) =>
@@ -62,8 +60,8 @@ export function buildWeekSummary(
   ).length;
 
   return {
-    deadlineCount: applicationDeadlines + companyDeadlines,
+    deadlineCount,
     interviewCount,
-    headline: buildWeekHeadline(applicationDeadlines + companyDeadlines, interviewCount),
+    headline: buildWeekHeadline(deadlineCount, interviewCount),
   };
 }

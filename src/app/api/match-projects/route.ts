@@ -89,20 +89,20 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { interestedCompanyId } = body as { interestedCompanyId: string };
+  const { applicationId } = body as { applicationId: string };
 
-  if (!interestedCompanyId) {
-    return NextResponse.json({ error: "interestedCompanyId는 필수입니다." }, { status: 400 });
+  if (!applicationId) {
+    return NextResponse.json({ error: "applicationId는 필수입니다." }, { status: 400 });
   }
 
   const { data: company, error: companyError } = await supabaseAdmin
-    .from("interested_companies")
+    .from("applications")
     .select("company, position, description, tech_stack")
-    .eq("id", interestedCompanyId)
+    .eq("id", applicationId)
     .single();
 
   if (companyError || !company) {
-    return NextResponse.json({ error: "존재하지 않는 관심기업입니다." }, { status: 404 });
+    return NextResponse.json({ error: "존재하지 않는 공고입니다." }, { status: 404 });
   }
 
   const { data: projects, error: projectsError } = await supabaseAdmin
@@ -176,12 +176,12 @@ evidence의 requirement는 공고 원문 표현을 짧게 인용하고, experien
         .from("project_matches")
         .upsert(
           {
-            interested_company_id: interestedCompanyId,
+            application_id: applicationId,
             matches: sortedMatches,
             recommendation: result.recommendation,
             updated_at: new Date().toISOString(),
           },
-          { onConflict: "interested_company_id" }
+          { onConflict: "application_id" }
         )
         .select()
         .single();
@@ -197,7 +197,7 @@ evidence의 requirement는 공고 원문 표현을 짧게 인용하고, experien
 
       return NextResponse.json({
         id: data.id,
-        interestedCompanyId: data.interested_company_id,
+        applicationId: data.application_id,
         recommendation: data.recommendation,
         matches: resolvedMatches,
         createdAt: data.created_at,

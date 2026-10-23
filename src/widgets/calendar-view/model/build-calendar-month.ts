@@ -1,7 +1,6 @@
 import { addDays, addWeeks, differenceInCalendarWeeks, format, startOfWeek } from "date-fns";
 
 import type { Application } from "@/entities/application";
-import type { InterestedCompany } from "@/entities/interested-company";
 import type { Schedule } from "@/entities/schedule";
 import { todayKST } from "@/shared/lib/kst-date";
 
@@ -34,7 +33,6 @@ export interface CalendarMonthData {
 
 export function buildCalendarMonth(
   applications: Application[],
-  interestedCompanies: InterestedCompany[],
   schedules: Schedule[],
   year: number,
   month: number,
@@ -48,7 +46,7 @@ export function buildCalendarMonth(
   const weekCount =
     differenceInCalendarWeeks(lastWeekMonday, gridStartMonday, { weekStartsOn: 1 }) + 1;
 
-  const eventsByDate = buildCalendarEvents(applications, interestedCompanies, schedules);
+  const eventsByDate = buildCalendarEvents(applications, schedules);
 
   const appliedCountByDate = new Map<string, number>();
   for (const app of applications) {

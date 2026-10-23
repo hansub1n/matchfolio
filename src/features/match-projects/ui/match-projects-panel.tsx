@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "cn";
 
-import type { InterestedCompany } from "@/entities/interested-company";
+import type { Application } from "@/entities/application";
 import {
   getProjectMatches,
   isDetailedProjectMatch,
@@ -143,7 +143,7 @@ export function MatchProjectsPanel({
   company,
   myProjectCount,
 }: {
-  company: InterestedCompany;
+  company: Application;
   myProjectCount: number;
 }) {
   const [result, setResult] = useState<ProjectMatches | null>(null);

@@ -2,6 +2,7 @@ import { addDays, addWeeks, differenceInCalendarWeeks, format, startOfWeek, subW
 
 import { todayKST } from "@/shared/lib/kst-date";
 
+import { isSubmitted } from "./stage";
 import type { Application } from "./types";
 
 // appliedAt/오늘은 전부 'yyyy-MM-dd' KST 캘린더 날짜 문자열이라(todayKST, Postgres
@@ -30,7 +31,7 @@ export function buildHeatmap(
 ): HeatmapData {
   const tally = new Map<string, number>();
   for (const app of applications) {
-    if (!app.appliedAt) continue;
+    if (!isSubmitted(app) || !app.appliedAt) continue;
     tally.set(app.appliedAt, (tally.get(app.appliedAt) ?? 0) + 1);
   }
 
@@ -85,7 +86,7 @@ export function buildYearHeatmap(
 ): YearHeatmapData {
   const tally = new Map<string, number>();
   for (const app of applications) {
-    if (!app.appliedAt) continue;
+    if (!isSubmitted(app) || !app.appliedAt) continue;
     tally.set(app.appliedAt, (tally.get(app.appliedAt) ?? 0) + 1);
   }
 

@@ -1,12 +1,12 @@
 import type { ProjectMatches } from "@/entities/project-match";
 
-export async function matchProjects(interestedCompanyId: string): Promise<ProjectMatches> {
+export async function matchProjects(applicationId: string): Promise<ProjectMatches> {
   let response: Response;
   try {
     response = await fetch("/api/match-projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ interestedCompanyId }),
+      body: JSON.stringify({ applicationId }),
     });
   } catch {
     throw new Error("네트워크 연결이 끊겼습니다. 잠시 후 다시 시도해주세요.");
