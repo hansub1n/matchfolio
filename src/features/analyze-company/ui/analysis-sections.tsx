@@ -17,7 +17,7 @@ import { CreateMyProjectDialog } from "@/features/create-my-project";
 import { buildCompanySearchLinks } from "@/shared/lib/company-search-links";
 import { KST_TIME_ZONE } from "@/shared/lib/kst-date";
 import { useExpandable } from "@/shared/lib/use-expandable";
-import { AiSectionButton, AiSectionSkeleton } from "@/shared/ui/ai-section";
+import { AiDisclaimer, AiSectionButton, AiSectionSkeleton } from "@/shared/ui/ai-section";
 import { CopyButton } from "@/shared/ui/copy-button";
 import { ExpandToggle } from "@/shared/ui/expand-toggle";
 
@@ -578,6 +578,7 @@ export function CompanyAnalysisSection({
       )}
 
       <Footer sources={prep.sources} company={company} />
+      <AiDisclaimer />
     </div>
   );
 }
@@ -625,6 +626,7 @@ export function InterviewPrepSection({
           예전 형식으로 만든 질문이에요.{" "}
           <LinkButton onClick={onAnalyze}>다시 분석</LinkButton>하면 질문별 의도와 답변 힌트가 붙어요
         </p>
+        <AiDisclaimer />
       </div>
     );
   }
@@ -642,6 +644,7 @@ export function InterviewPrepSection({
         onProjectLayerUpdated={onProjectLayerUpdated}
       />
       {prep.briefing && <ReverseQuestionRows items={prep.briefing.reverseQuestions} />}
+      <AiDisclaimer />
     </div>
   );
 }

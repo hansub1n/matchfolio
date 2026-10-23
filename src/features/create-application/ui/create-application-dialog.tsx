@@ -89,6 +89,8 @@ export function CreateApplicationDialog({
   const [screenshotPaths, setScreenshotPaths] = useState<string[]>([]);
   const [aiFilled, setAiFilled] = useState<Set<AiField>>(new Set());
   const [extractError, setExtractError] = useState<string | null>(null);
+  // 폼이 AI 추출 결과로 채워졌는지 — 직접 입력일 때는 안내 문구를 숨긴다.
+  const [fromAi, setFromAi] = useState(false);
   const [pending, setPending] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -107,6 +109,7 @@ export function CreateApplicationDialog({
     setScreenshotPaths([]);
     setAiFilled(new Set());
     setExtractError(null);
+    setFromAi(false);
     setSubmitError(null);
   }
 
@@ -133,6 +136,7 @@ export function CreateApplicationDialog({
       if (extracted.techStack.length > 0) filled.add("techStack");
       if (extracted.description) filled.add("description");
       setAiFilled(filled);
+      setFromAi(true);
       setStep("form");
     } catch (error) {
       console.warn("스크린샷 추출 실패:", error);
@@ -155,6 +159,7 @@ export function CreateApplicationDialog({
 
   function switchToManualInput() {
     setExtractError(null);
+    setFromAi(false);
     setStep("form");
   }
 
@@ -255,6 +260,11 @@ export function CreateApplicationDialog({
 
         {step === "form" && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            {fromAi && (
+              <p className="text-[11.5px] text-muted-foreground">
+                AI가 스크린샷에서 읽은 내용이에요. 저장 전에 한 번 확인해주세요
+              </p>
+            )}
             {screenshotPaths.length > 0 && (
               <div className="flex items-center gap-2">
                 <div className="flex flex-wrap gap-1.5">

@@ -69,3 +69,8 @@ export function AiSectionSkeleton() {
     </div>
   );
 }
+
+// AI 결과 맨 아래에 붙이는 한 줄. 경고가 아니라 사실만 알린다.
+export function AiDisclaimer() {
+  return <p className="text-[11px] text-muted-foreground">AI가 만든 내용이라 사실과 다를 수 있어요</p>;
+}

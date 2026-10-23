@@ -12,7 +12,7 @@ import {
   type ProjectMatches,
 } from "@/entities/project-match";
 import { CreateMyProjectDialog } from "@/features/create-my-project";
-import { AiSection, AiSectionButton, AiSectionSkeleton } from "@/shared/ui/ai-section";
+import { AiDisclaimer, AiSection, AiSectionButton, AiSectionSkeleton } from "@/shared/ui/ai-section";
 
 import { matchProjects } from "../api/matchProjects";
 
@@ -260,6 +260,7 @@ export function MatchProjectsPanel({
         ) : (
           <p className="text-sm text-muted-foreground">관련 있는 프로젝트를 찾지 못했습니다.</p>
         )}
+        <AiDisclaimer />
       </div>
     </AiSection>
   );
