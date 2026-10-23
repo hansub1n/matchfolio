@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Calendar, CalendarPlus } from "lucide-react";
 import { cn } from "cn";
 
 import { APPLICATION_STAGES, type Application, type UpdateApplicationInput } from "@/entities/application";
@@ -175,6 +176,7 @@ export function ApplicationDetailDialog(props: Props) {
     setEditing(false);
   }
 
+  const hasScheduleTime = Boolean(formatDateTime(scheduleForApplication?.scheduledAt ?? null));
   const scheduleTrigger = application && (
     <button
       type="button"
@@ -182,9 +184,12 @@ export function ApplicationDetailDialog(props: Props) {
         stopClick(e);
         setScheduleOpen(true);
       }}
-      className="text-left hover:text-foreground"
+      className="flex items-center gap-1 text-left hover:text-foreground"
     >
-      {getScheduleLabel(application, scheduleForApplication)}
+      {hasScheduleTime ? <Calendar className="size-3" /> : <CalendarPlus className="size-3" />}
+      <span className={hasScheduleTime ? "num" : undefined}>
+        {getScheduleLabel(application, scheduleForApplication)}
+      </span>
     </button>
   );
 
@@ -213,7 +218,7 @@ export function ApplicationDetailDialog(props: Props) {
         </div>
 
         {!editing ? (
-          <div className="flex flex-col gap-5 overflow-y-auto px-5 py-4 text-sm">
+          <div className="flex flex-col gap-5 overflow-y-auto px-5 pt-4 pb-6 text-sm">
             <div className="flex flex-col gap-3">
               {entity.position && <p className="text-muted-foreground">{entity.position}</p>}
               {status && (
@@ -317,7 +322,9 @@ export function ApplicationDetailDialog(props: Props) {
                     );
                   })}
                 </div>
-                <p className={SECTION_LABEL}>연두색 = 내 프로젝트에 있는 기술</p>
+                {entity.techStack.some((tech) =>
+                  myProjectTechStack.some((ownedTech) => techSatisfies(tech, ownedTech))
+                ) && <p className={SECTION_LABEL}>연두색 = 내 프로젝트에 있는 기술</p>}
               </div>
             )}
 
@@ -355,7 +362,12 @@ export function ApplicationDetailDialog(props: Props) {
               </div>
             )}
 
-            <ScreenshotGallery paths={entity.screenshotPaths} />
+            {entity.screenshotPaths.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <p className={SECTION_LABEL}>스크린샷</p>
+                <ScreenshotGallery paths={entity.screenshotPaths} />
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-3 overflow-y-auto px-5 py-4">

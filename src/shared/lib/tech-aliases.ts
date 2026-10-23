@@ -3,6 +3,7 @@ import { normalizeTech } from "./normalize-tech";
 // "이 기술을 쓰면 저 기술도 쓴 것으로 본다"는 명시적 관계 — 프레임워크가 다른
 // 기술 위에서 동작해서, 표기 자체가 완전히 달라 포함 관계로는 못 잡는 경우.
 const IMPLIES: Record<string, string[]> = {
+  typescript: ["javascript"],
   nextjs: ["react"],
   gatsby: ["react"],
   remix: ["react"],

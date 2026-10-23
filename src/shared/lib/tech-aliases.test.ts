@@ -12,6 +12,11 @@ describe("techSatisfies", () => {
     expect(techSatisfies("Next.js", "React")).toBe(true);
   });
 
+  it("matches via an explicit alias relationship (TypeScript implies JavaScript)", () => {
+    expect(techSatisfies("JavaScript", "TypeScript")).toBe(true);
+    expect(techSatisfies("TypeScript", "JavaScript")).toBe(true);
+  });
+
   it("matches notation differences via containment (Vue vs Vue.js)", () => {
     expect(techSatisfies("Vue", "Vue.js")).toBe(true);
   });
