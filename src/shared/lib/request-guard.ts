@@ -1,9 +1,10 @@
 import "server-only";
 
-// 로그인이 없는 개인용 앱이라 사용자 인증은 없지만, AI API를 호출하는
-// 라우트를 외부에서 직접 curl로 두드려 할당량을 소진시키는 건 막아야 한다.
-// Origin이 이 서버의 Host와 같은지만 확인한다 — 완벽한 보안은 아니지만
-// (Origin 헤더는 조작 가능), 브라우저가 아닌 직접 호출을 걸러내는 데는 충분하다.
+import { NextResponse } from "next/server";
+
+// 세션 확인(getRequestUser)과 별개로, AI API를 호출하는 라우트를 외부에서 직접
+// curl로 두드리는 걸 한 겹 더 거른다. Origin이 이 서버의 Host와 같은지만 본다 —
+// 완벽한 보안은 아니지만(Origin 헤더는 조작 가능) 브라우저가 아닌 호출은 걸러진다.
 export function isSameOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
   if (!origin) return false;
@@ -12,4 +13,9 @@ export function isSameOrigin(request: Request): boolean {
   } catch {
     return false;
   }
+}
+
+// 세션이 없거나 만료된 요청 — 페이지를 새로고침하면 proxy가 세션을 다시 만든다.
+export function unauthorizedResponse() {
+  return NextResponse.json({ error: "세션이 만료됐어요. 페이지를 새로고침해주세요." }, { status: 401 });
 }

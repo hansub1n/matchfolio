@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { isSameOrigin } from "@/shared/lib/request-guard";
+import { getRequestUser } from "@/shared/api/supabase-server";
+import { isSameOrigin, unauthorizedResponse } from "@/shared/lib/request-guard";
 
 import { generateProjectQuestions } from "./generate";
 
@@ -11,6 +12,8 @@ export async function POST(request: Request) {
   if (!isSameOrigin(request)) {
     return NextResponse.json({ error: "허용되지 않은 요청입니다." }, { status: 403 });
   }
+  const { supabase, user } = await getRequestUser();
+  if (!user) return unauthorizedResponse();
 
   const body = await request.json();
   const { applicationId } = body as { applicationId: string };
@@ -19,7 +22,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "applicationId는 필수입니다." }, { status: 400 });
   }
 
-  const result = await generateProjectQuestions(applicationId);
+  const result = await generateProjectQuestions(supabase, applicationId);
 
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: result.status });

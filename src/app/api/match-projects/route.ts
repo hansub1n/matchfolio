@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
 
+import { getRequestUser } from "@/shared/api/supabase-server";
 import { env } from "@/shared/config/env";
-import { supabaseAdmin } from "@/shared/api/supabase-admin";
 import { describeGroqError, GROQ_TEXT_MODEL, isRetryable } from "@/shared/lib/groq";
-import { isSameOrigin } from "@/shared/lib/request-guard";
+import { isSameOrigin, unauthorizedResponse } from "@/shared/lib/request-guard";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -87,6 +87,8 @@ export async function POST(request: Request) {
   if (!isSameOrigin(request)) {
     return NextResponse.json({ error: "허용되지 않은 요청입니다." }, { status: 403 });
   }
+  const { supabase, user } = await getRequestUser();
+  if (!user) return unauthorizedResponse();
 
   const body = await request.json();
   const { applicationId } = body as { applicationId: string };
@@ -95,7 +97,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "applicationId는 필수입니다." }, { status: 400 });
   }
 
-  const { data: company, error: companyError } = await supabaseAdmin
+  const { data: company, error: companyError } = await supabase
     .from("applications")
     .select("company, position, description, tech_stack")
     .eq("id", applicationId)
@@ -105,7 +107,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "존재하지 않는 공고입니다." }, { status: 404 });
   }
 
-  const { data: projects, error: projectsError } = await supabaseAdmin
+  const { data: projects, error: projectsError } = await supabase
     .from("my_projects")
     .select("id, name, description, tech_stack, highlights");
 
@@ -172,7 +174,7 @@ evidence의 requirement는 공고 원문 표현을 짧게 인용하고, experien
         .filter((m) => validIds.has(m.projectId))
         .sort((a, b) => b.fitScore - a.fitScore);
 
-      const { data, error } = await supabaseAdmin
+      const { data, error } = await supabase
         .from("project_matches")
         .upsert(
           {

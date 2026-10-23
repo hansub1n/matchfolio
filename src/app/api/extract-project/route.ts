@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
 
+import { getRequestUser } from "@/shared/api/supabase-server";
 import { env } from "@/shared/config/env";
 import { describeGroqError, GROQ_TEXT_MODEL, isRetryable } from "@/shared/lib/groq";
-import { isSameOrigin } from "@/shared/lib/request-guard";
+import { isSameOrigin, unauthorizedResponse } from "@/shared/lib/request-guard";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -63,6 +64,8 @@ export async function POST(request: Request) {
   if (!isSameOrigin(request)) {
     return NextResponse.json({ error: "허용되지 않은 요청입니다." }, { status: 403 });
   }
+  const { user } = await getRequestUser();
+  if (!user) return unauthorizedResponse();
 
   const body = await request.json();
   const { githubUrl, text } = body as { githubUrl?: string; text?: string };

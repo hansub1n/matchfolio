@@ -2,6 +2,7 @@ import { getApplications } from "@/entities/application";
 import { getMyProjects } from "@/entities/my-project";
 import { getAllProjectMatches } from "@/entities/project-match";
 import { getSchedules } from "@/entities/schedule";
+import { createServerSupabase } from "@/shared/api/supabase-server";
 
 import { HomeView } from "./home-view";
 
@@ -9,11 +10,13 @@ import { HomeView } from "./home-view";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  // 요청 쿠키의 익명 세션으로 읽는다 — RLS 덕분에 이 사용자 데이터만 온다.
+  const supabase = await createServerSupabase();
   const [applications, myProjects, schedules, allProjectMatches] = await Promise.all([
-    getApplications(),
-    getMyProjects(),
-    getSchedules(),
-    getAllProjectMatches(),
+    getApplications(supabase),
+    getMyProjects(supabase),
+    getSchedules(supabase),
+    getAllProjectMatches(supabase),
   ]);
 
   return (

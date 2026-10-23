@@ -1,5 +1,6 @@
 import "server-only";
 import Groq from "groq-sdk";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { InterviewPrepMotivation, InterviewPrepQuestion } from "@/entities/interview-prep";
 import {
@@ -9,7 +10,6 @@ import {
 import { buildSubmissionContext } from "@/features/analyze-company/model/submission-context";
 import { computeSkillGap } from "@/widgets/my-projects";
 import { env } from "@/shared/config/env";
-import { supabaseAdmin } from "@/shared/api/supabase-admin";
 import { describeGroqError, GROQ_TEXT_MODEL, isRetryable } from "@/shared/lib/groq";
 
 export { shouldGenerateProjectQuestions };
@@ -77,10 +77,12 @@ export interface GenerateProjectQuestionsResult {
   projectQuestionsUpdatedAt: string;
 }
 
+// 호출한 사용자의 세션 클라이언트를 받는다 — RLS로 그 사용자 데이터만 읽고 쓴다.
 export async function generateProjectQuestions(
+  supabase: SupabaseClient,
   applicationId: string
 ): Promise<GenerateProjectQuestionsResult | { error: string; status: number }> {
-  const { data: application, error: applicationError } = await supabaseAdmin
+  const { data: application, error: applicationError } = await supabase
     .from("applications")
     .select("company, position, description, tech_stack, submitted_project_ids, cover_letter")
     .eq("id", applicationId)
@@ -90,7 +92,7 @@ export async function generateProjectQuestions(
     return { error: "존재하지 않는 지원 카드입니다.", status: 404 };
   }
 
-  const { data: myProjects } = await supabaseAdmin
+  const { data: myProjects } = await supabase
     .from("my_projects")
     .select("id, name, description, tech_stack, highlights");
 
@@ -99,14 +101,14 @@ export async function generateProjectQuestions(
   }
 
   // "내 프로젝트" 탭의 기술 격차와 같은 기준 — 실제로 지원한 공고(관심 단계 제외)만 센다.
-  const { data: allApplications } = await supabaseAdmin
+  const { data: allApplications } = await supabase
     .from("applications")
     .select("tech_stack")
     .neq("stage", "interested");
 
   // 지원 동기 포인트를 회사 사업과 연결하려면 기업분석에서 정리한 사업 내용이
   // 필요하다 — 첫 분석에서는 기본 분석 저장 직후에 불리므로 항상 채워져 있다.
-  const { data: prep } = await supabaseAdmin
+  const { data: prep } = await supabase
     .from("interview_prep")
     .select("briefing")
     .eq("application_id", applicationId)
@@ -190,7 +192,7 @@ motivation에는 자기소개서 지원 동기에 쓸 포인트 1~2개를 써라
       }));
       const updatedAt = new Date().toISOString();
 
-      const { error } = await supabaseAdmin
+      const { error } = await supabase
         .from("interview_prep")
         .upsert(buildProjectQuestionsUpdatePayload(applicationId, questions, motivation, updatedAt), {
           onConflict: "application_id",

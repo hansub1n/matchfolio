@@ -1,4 +1,4 @@
-import { supabase } from "@/shared/api/supabase";
+import { getBrowserSupabase } from "@/shared/api/supabase";
 
 import type {
   InterviewPrep,
@@ -51,7 +51,7 @@ function toInterviewPrep(row: InterviewPrepRow): InterviewPrep {
 }
 
 export async function getInterviewPrep(applicationId: string): Promise<InterviewPrep | null> {
-  const { data, error } = await supabase
+  const { data, error } = await getBrowserSupabase()
     .from("interview_prep")
     .select("*")
     .eq("application_id", applicationId)

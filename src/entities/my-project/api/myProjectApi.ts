@@ -1,4 +1,6 @@
-import { supabase } from "@/shared/api/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import { getBrowserSupabase } from "@/shared/api/supabase";
 
 import type { MyProject } from "../model/types";
 
@@ -22,8 +24,10 @@ function toMyProject(row: MyProjectRow): MyProject {
   };
 }
 
-export async function getMyProjects(): Promise<MyProject[]> {
-  const { data, error } = await supabase
+export async function getMyProjects(
+  client: SupabaseClient = getBrowserSupabase()
+): Promise<MyProject[]> {
+  const { data, error } = await client
     .from("my_projects")
     .select("*")
     .order("created_at", { ascending: false });
@@ -40,7 +44,7 @@ export interface CreateMyProjectInput {
 }
 
 export async function createMyProject(input: CreateMyProjectInput): Promise<MyProject> {
-  const { data, error } = await supabase
+  const { data, error } = await getBrowserSupabase()
     .from("my_projects")
     .insert({
       name: input.name,
@@ -63,7 +67,7 @@ export interface UpdateMyProjectInput {
 }
 
 export async function updateMyProject(id: string, input: UpdateMyProjectInput): Promise<void> {
-  const { error } = await supabase
+  const { error } = await getBrowserSupabase()
     .from("my_projects")
     .update({
       name: input.name,
@@ -77,6 +81,6 @@ export async function updateMyProject(id: string, input: UpdateMyProjectInput): 
 }
 
 export async function deleteMyProject(id: string): Promise<void> {
-  const { error } = await supabase.from("my_projects").delete().eq("id", id);
+  const { error } = await getBrowserSupabase().from("my_projects").delete().eq("id", id);
   if (error) throw error;
 }

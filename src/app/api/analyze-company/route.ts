@@ -8,10 +8,10 @@ import {
   filterSourcesByCompany,
 } from "@/features/analyze-company/model/filter-sources";
 import { matchRelatedProject } from "@/features/analyze-company/model/match-related-project";
+import { getRequestUser } from "@/shared/api/supabase-server";
 import { env } from "@/shared/config/env";
-import { supabaseAdmin } from "@/shared/api/supabase-admin";
 import { describeGroqError, GROQ_TEXT_MODEL, isRetryable } from "@/shared/lib/groq";
-import { isSameOrigin } from "@/shared/lib/request-guard";
+import { isSameOrigin, unauthorizedResponse } from "@/shared/lib/request-guard";
 
 import { generateProjectQuestions, shouldGenerateProjectQuestions } from "./project-questions/generate";
 
@@ -223,6 +223,8 @@ export async function POST(request: Request) {
   if (!isSameOrigin(request)) {
     return NextResponse.json({ error: "허용되지 않은 요청입니다." }, { status: 403 });
   }
+  const { supabase, user } = await getRequestUser();
+  if (!user) return unauthorizedResponse();
 
   const body = await request.json();
   const { applicationId } = body as { applicationId: string };
@@ -232,7 +234,7 @@ export async function POST(request: Request) {
   }
 
   // 클라이언트가 보낸 회사명/공고 정보를 그대로 믿지 않고, DB에 저장된 값을 기준으로 삼는다.
-  const { data: application, error: applicationError } = await supabaseAdmin
+  const { data: application, error: applicationError } = await supabase
     .from("applications")
     .select("company, position, description, tech_stack")
     .eq("id", applicationId)
@@ -244,7 +246,7 @@ export async function POST(request: Request) {
 
   const { company, position, description, tech_stack: techStack } = application;
 
-  const { data: myProjects } = await supabaseAdmin
+  const { data: myProjects } = await supabase
     .from("my_projects")
     .select("id, name, description, tech_stack, highlights");
 
@@ -253,7 +255,7 @@ export async function POST(request: Request) {
   // 없었거나 생성이 실패해서 project_questions가 비어 있는 경우도 포함) 그
   // 자리에서 같이 만든다 — 한 번 만들어진 뒤로는 "다시 분석"이 아니라 그
   // 그룹 전용 "다시 만들기"로만 갱신된다.
-  const { data: existingPrep } = await supabaseAdmin
+  const { data: existingPrep } = await supabase
     .from("interview_prep")
     .select("id, project_questions, motivation")
     .eq("application_id", applicationId)
@@ -344,7 +346,7 @@ ${newsContext}
       const { business, recent } = result.briefing;
       const summary = business.length === 0 && recent.length === 0 ? NO_INFO_SUMMARY : result.summary;
 
-      const { data, error } = await supabaseAdmin
+      const { data, error } = await supabase
         .from("interview_prep")
         .upsert(
           {
@@ -374,7 +376,7 @@ ${newsContext}
       let motivation = data.motivation;
       let projectQuestionsUpdatedAt = data.project_questions_updated_at;
       if (needsProjectQuestions && shouldGenerateProjectQuestions(myProjects?.length ?? 0)) {
-        const projectResult = await generateProjectQuestions(applicationId);
+        const projectResult = await generateProjectQuestions(supabase, applicationId);
         if (!("error" in projectResult)) {
           projectQuestions = projectResult.projectQuestions;
           motivation = projectResult.motivation;

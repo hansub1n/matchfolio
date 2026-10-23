@@ -1,4 +1,6 @@
-import { supabase } from "@/shared/api/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import { getBrowserSupabase } from "@/shared/api/supabase";
 
 import type { Schedule, ScheduleStage } from "../model/types";
 
@@ -24,8 +26,10 @@ function toSchedule(row: ScheduleRow): Schedule {
 
 // 개인용 도구라 일정 전체를 한 번에 불러와서(테이블이 크지 않음), 호출하는 쪽에서
 // application별 최신 일정을 계산해 쓴다.
-export async function getSchedules(): Promise<Schedule[]> {
-  const { data, error } = await supabase
+export async function getSchedules(
+  client: SupabaseClient = getBrowserSupabase()
+): Promise<Schedule[]> {
+  const { data, error } = await client
     .from("schedules")
     .select("*")
     .order("created_at", { ascending: false });
@@ -45,7 +49,7 @@ export interface CreateScheduleInput {
 // 맞물려, 앱 쪽 판단이 어떤 이유로든 틀려서 이미 있는 행과 또 같은 조합으로
 // 저장을 시도해도 DB가 중복을 만들지 않고 그 행을 고치는 쪽으로 떨어진다.
 export async function upsertSchedule(input: CreateScheduleInput): Promise<Schedule> {
-  const { data, error } = await supabase
+  const { data, error } = await getBrowserSupabase()
     .from("schedules")
     .upsert(
       {
@@ -69,7 +73,7 @@ export interface UpdateScheduleInput {
 }
 
 export async function updateSchedule(id: string, input: UpdateScheduleInput): Promise<Schedule> {
-  const { data, error } = await supabase
+  const { data, error } = await getBrowserSupabase()
     .from("schedules")
     .update({
       ...(input.roundLabel !== undefined ? { round_label: input.roundLabel } : {}),
@@ -86,6 +90,6 @@ export async function updateSchedule(id: string, input: UpdateScheduleInput): Pr
 // 이전 차수로 되돌릴 때, 그 뒤에 쌓인 차수 행들을 지우는 용도.
 export async function deleteSchedules(ids: string[]): Promise<void> {
   if (ids.length === 0) return;
-  const { error } = await supabase.from("schedules").delete().in("id", ids);
+  const { error } = await getBrowserSupabase().from("schedules").delete().in("id", ids);
   if (error) throw error;
 }

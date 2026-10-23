@@ -1,4 +1,6 @@
-import { supabase } from "@/shared/api/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import { getBrowserSupabase } from "@/shared/api/supabase";
 import { JOB_POSTING_SCREENSHOTS_BUCKET } from "@/shared/config/constants";
 import { todayKST } from "@/shared/lib/kst-date";
 
@@ -47,8 +49,10 @@ function toApplication(row: ApplicationRow): Application {
   };
 }
 
-export async function getApplications(): Promise<Application[]> {
-  const { data, error } = await supabase
+export async function getApplications(
+  client: SupabaseClient = getBrowserSupabase()
+): Promise<Application[]> {
+  const { data, error } = await client
     .from("applications")
     .select("*")
     .order("created_at", { ascending: false });
@@ -74,7 +78,7 @@ export interface CreateApplicationInput {
 export async function createApplication(
   input: CreateApplicationInput
 ): Promise<Application> {
-  const { data, error } = await supabase
+  const { data, error } = await getBrowserSupabase()
     .from("applications")
     .insert({
       company: input.company,
@@ -113,7 +117,7 @@ export async function updateApplication(
   id: string,
   input: UpdateApplicationInput
 ): Promise<void> {
-  const { error } = await supabase
+  const { error } = await getBrowserSupabase()
     .from("applications")
     .update({
       company: input.company,
@@ -142,7 +146,7 @@ export interface SubmissionInput {
 // 표시가 매번 잘못 뜨기 때문이다.
 export async function updateSubmission(id: string, input: SubmissionInput): Promise<string> {
   const submissionUpdatedAt = new Date().toISOString();
-  const { error } = await supabase
+  const { error } = await getBrowserSupabase()
     .from("applications")
     .update({
       submitted_project_ids: input.submittedProjectIds,
@@ -163,11 +167,11 @@ export async function deleteApplication(
   id: string,
   options?: { screenshotPaths?: string[] }
 ): Promise<void> {
-  const { error } = await supabase.from("applications").delete().eq("id", id);
+  const { error } = await getBrowserSupabase().from("applications").delete().eq("id", id);
   if (error) throw error;
 
   if (options?.screenshotPaths?.length) {
-    const { error: storageError } = await supabase.storage
+    const { error: storageError } = await getBrowserSupabase().storage
       .from(JOB_POSTING_SCREENSHOTS_BUCKET)
       .remove(options.screenshotPaths);
     if (storageError) console.warn("스크린샷 삭제 실패:", storageError);
