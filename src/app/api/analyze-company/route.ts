@@ -11,6 +11,7 @@ import { matchRelatedProject } from "@/features/analyze-company/model/match-rela
 import { getRequestUser } from "@/shared/api/supabase-server";
 import { env } from "@/shared/config/env";
 import { describeGroqError, GROQ_TEXT_MODEL, isRetryable } from "@/shared/lib/groq";
+import { consumeAiQuota, quotaExceededResponse } from "@/shared/lib/ai-quota";
 import { isSameOrigin, unauthorizedResponse } from "@/shared/lib/request-guard";
 
 import { generateProjectQuestions, shouldGenerateProjectQuestions } from "./project-questions/generate";
@@ -265,6 +266,9 @@ export async function POST(request: Request) {
   const needsProjectQuestions =
     !existingPrep || existingPrep.project_questions === null || existingPrep.motivation === null;
 
+  const quota = await consumeAiQuota(user.id, "analyze_company");
+  if (!quota) return quotaExceededResponse();
+
   const { web, news } = await searchCompany(company, position ?? "");
 
   const searchContext =
@@ -412,6 +416,7 @@ ${newsContext}
         continue;
       }
 
+      await quota.refund();
       return NextResponse.json(
         { error: `기업분석에 실패했습니다: ${describeGroqError(error)}` },
         { status: 500 }

@@ -147,3 +147,42 @@ create policy "스크린샷 본인 폴더 올리기" on storage.objects for inse
   with check (bucket_id = 'job-posting-screenshots' and (storage.foldername(name))[1] = (select auth.uid())::text);
 create policy "스크린샷 본인 폴더 지우기" on storage.objects for delete to authenticated
   using (bucket_id = 'job-posting-screenshots' and (storage.foldername(name))[1] = (select auth.uid())::text);
+
+-- AI 하루 사용량(013). 사용자는 읽기만, 쓰기는 서버(service role)가 아래 함수로만.
+create table ai_usage (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  kind text not null check (kind in ('extract_job_posting', 'analyze_company', 'match_projects')),
+  date date not null,
+  count integer not null default 0 check (count >= 0),
+  primary key (user_id, kind, date)
+);
+
+alter table ai_usage enable row level security;
+create policy "본인 사용량 읽기" on ai_usage for select to authenticated
+  using (user_id = (select auth.uid()));
+
+-- 한도 안이면 +1 하고 true(확인과 증가를 한 문장으로 — 동시 요청에도 한도를 넘지 않음).
+create function consume_ai_usage(p_user_id uuid, p_kind text, p_date date, p_limit integer)
+returns boolean language sql set search_path = '' as $$
+  with upserted as (
+    insert into public.ai_usage (user_id, kind, date, count)
+    values (p_user_id, p_kind, p_date, 1)
+    on conflict (user_id, kind, date)
+    do update set count = public.ai_usage.count + 1
+    where public.ai_usage.count < p_limit
+    returning 1
+  )
+  select exists (select 1 from upserted);
+$$;
+
+-- AI 호출 실패 시 차감한 1회 환불.
+create function refund_ai_usage(p_user_id uuid, p_kind text, p_date date)
+returns void language sql set search_path = '' as $$
+  update public.ai_usage set count = count - 1
+  where user_id = p_user_id and kind = p_kind and date = p_date and count > 0;
+$$;
+
+revoke execute on function public.consume_ai_usage(uuid, text, date, integer) from public, anon, authenticated;
+revoke execute on function public.refund_ai_usage(uuid, text, date) from public, anon, authenticated;
+grant execute on function public.consume_ai_usage(uuid, text, date, integer) to service_role;
+grant execute on function public.refund_ai_usage(uuid, text, date) to service_role;

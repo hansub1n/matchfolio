@@ -4,6 +4,7 @@ import Groq from "groq-sdk";
 import { getRequestUser } from "@/shared/api/supabase-server";
 import { env } from "@/shared/config/env";
 import { describeGroqError, GROQ_TEXT_MODEL, isRetryable } from "@/shared/lib/groq";
+import { consumeAiQuota, quotaExceededResponse } from "@/shared/lib/ai-quota";
 import { isSameOrigin, unauthorizedResponse } from "@/shared/lib/request-guard";
 
 function sleep(ms: number) {
@@ -143,6 +144,9 @@ ${projectsText}
 
 evidence의 requirement는 공고 원문 표현을 짧게 인용하고, experience는 그 프로젝트의 설명/핵심 포인트에 실제로 있는 사실만 써라. 없는 경험을 지어내지 마라. gaps는 이 프로젝트로 채우지 못하는 요구사항이고, 채울 게 없으면 빈 배열로 둬라. pitch는 자기소개서나 면접에서 그대로 쓸 수 있는 1~2문장으로, 역시 프로젝트에 실제로 있는 내용만 써라. recommendation은 등록된 프로젝트 중 어떤 걸 메인/보조로 어필하면 좋을지 한 줄로 요약해라.`;
 
+  const quota = await consumeAiQuota(user.id, "match_projects");
+  if (!quota) return quotaExceededResponse();
+
   const groq = new Groq({ apiKey: env.groq.apiKey });
   const maxAttempts = 3;
   // 프로젝트마다 근거/부족한 점/어필 문구까지 다 만들어야 해서 다른 라우트보다 출력량이 많다.
@@ -213,6 +217,7 @@ evidence의 requirement는 공고 원문 표현을 짧게 인용하고, experien
         continue;
       }
 
+      await quota.refund();
       return NextResponse.json(
         { error: `프로젝트 매칭에 실패했습니다: ${describeGroqError(error)}` },
         { status: 500 }

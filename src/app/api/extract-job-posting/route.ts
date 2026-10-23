@@ -14,6 +14,7 @@ import { env } from "@/shared/config/env";
 import { JOB_POSTING_SCREENSHOTS_BUCKET } from "@/shared/config/constants";
 import { isRetryable as isGeminiRetryable, GEMINI_MODEL } from "@/shared/lib/gemini";
 import { describeGroqError, GROQ_VISION_MODEL, isRetryable as isGroqRetryable } from "@/shared/lib/groq";
+import { consumeAiQuota, quotaExceededResponse } from "@/shared/lib/ai-quota";
 import { isSameOrigin, unauthorizedResponse } from "@/shared/lib/request-guard";
 
 function sleep(ms: number) {
@@ -172,6 +173,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "파일이 없습니다." }, { status: 400 });
   }
 
+  const quota = await consumeAiQuota(user.id, "extract_job_posting");
+  if (!quota) return quotaExceededResponse();
+
   const screenshotPaths: string[] = [];
   const buffers: { buffer: Buffer; mimeType: string }[] = [];
 
@@ -185,6 +189,7 @@ export async function POST(request: Request) {
       .upload(screenshotPath, buffer, { contentType: mimeType });
 
     if (uploadError) {
+      await quota.refund();
       return NextResponse.json({ error: uploadError.message }, { status: 500 });
     }
 
@@ -201,6 +206,7 @@ export async function POST(request: Request) {
       const extracted = await extractWithGroq(buffers);
       return NextResponse.json({ screenshotPaths, ...extracted });
     } catch (groqError) {
+      await quota.refund();
       return NextResponse.json(
         { error: `이미지 분석에 실패했습니다: ${describeGroqError(groqError)}` },
         { status: 500 }
