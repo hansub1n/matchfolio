@@ -11,7 +11,12 @@ import {
   type UpdateApplicationInput,
 } from "@/entities/application";
 import type { Schedule } from "@/entities/schedule";
-import { AnalyzeCompanyPanel } from "@/features/analyze-company";
+import {
+  CompanyAnalysisSection,
+  InterviewPrepSection,
+  MotivationSection,
+  useInterviewPrep,
+} from "@/features/analyze-company";
 import { MatchProjectsPanel } from "@/features/match-projects";
 import { SubmissionSection } from "@/features/record-submission";
 import { formatDateTime } from "@/shared/lib/format-date-time";
@@ -29,8 +34,10 @@ import {
 import { ScreenshotGallery } from "@/shared/ui/screenshot-gallery";
 import { TagInput } from "@/shared/ui/tag-input";
 
+import { defaultOpenGroups, type DetailGroupId } from "../model/detail-groups";
 import { parseJobDescription } from "../model/parse-job-description";
 import { CodingTestScheduleDialog } from "./coding-test-schedule-dialog";
+import { DetailGroup } from "./detail-group";
 import { InterviewSchedulePopover } from "./interview-schedule-popover";
 
 const inputClassName =
@@ -102,7 +109,6 @@ type InterestedVariantProps = CommonProps & {
   variant: "interested";
   // stage가 'interested'인 지원카드. 지원 전이라 "지원하기"/프로젝트 매칭이 붙는다.
   company: Application | null;
-  myProjectCount?: number;
   onUpdate: (id: string, input: UpdateApplicationInput) => void;
   onApply?: (company: Application) => void;
 };
@@ -129,6 +135,19 @@ export function ApplicationDetailDialog(props: Props) {
   const [techStack, setTechStack] = useState<string[]>(entity?.techStack ?? []);
   const [description, setDescription] = useState(entity?.description ?? "");
   const [memo, setMemo] = useState(entity?.memo ?? "");
+  const [openGroups, setOpenGroups] = useState<Set<DetailGroupId>>(
+    () => new Set(entity ? defaultOpenGroups(entity) : [])
+  );
+  const { state: prepState, analyze, updateProjectLayer } = useInterviewPrep(entity?.id ?? null);
+
+  function toggleGroup(id: DetailGroupId) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   if (!entity) {
     return (
@@ -147,8 +166,6 @@ export function ApplicationDetailDialog(props: Props) {
   const appliedAtLabel = application ? formatDateTime(application.appliedAt) : null;
   const deadlineLabel = formatDateTime(entity.deadline);
   const hasMeta = hasSchedule || appliedAtLabel || deadlineLabel || entity.jobPostingUrl;
-  const showAnalysis =
-    application !== null && application.outcome === "in_progress" && hasSchedule;
   const parsedDescription = entity.description ? parseJobDescription(entity.description) : null;
 
   function handleOpenChange(open: boolean) {
@@ -306,22 +323,6 @@ export function ApplicationDetailDialog(props: Props) {
               </div>
             )}
 
-            {application && (
-              <SubmissionSection key={application.id} application={application} myProjects={myProjects} />
-            )}
-
-            {showAnalysis && application && (
-              <AnalyzeCompanyPanel key={application.id} application={application} myProjects={myProjects} />
-            )}
-
-            {isInterested && (
-              <MatchProjectsPanel
-                key={entity.id}
-                company={entity}
-                myProjectCount={props.variant === "interested" ? (props.myProjectCount ?? 0) : 0}
-              />
-            )}
-
             {entity.techStack.length > 0 && (
               <div className="flex flex-col gap-1.5">
                 <p className={SECTION_LABEL}>기술스택</p>
@@ -347,31 +348,6 @@ export function ApplicationDetailDialog(props: Props) {
               </div>
             )}
 
-            {entity.description && (
-              <div>
-                {parsedDescription ? (
-                  <div className="flex flex-col gap-3">
-                    {parsedDescription.sections.map((section, i) => (
-                      <div key={i}>
-                        {section.title && (
-                          <p className="mb-1.5 text-xs font-medium text-foreground">
-                            {section.title}
-                          </p>
-                        )}
-                        <ul className="list-inside list-disc text-sm leading-relaxed">
-                          {section.items.map((item, j) => (
-                            <li key={j}>{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{entity.description}</p>
-                )}
-              </div>
-            )}
-
             {entity.memo && (
               <div>
                 <p className={cn(SECTION_LABEL, "mb-1.5")}>메모</p>
@@ -381,11 +357,73 @@ export function ApplicationDetailDialog(props: Props) {
               </div>
             )}
 
-            {entity.screenshotPaths.length > 0 && (
-              <div className="flex flex-col gap-1.5">
-                <p className={SECTION_LABEL}>스크린샷</p>
-                <ScreenshotGallery paths={entity.screenshotPaths} />
-              </div>
+            <DetailGroup title="회사 분석" open={openGroups.has("company")} onToggle={() => toggleGroup("company")}>
+              <CompanyAnalysisSection state={prepState} company={entity.company} onAnalyze={analyze} />
+            </DetailGroup>
+
+            <DetailGroup
+              title="지원 준비"
+              open={openGroups.has("application")}
+              onToggle={() => toggleGroup("application")}
+            >
+              <MatchProjectsPanel key={entity.id} company={entity} myProjectCount={myProjects.length} />
+              <MotivationSection state={prepState} hasProjects={myProjects.length > 0} />
+              {application && (
+                <SubmissionSection key={application.id} application={application} myProjects={myProjects} />
+              )}
+            </DetailGroup>
+
+            <DetailGroup
+              title="면접 준비"
+              open={openGroups.has("interview")}
+              onToggle={() => toggleGroup("interview")}
+            >
+              <InterviewPrepSection
+                state={prepState}
+                submissionUpdatedAt={entity.submissionUpdatedAt}
+                myProjects={myProjects}
+                onAnalyze={analyze}
+                onProjectLayerUpdated={updateProjectLayer}
+              />
+            </DetailGroup>
+
+            {(entity.description || entity.screenshotPaths.length > 0) && (
+              <DetailGroup
+                title="공고 내용"
+                open={openGroups.has("posting")}
+                onToggle={() => toggleGroup("posting")}
+              >
+                {entity.description && (
+                  <div>
+                    {parsedDescription ? (
+                      <div className="flex flex-col gap-3">
+                        {parsedDescription.sections.map((section, i) => (
+                          <div key={i}>
+                            {section.title && (
+                              <p className="mb-1.5 text-xs font-medium text-foreground">
+                                {section.title}
+                              </p>
+                            )}
+                            <ul className="list-inside list-disc text-sm leading-relaxed">
+                              {section.items.map((item, j) => (
+                                <li key={j}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed">{entity.description}</p>
+                    )}
+                  </div>
+                )}
+                {entity.screenshotPaths.length > 0 && (
+                  <div className="flex flex-col gap-1.5">
+                    <p className={SECTION_LABEL}>스크린샷</p>
+                    <ScreenshotGallery paths={entity.screenshotPaths} />
+                  </div>
+                )}
+              </DetailGroup>
             )}
           </div>
         ) : (
@@ -480,9 +518,7 @@ export function ApplicationDetailDialog(props: Props) {
             <DialogTitle>{isInterested ? "이 관심기업을 삭제할까요?" : "이 공고를 삭제할까요?"}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            {isInterested
-              ? "스크린샷과 매칭 기록도 함께 삭제돼요."
-              : "스크린샷과 기업분석 기록도 함께 삭제돼요."}
+            스크린샷과 기업분석·프로젝트 매칭 기록도 함께 삭제돼요.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>

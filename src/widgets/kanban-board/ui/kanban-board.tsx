@@ -257,7 +257,7 @@ export function KanbanBoard({
           key={`detail-${detailApplication.id}`}
           variant="interested"
           company={detailApplication}
-          myProjectCount={myProjects.length}
+          myProjects={myProjects}
           myProjectTechStack={myProjectTechStack}
           initialMode={detailMode}
           onOpenChange={(open) => {

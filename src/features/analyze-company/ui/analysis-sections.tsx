@@ -1,15 +1,12 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ChevronDown, ExternalLink } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 import { cn } from "cn";
 
-import type { Application } from "@/entities/application";
 import {
-  getInterviewPrep,
   isLegacyInterviewPrep,
-  type InterviewPrep,
   type InterviewPrepMotivation,
   type InterviewPrepQuestion,
   type InterviewPrepReverseQuestion,
@@ -20,11 +17,10 @@ import { CreateMyProjectDialog } from "@/features/create-my-project";
 import { buildCompanySearchLinks } from "@/shared/lib/company-search-links";
 import { KST_TIME_ZONE } from "@/shared/lib/kst-date";
 import { useExpandable } from "@/shared/lib/use-expandable";
-import { AiSection, AiSectionButton, AiSectionSkeleton } from "@/shared/ui/ai-section";
+import { AiSectionButton, AiSectionSkeleton } from "@/shared/ui/ai-section";
 import { CopyButton } from "@/shared/ui/copy-button";
 import { ExpandToggle } from "@/shared/ui/expand-toggle";
 
-import { analyzeCompany } from "../api/analyzeCompany";
 import {
   generateProjectQuestions,
   type GenerateProjectQuestionsResponse,
@@ -37,8 +33,8 @@ import {
   hasNewerSubmissionSinceGeneration,
 } from "../model/project-questions-staleness";
 import { countQuestionGroups, type QuestionGroupTab } from "../model/question-groups";
+import type { InterviewPrepState } from "../model/use-interview-prep";
 
-const TITLE = "기업분석 · 예상 질문";
 const QUESTION_PAGE_SIZE = 3;
 const SOURCE_PAGE_SIZE = 4;
 const LEGACY_SECTION_PAGE_SIZE = 2;
@@ -466,223 +462,186 @@ function QuestionsArea({
   );
 }
 
-function LegacyResult({
-  prep,
-  company,
-  onReanalyze,
+// 분석 전/중/실패 상태 — 세 영역이 같은 결과를 쓰므로 어느 영역에서 "분석하기"를
+// 눌러도 같은 분석이 한 번 돈다.
+function AnalysisStatus({
+  state,
+  idleText,
+  onAnalyze,
 }: {
-  prep: InterviewPrep;
-  company: string;
-  onReanalyze: () => void;
+  state: Exclude<InterviewPrepState, { status: "ready" }>;
+  idleText: string;
+  onAnalyze: () => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const analysis = formatLegacyAnalysis(prep.companyAnalysis ?? "");
-  const questions = prep.interviewQuestions ?? [];
-
   return (
-    <AiSection title={TITLE} variant="card" headerAction={<LinkButton onClick={onReanalyze}>다시 분석</LinkButton>}>
-      <div className="mt-2 flex flex-col gap-3">
-        {!expanded ? (
-          <>
-            <p className="line-clamp-2 text-sm leading-relaxed">{analysis}</p>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">예상 질문 {questions.length}개</span>
-              <LinkButton onClick={() => setExpanded(true)}>전체 보기</LinkButton>
-            </div>
-          </>
-        ) : (
-          <>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed">{analysis}</p>
-            <div>
-              <p className="mb-1 text-xs font-medium text-foreground">예상 면접질문</p>
-              <ul className="list-inside list-disc text-sm leading-relaxed">
-                {questions.map((q, i) => (
-                  <li key={i}>{q}</li>
-                ))}
-              </ul>
-            </div>
-            <span className="self-start">
-              <LinkButton onClick={() => setExpanded(false)}>접기</LinkButton>
-            </span>
-          </>
-        )}
-      </div>
-      <Footer sources={prep.sources} company={company} />
-    </AiSection>
+    <div className="rounded-lg bg-muted px-4 py-3.5">
+      {state.status === "error" ? (
+        <>
+          <p className="mb-3 text-xs text-destructive">{state.error}</p>
+          <AiSectionButton onClick={onAnalyze}>다시 시도</AiSectionButton>
+        </>
+      ) : state.status === "empty" ? (
+        <>
+          <p className="mb-3 text-xs text-muted-foreground">{idleText}</p>
+          <AiSectionButton onClick={onAnalyze}>분석하기</AiSectionButton>
+        </>
+      ) : (
+        <>
+          <p className="text-xs text-muted-foreground">
+            {state.status === "analyzing" ? "회사 정보를 찾는 중" : "불러오는 중"}
+          </p>
+          <AiSectionSkeleton />
+        </>
+      )}
+    </div>
   );
 }
 
-function StructuredResult({
-  prep,
+function LegacyAnalysisText({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="flex flex-col gap-1">
+      <p className={cn("whitespace-pre-wrap text-sm leading-relaxed", !expanded && "line-clamp-4")}>{text}</p>
+      <ExpandToggle
+        expanded={expanded}
+        hiddenCount={0}
+        onToggle={() => setExpanded((v) => !v)}
+        collapsedLabel="전체 보기"
+      />
+    </div>
+  );
+}
+
+export function CompanyAnalysisSection({
+  state,
   company,
-  submissionUpdatedAt,
-  myProjects,
-  onReanalyze,
-  onProjectLayerUpdated,
+  onAnalyze,
 }: {
-  prep: InterviewPrep;
+  state: InterviewPrepState;
   company: string;
-  submissionUpdatedAt: string | null;
-  myProjects: MyProjectRef[];
-  onReanalyze: () => void;
-  onProjectLayerUpdated: (result: ProjectLayerUpdate) => void;
+  onAnalyze: () => void;
 }) {
+  if (state.status !== "ready") {
+    return (
+      <AnalysisStatus
+        state={state}
+        idleText="회사 정보를 찾아서 정리하고, 예상 면접 질문과 지원 동기 포인트도 같이 만들어요"
+        onAnalyze={onAnalyze}
+      />
+    );
+  }
+
+  const { prep } = state;
   const facts = normalizeFacts(prep.facts);
   const analyzedDate = formatInTimeZone(prep.updatedAt, KST_TIME_ZONE, "M.d");
-  const { briefing } = prep;
-  const motivation = myProjects.length > 0 ? (prep.motivation ?? []) : [];
 
   return (
-    <AiSection
-      title={TITLE}
-      variant="card"
-      headerAction={
-        <span className="text-[11px] whitespace-nowrap text-muted-foreground">
+    <div className="flex flex-col gap-4">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[11px] text-muted-foreground">
+          {prep.confidence === "low" ? "공개된 정보가 적어서 일부 내용이 부정확할 수 있어요" : ""}
+        </p>
+        <span className="shrink-0 text-[11px] whitespace-nowrap text-muted-foreground">
           {analyzedDate} 분석 ·{" "}
-          <button type="button" onClick={onReanalyze} className="hover:text-foreground">
+          <button type="button" onClick={onAnalyze} className="hover:text-foreground">
             다시 분석
           </button>
         </span>
-      }
-    >
-      <div className="mt-2 flex flex-col gap-4">
-        {prep.confidence === "low" && (
-          <p className="text-[11px] text-muted-foreground">
-            공개된 정보가 적어서 일부 내용이 부정확할 수 있어요
-          </p>
-        )}
-        <div>
-          <p className="text-[15px] leading-normal font-medium">{prep.summary}</p>
-          {facts.length > 0 && (
-            <p className="mt-1 flex flex-wrap gap-x-1 text-[12.5px] text-muted-foreground">
-              {facts.map((fact, i) => (
-                <span key={i}>
-                  <span title={fact.source}>{formatFact(fact)}</span>
-                  {i < facts.length - 1 && " · "}
-                </span>
-              ))}
-            </p>
-          )}
-        </div>
-
-        {briefing ? (
-          <>
-            <BulletSection title="무슨 사업을 하나요" points={briefing.business} />
-            <BulletSection title="최근 소식" points={briefing.recent} />
-          </>
-        ) : (
-          <LegacySections sections={prep.sections ?? []} />
-        )}
-
-        <MotivationRows items={motivation} />
-
-        <QuestionsArea
-          applicationId={prep.applicationId}
-          basicQuestions={prep.questions ?? []}
-          projectQuestions={prep.projectQuestions}
-          motivation={prep.motivation}
-          projectQuestionsUpdatedAt={prep.projectQuestionsUpdatedAt}
-          submissionUpdatedAt={submissionUpdatedAt}
-          myProjects={myProjects}
-          onProjectLayerUpdated={onProjectLayerUpdated}
-        />
-
-        {briefing && <ReverseQuestionRows items={briefing.reverseQuestions} />}
       </div>
+
+      {isLegacyInterviewPrep(prep) ? (
+        <LegacyAnalysisText text={formatLegacyAnalysis(prep.companyAnalysis ?? "")} />
+      ) : (
+        <>
+          <div>
+            <p className="text-[15px] leading-normal font-medium">{prep.summary}</p>
+            {facts.length > 0 && (
+              <p className="mt-1 flex flex-wrap gap-x-1 text-[12.5px] text-muted-foreground">
+                {facts.map((fact, i) => (
+                  <span key={i}>
+                    <span title={fact.source}>{formatFact(fact)}</span>
+                    {i < facts.length - 1 && " · "}
+                  </span>
+                ))}
+              </p>
+            )}
+          </div>
+          {prep.briefing ? (
+            <>
+              <BulletSection title="무슨 사업을 하나요" points={prep.briefing.business} />
+              <BulletSection title="최근 소식" points={prep.briefing.recent} />
+            </>
+          ) : (
+            <LegacySections sections={prep.sections ?? []} />
+          )}
+        </>
+      )}
+
       <Footer sources={prep.sources} company={company} />
-    </AiSection>
+    </div>
   );
 }
 
-export function AnalyzeCompanyPanel({
-  application,
-  myProjects = [],
+// 지원 동기 포인트는 프로젝트 정보로 만드는 거라 프로젝트가 없으면 보여줄 게 없다.
+export function MotivationSection({ state, hasProjects }: { state: InterviewPrepState; hasProjects: boolean }) {
+  if (state.status !== "ready" || !hasProjects) return null;
+  return <MotivationRows items={state.prep.motivation ?? []} />;
+}
+
+export function InterviewPrepSection({
+  state,
+  submissionUpdatedAt,
+  myProjects,
+  onAnalyze,
+  onProjectLayerUpdated,
 }: {
-  application: Application;
-  myProjects?: MyProjectRef[];
+  state: InterviewPrepState;
+  submissionUpdatedAt: string | null;
+  myProjects: MyProjectRef[];
+  onAnalyze: () => void;
+  onProjectLayerUpdated: (result: ProjectLayerUpdate) => void;
 }) {
-  const [prep, setPrep] = useState<InterviewPrep | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    getInterviewPrep(application.id)
-      .then((result) => {
-        if (!cancelled) setPrep(result);
-      })
-      .catch((err) => {
-        console.warn("기업분석 조회 실패:", err);
-        if (!cancelled) setError("기업분석을 불러오지 못했습니다.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [application.id]);
-
-  async function handleAnalyze() {
-    setAnalyzing(true);
-    setError(null);
-    try {
-      const result = await analyzeCompany(application.id);
-      setPrep(result);
-    } catch (err) {
-      console.warn("기업분석 실패:", err);
-      setError(err instanceof Error ? err.message : "알 수 없는 오류");
-    } finally {
-      setAnalyzing(false);
-    }
-  }
-
-  function handleProjectLayerUpdated(result: ProjectLayerUpdate) {
-    setPrep((prev) => (prev ? { ...prev, ...result } : prev));
-  }
-
-  if (error) {
+  if (state.status !== "ready") {
     return (
-      <AiSection title={TITLE}>
-        <p className="mb-3 text-xs text-destructive">{error}</p>
-        <AiSectionButton onClick={handleAnalyze}>다시 시도</AiSectionButton>
-      </AiSection>
+      <AnalysisStatus
+        state={state}
+        idleText="회사 분석을 실행하면 예상 질문과 역질문이 만들어져요"
+        onAnalyze={onAnalyze}
+      />
     );
   }
 
-  if (loading || analyzing) {
-    return (
-      <AiSection title={TITLE}>
-        <p className="mb-3 text-xs text-muted-foreground">회사 정보를 찾는 중</p>
-        <AiSectionSkeleton />
-      </AiSection>
-    );
-  }
-
-  if (!prep) {
-    return (
-      <AiSection title={TITLE}>
-        <p className="mb-3 text-xs text-muted-foreground">
-          회사 정보를 찾아서 정리하고 예상 면접 질문을 만들어요
-        </p>
-        <AiSectionButton onClick={handleAnalyze}>분석하기</AiSectionButton>
-      </AiSection>
-    );
-  }
+  const { prep } = state;
 
   if (isLegacyInterviewPrep(prep)) {
-    return <LegacyResult prep={prep} company={application.company} onReanalyze={handleAnalyze} />;
+    return (
+      <div className="flex flex-col gap-2">
+        <ul className="list-inside list-disc text-sm leading-relaxed">
+          {(prep.interviewQuestions ?? []).map((q, i) => (
+            <li key={i}>{q}</li>
+          ))}
+        </ul>
+        <p className="text-[11px] text-muted-foreground">
+          예전 형식으로 만든 질문이에요.{" "}
+          <LinkButton onClick={onAnalyze}>다시 분석</LinkButton>하면 질문별 의도와 답변 힌트가 붙어요
+        </p>
+      </div>
+    );
   }
 
   return (
-    <StructuredResult
-      prep={prep}
-      company={application.company}
-      submissionUpdatedAt={application.submissionUpdatedAt}
-      myProjects={myProjects}
-      onReanalyze={handleAnalyze}
-      onProjectLayerUpdated={handleProjectLayerUpdated}
-    />
+    <div className="flex flex-col gap-5">
+      <QuestionsArea
+        applicationId={prep.applicationId}
+        basicQuestions={prep.questions ?? []}
+        projectQuestions={prep.projectQuestions}
+        motivation={prep.motivation}
+        projectQuestionsUpdatedAt={prep.projectQuestionsUpdatedAt}
+        submissionUpdatedAt={submissionUpdatedAt}
+        myProjects={myProjects}
+        onProjectLayerUpdated={onProjectLayerUpdated}
+      />
+      {prep.briefing && <ReverseQuestionRows items={prep.briefing.reverseQuestions} />}
+    </div>
   );
 }
