@@ -24,8 +24,11 @@ matchfolio 프로젝트 작업 시 참고할 컨텍스트 문서.
 
 ## 인증 / 유저 모델
 
-- 1차 버전: 로그인 없는 개인용
-- 확장 대비: PK는 uuid, 쿼리는 필터링 가능한 구조로 작성, 나중에 `user_id` + RLS 추가 예정
+- 로그인 화면 없이 Supabase 익명 로그인 — `src/proxy.ts`(Next.js 16에서 middleware가 proxy로 이름이 바뀜)가 페이지 요청에 세션이 없으면 `signInAnonymously()`로 익명 계정을 만들고, 매 요청 세션 쿠키를 갱신한다(`@supabase/ssr`, 쿠키 기반이라 서버/클라이언트가 같은 세션을 공유)
+- 모든 사용자 데이터 테이블에 `user_id`(기본값 `auth.uid()`) + RLS(본인 행만, 자식 테이블은 쓸 때 부모 지원카드 소유도 확인). 사용자 데이터 조회/수정은 세션 클라이언트로만 — 브라우저 `shared/api/supabase.ts`, 서버 `shared/api/supabase-server.ts`(API 라우트는 `getRequestUser()`로 세션 없으면 401). service role(`supabase-admin.ts`)은 RLS를 우회하므로 AI 사용량 기록에만 쓴다
+- 스크린샷은 Storage `{user_id}/` 폴더, 본인 폴더만 읽기/올리기/지우기
+- AI 하루 한도(`shared/config/ai-limits.ts`, KST 기준): 공고 추출 20 / 기업분석 5("다시 만들기" 포함) / 프로젝트 매칭 10. 확인+증가는 SQL 함수 하나로 원자적으로, AI 호출이 실패하면 1회 환불
+- 다음 단계(아직 안 함): Google/GitHub 계정 연결, Turnstile, 예시 데이터, 익명 계정 정리
 
 ## 핵심 기능 (우선순위 순)
 
