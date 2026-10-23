@@ -21,7 +21,8 @@ import { TagInput } from "@/shared/ui/tag-input";
 const inputClassName =
   "rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
-type SourceTab = "github" | "paste" | "manual";
+export type MyProjectSourceTab = "github" | "paste" | "manual";
+type SourceTab = MyProjectSourceTab;
 type AiField = "name" | "description" | "techStack" | "highlights";
 
 function FieldLabel({ children, aiFilled }: { children: ReactNode; aiFilled: boolean }) {
@@ -37,10 +38,13 @@ function FieldLabel({ children, aiFilled }: { children: ReactNode; aiFilled: boo
 
 export function CreateMyProjectDialog({
   trigger,
+  initialTab = "github",
   open: openProp,
   onOpenChange: onOpenChangeProp,
 }: {
   trigger?: ReactNode;
+  // 빈 상태의 "GitHub 주소로 불러오기"/"직접 입력" 버튼처럼 특정 탭으로 바로 열 때.
+  initialTab?: MyProjectSourceTab;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 } = {}) {
@@ -49,7 +53,7 @@ export function CreateMyProjectDialog({
   const open = openProp ?? openState;
   const setOpen = onOpenChangeProp ?? setOpenState;
 
-  const [sourceTab, setSourceTab] = useState<SourceTab>("github");
+  const [sourceTab, setSourceTab] = useState<SourceTab>(initialTab);
   const [githubUrl, setGithubUrl] = useState("");
   const [pasteText, setPasteText] = useState("");
   const [extracting, setExtracting] = useState(false);
@@ -66,7 +70,7 @@ export function CreateMyProjectDialog({
   const showForm = sourceTab === "manual" || loaded;
 
   function reset() {
-    setSourceTab("github");
+    setSourceTab(initialTab);
     setGithubUrl("");
     setPasteText("");
     setExtractError(null);
@@ -141,7 +145,11 @@ export function CreateMyProjectDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {trigger !== null && (
-        <DialogTrigger asChild>{trigger ?? <Button>+ 프로젝트 추가</Button>}</DialogTrigger>
+        <DialogTrigger asChild>{trigger ?? (
+            <button type="button" className="rounded-full bg-primary px-3 py-1.5 text-xs text-primary-foreground">
+              프로젝트 추가
+            </button>
+          )}</DialogTrigger>
       )}
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>

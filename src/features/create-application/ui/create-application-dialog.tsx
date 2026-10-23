@@ -223,7 +223,11 @@ export function CreateApplicationDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {trigger !== null && (
-        <DialogTrigger asChild>{trigger ?? <Button>+ 카드 추가</Button>}</DialogTrigger>
+        <DialogTrigger asChild>{trigger ?? (
+            <button type="button" className="rounded-full bg-primary px-3 py-1.5 text-xs text-primary-foreground">
+              공고 추가
+            </button>
+          )}</DialogTrigger>
       )}
       <DialogContent onPaste={handlePaste} className="sm:max-w-lg">
         <DialogHeader>

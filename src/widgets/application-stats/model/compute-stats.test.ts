@@ -183,7 +183,7 @@ describe("computeApplicationStats", () => {
     it("prompts for a first upload when there are no applications", () => {
       const stats = computeApplicationStats([]);
       expect(stats.headline).toEqual({
-        prefix: "첫 공고 스크린샷을 올려보세요",
+        prefix: "아직 지원한 공고가 없어요",
         highlight: null,
         suffix: "",
       });

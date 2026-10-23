@@ -4,6 +4,7 @@ import { ChevronRight } from "lucide-react";
 
 import { formatDateTime } from "@/shared/lib/format-date-time";
 import { CompanyMonogram } from "@/shared/ui/company-monogram";
+import { EmptyHint, PlaceholderBar, PlaceholderBox } from "@/shared/ui/placeholder";
 
 import type { InProgressItem } from "../model/compute-stats";
 
@@ -27,14 +28,27 @@ function describeSchedule(item: InProgressItem) {
 
 export function WaitingList({
   items,
+  emptyHint,
   onSelect,
 }: {
   items: InProgressItem[];
+  emptyHint: string;
   onSelect: (id: string) => void;
 }) {
   return (
     <div className="flex flex-col gap-1">
       <p className="pb-1 text-xs font-medium text-muted-foreground">기다리는 중</p>
+      {items.length === 0 && (
+        <>
+          <div aria-hidden className="flex items-center gap-2.5 py-1.5 opacity-40">
+            <PlaceholderBox className="size-6" />
+            <PlaceholderBar className="w-24" />
+            <PlaceholderBar className="w-16" />
+            <PlaceholderBar className="ml-auto w-12" />
+          </div>
+          <EmptyHint>{emptyHint}</EmptyHint>
+        </>
+      )}
       {items.map((item) => {
         const schedule = describeSchedule(item);
         return (

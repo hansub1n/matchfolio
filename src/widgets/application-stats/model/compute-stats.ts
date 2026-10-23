@@ -49,7 +49,7 @@ function computeHeadline(
   finalPassedCount: number
 ): Headline {
   if (total === 0) {
-    return { prefix: "첫 공고 스크린샷을 올려보세요", highlight: null, suffix: "" };
+    return { prefix: "아직 지원한 공고가 없어요", highlight: null, suffix: "" };
   }
   if (inProgressCount >= 1) {
     return {

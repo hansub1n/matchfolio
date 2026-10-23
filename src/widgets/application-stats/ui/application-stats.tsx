@@ -14,7 +14,7 @@ import {
 import type { MyProject } from "@/entities/my-project";
 import { recordedInterviewRounds, useScheduleRequests, type Schedule } from "@/entities/schedule";
 import { todayKST } from "@/shared/lib/kst-date";
-import { CreateApplicationDialog } from "@/features/create-application";
+import { EmptyHint, PlaceholderBar } from "@/shared/ui/placeholder";
 import { ApplicationDetailDialog } from "@/widgets/kanban-board";
 import { cn } from "cn";
 
@@ -27,6 +27,7 @@ import { TechStackChips } from "./tech-stack-chips";
 import { WaitingList } from "./waiting-list";
 
 const SECTION = "mt-8 border-t pt-8";
+const EMPTY_CHIP_WIDTHS = ["w-16", "w-20", "w-12", "w-24", "w-14"];
 
 export function ApplicationStats({
   applications,
@@ -75,18 +76,6 @@ export function ApplicationStats({
       .catch(console.error);
   }
 
-  if (stats.total === 0) {
-    return (
-      <div className="mx-auto flex max-w-[720px] flex-col gap-4 px-6 pt-10">
-        <p className="text-[26px] leading-snug font-medium tracking-tight">
-          첫 공고 스크린샷을 올려보세요
-        </p>
-        {/* 통계는 지원한 공고만 세므로, 여기서 추가하는 건 지원 완료가 기본 */}
-        <CreateApplicationDialog initialStatus="applied" />
-      </div>
-    );
-  }
-
   return (
     <div className="mx-auto flex max-w-[720px] flex-col px-6 pt-10 pb-8">
       <SummaryHeader stats={stats} />
@@ -125,25 +114,36 @@ export function ApplicationStats({
         <StageFunnel steps={stats.funnel} total={stats.total} />
       </div>
 
-      {stats.inProgressList.length > 0 && (
-        <div className={SECTION}>
-          <WaitingList items={stats.inProgressList} onSelect={setDetailId} />
-        </div>
-      )}
+      <div className={SECTION}>
+        <WaitingList
+          items={stats.inProgressList}
+          emptyHint={stats.total === 0 ? "지원한 공고가 여기에 표시돼요" : "결과를 기다리는 공고가 없어요"}
+          onSelect={setDetailId}
+        />
+      </div>
 
-      {stats.techStackCounts.length > 0 && (
-        <div className={`${SECTION} flex flex-col gap-2`}>
-          <div className="flex items-baseline justify-between">
-            <p className="text-sm font-medium">공고에서 요구한 기술</p>
+      <div className={`${SECTION} flex flex-col gap-2`}>
+        <div className="flex items-baseline justify-between">
+          <p className="text-sm font-medium">공고에서 요구한 기술</p>
+          {stats.total > 0 && (
             <span className="text-[11px] text-muted-foreground">공고 {stats.total}개 기준</span>
-          </div>
-          {stats.techStackMode === "bars" ? (
-            <TechStackBars techStackCounts={stats.techStackCounts} total={stats.total} />
-          ) : (
-            <TechStackChips techStackCounts={stats.techStackCounts} />
           )}
         </div>
-      )}
+        {stats.techStackCounts.length === 0 ? (
+          <div className="flex flex-col gap-2">
+            <div aria-hidden className="flex flex-wrap gap-1.5 opacity-40">
+              {EMPTY_CHIP_WIDTHS.map((width, i) => (
+                <PlaceholderBar key={i} className={`h-[26px] ${width}`} />
+              ))}
+            </div>
+            <EmptyHint>공고에 나온 기술이 여기에 모여요</EmptyHint>
+          </div>
+        ) : stats.techStackMode === "bars" ? (
+          <TechStackBars techStackCounts={stats.techStackCounts} total={stats.total} />
+        ) : (
+          <TechStackChips techStackCounts={stats.techStackCounts} />
+        )}
+      </div>
 
       <ApplicationDetailDialog
         key={`detail-${detailApplication?.id ?? "none"}`}

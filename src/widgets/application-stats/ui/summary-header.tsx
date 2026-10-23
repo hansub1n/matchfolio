@@ -1,9 +1,13 @@
 import type { ApplicationStats } from "../model/compute-stats";
 
+const EMPTY = "—";
+
 export function SummaryHeader({ stats }: { stats: ApplicationStats }) {
   const now = new Date();
   const today = `${now.getMonth() + 1}.${now.getDate()}`;
   const { headline } = stats;
+  // 지원이 0건이면 0이 아니라 "—" — 0은 "결과가 0건"으로 읽혀서 아직 없다는 뜻과 다르다.
+  const isEmpty = stats.total === 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -20,26 +24,26 @@ export function SummaryHeader({ stats }: { stats: ApplicationStats }) {
         )}
         {headline.suffix}
       </p>
-      {stats.total > 0 && (
-        <div className="flex gap-6">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-xs text-muted-foreground">최종 합격</span>
-            <span className="text-lg font-medium tabular-nums">{stats.finalPassedCount}</span>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-xs text-muted-foreground">탈락</span>
-            <span className="text-lg font-medium tabular-nums">{stats.failedCount}</span>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-xs text-muted-foreground">서류 통과율</span>
-            {stats.showPercent ? (
-              <span className="text-lg font-medium tabular-nums">{stats.funnel[1].percent}%</span>
-            ) : (
-              <span className="text-xs text-muted-foreground">5건부터 표시</span>
-            )}
-          </div>
+      <div className="flex gap-6">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-xs text-muted-foreground">최종 합격</span>
+          <span className="text-lg font-medium tabular-nums">{isEmpty ? EMPTY : stats.finalPassedCount}</span>
         </div>
-      )}
+        <div className="flex flex-col gap-0.5">
+          <span className="text-xs text-muted-foreground">탈락</span>
+          <span className="text-lg font-medium tabular-nums">{isEmpty ? EMPTY : stats.failedCount}</span>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-xs text-muted-foreground">서류 통과율</span>
+          {isEmpty ? (
+            <span className="text-lg font-medium tabular-nums">{EMPTY}</span>
+          ) : stats.showPercent ? (
+            <span className="text-lg font-medium tabular-nums">{stats.funnel[1].percent}%</span>
+          ) : (
+            <span className="text-xs text-muted-foreground">5건부터 표시</span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
