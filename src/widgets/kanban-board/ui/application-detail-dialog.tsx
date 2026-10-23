@@ -69,6 +69,9 @@ function getScheduleLabel(application: Application, schedule: Schedule | null | 
 
 type CommonProps = {
   myProjectTechStack?: string[];
+  // 기업분석의 "관련 프로젝트" 칩 이름을 AI 응답이 아니라 여기서 조인해서
+  // 보여주는 용도라 id/name만 있으면 된다.
+  myProjects?: { id: string; name: string; createdAt: string }[];
   initialMode?: "view" | "edit";
   onOpenChange: (open: boolean) => void;
   onDelete?: (id: string) => void;
@@ -95,7 +98,7 @@ type InterestedVariantProps = CommonProps & {
 type Props = ApplicationVariantProps | InterestedVariantProps;
 
 export function ApplicationDetailDialog(props: Props) {
-  const { myProjectTechStack = [], initialMode = "view", onOpenChange, onDelete } = props;
+  const { myProjectTechStack = [], myProjects = [], initialMode = "view", onOpenChange, onDelete } = props;
   const isInterested = props.variant === "interested";
   const entity = isInterested ? props.company : props.application;
 
@@ -292,7 +295,7 @@ export function ApplicationDetailDialog(props: Props) {
             )}
 
             {showAnalysis && application && (
-              <AnalyzeCompanyPanel key={application.id} application={application} />
+              <AnalyzeCompanyPanel key={application.id} application={application} myProjects={myProjects} />
             )}
 
             {isInterested && (

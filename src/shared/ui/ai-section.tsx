@@ -8,14 +8,23 @@ import { cn } from "cn";
 export function AiSection({
   title,
   headerAction,
+  variant = "muted",
   children,
 }: {
   title: string;
   headerAction?: ReactNode;
+  // idle/loading/error는 회색(muted) 배경, 결과가 있으면 흰 배경+테두리(card)로
+  // 구분한다 — 결과가 나왔다는 걸 배경만으로도 알아볼 수 있게.
+  variant?: "muted" | "card";
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-lg bg-muted px-4 py-3.5">
+    <div
+      className={cn(
+        "rounded-lg px-4 py-3.5",
+        variant === "card" ? "border bg-card" : "bg-muted"
+      )}
+    >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
           <Sparkles className="size-3.5" />

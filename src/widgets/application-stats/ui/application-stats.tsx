@@ -150,6 +150,7 @@ export function ApplicationStats({
         schedule={detailId ? (latestSchedules.get(detailId) ?? null) : null}
         interviewRounds={detailId ? recordedInterviewRounds(scheduleItems, detailId) : []}
         myProjectTechStack={myProjectTechStack}
+        myProjects={myProjects}
         onOpenChange={(open) => {
           if (!open) setDetailId(null);
         }}

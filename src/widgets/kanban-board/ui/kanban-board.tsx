@@ -222,6 +222,7 @@ export function KanbanBoard({
         schedule={detailSchedule ?? null}
         interviewRounds={detailApplication ? interviewRounds.get(detailApplication.id) ?? [] : []}
         myProjectTechStack={myProjectTechStack}
+        myProjects={myProjects}
         initialMode={detailMode}
         onOpenChange={(open) => {
           if (!open) setDetailId(null);
