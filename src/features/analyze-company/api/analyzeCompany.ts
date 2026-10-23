@@ -1,6 +1,8 @@
 import type { InterviewPrep } from "@/entities/interview-prep";
+import { assertNotSampleMode } from "@/shared/lib/sample-mode";
 
 export async function analyzeCompany(applicationId: string): Promise<InterviewPrep> {
+  assertNotSampleMode();
   let response: Response;
   try {
     response = await fetch("/api/analyze-company", {

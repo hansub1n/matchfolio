@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { createMyProject, joinHighlights, parseHighlights } from "@/entities/my-project";
 import { extractProject } from "@/features/extract-project";
+import { blockInSampleMode } from "@/shared/lib/sample-mode";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -138,6 +139,7 @@ export function CreateMyProjectDialog({
   }
 
   function handleOpenChange(nextOpen: boolean) {
+    if (nextOpen && blockInSampleMode()) return;
     setOpen(nextOpen);
     if (!nextOpen) reset();
   }

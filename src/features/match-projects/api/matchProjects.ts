@@ -1,6 +1,8 @@
 import type { ProjectMatches } from "@/entities/project-match";
+import { assertNotSampleMode } from "@/shared/lib/sample-mode";
 
 export async function matchProjects(applicationId: string): Promise<ProjectMatches> {
+  assertNotSampleMode();
   let response: Response;
   try {
     response = await fetch("/api/match-projects", {

@@ -1,4 +1,5 @@
 import type { InterviewPrepMotivation, InterviewPrepQuestion } from "@/entities/interview-prep";
+import { assertNotSampleMode } from "@/shared/lib/sample-mode";
 
 export interface GenerateProjectQuestionsResponse {
   projectQuestions: InterviewPrepQuestion[];
@@ -9,6 +10,7 @@ export interface GenerateProjectQuestionsResponse {
 export async function generateProjectQuestions(
   applicationId: string
 ): Promise<GenerateProjectQuestionsResponse> {
+  assertNotSampleMode();
   let response: Response;
   try {
     response = await fetch("/api/analyze-company/project-questions", {

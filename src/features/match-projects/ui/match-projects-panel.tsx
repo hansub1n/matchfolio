@@ -12,6 +12,7 @@ import {
   type ProjectMatches,
 } from "@/entities/project-match";
 import { CreateMyProjectDialog } from "@/features/create-my-project";
+import { blockInSampleMode } from "@/shared/lib/sample-mode";
 import { AiDisclaimer, AiSection, AiSectionButton, AiSectionSkeleton } from "@/shared/ui/ai-section";
 
 import { matchProjects } from "../api/matchProjects";
@@ -181,6 +182,7 @@ export function MatchProjectsPanel({
   }, [company.id]);
 
   async function handleMatch() {
+    if (blockInSampleMode()) return;
     setMatching(true);
     setError(null);
     setOpenIndices(new Set());

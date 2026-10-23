@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { getInterviewPrep, type InterviewPrep } from "@/entities/interview-prep";
+import { blockInSampleMode } from "@/shared/lib/sample-mode";
 
 import { analyzeCompany } from "../api/analyzeCompany";
 import type { GenerateProjectQuestionsResponse } from "../api/generateProjectQuestions";
@@ -40,6 +41,7 @@ export function useInterviewPrep(applicationId: string | null) {
   }, [applicationId]);
 
   async function analyze() {
+    if (blockInSampleMode()) return;
     if (!applicationId) return;
     setAnalyzing(true);
     setError(null);

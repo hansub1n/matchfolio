@@ -4,6 +4,7 @@ import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 
 import type { Application } from "@/entities/application";
+import { blockInSampleMode } from "@/shared/lib/sample-mode";
 
 import { deleteSchedules, updateSchedule, upsertSchedule } from "../api/scheduleApi";
 import { latestScheduleByApplication } from "./latest-schedule";
@@ -43,6 +44,7 @@ export function useScheduleRequests(
   // resolveRoundSave가 이 지원 건의 면접 행 "전체"에서 판단하므로, 가장 최근
   // 행만 보고 "이미 있는 차수인데도" 중복으로 새로 쌓이던 문제가 생기지 않는다.
   function handleSetInterviewRound(id: string, round: string, scheduledAt: string | null) {
+    if (blockInSampleMode()) return;
     const applicationSchedules = scheduleItems.filter((s) => s.applicationId === id);
     const { existingRound, roundsToDelete } = resolveRoundSave(applicationSchedules, round);
 
@@ -76,6 +78,7 @@ export function useScheduleRequests(
   }
 
   function handleSetCodingTestSchedule(id: string, scheduledAt: string | null) {
+    if (blockInSampleMode()) return;
     setPendingCodingTestId(null);
     const existing = scheduleItems.find((s) => s.applicationId === id && s.stage === "coding_test");
 

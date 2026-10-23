@@ -1,3 +1,5 @@
+import { assertNotSampleMode } from "@/shared/lib/sample-mode";
+
 export interface ExtractedJobPosting {
   screenshotPaths: string[];
   company: string;
@@ -8,6 +10,7 @@ export interface ExtractedJobPosting {
 }
 
 export async function extractJobPosting(files: File[]): Promise<ExtractedJobPosting> {
+  assertNotSampleMode();
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file));
 

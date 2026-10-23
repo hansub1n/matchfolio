@@ -17,6 +17,7 @@ import { CreateMyProjectDialog } from "@/features/create-my-project";
 import { buildCompanySearchLinks } from "@/shared/lib/company-search-links";
 import { KST_TIME_ZONE } from "@/shared/lib/kst-date";
 import { useExpandable } from "@/shared/lib/use-expandable";
+import { blockInSampleMode } from "@/shared/lib/sample-mode";
 import { AiDisclaimer, AiSectionButton, AiSectionSkeleton } from "@/shared/ui/ai-section";
 import { CopyButton } from "@/shared/ui/copy-button";
 import { ExpandToggle } from "@/shared/ui/expand-toggle";
@@ -381,6 +382,7 @@ function QuestionsArea({
     (hasNewerProjectSinceGeneration(myProjects, projectQuestionsUpdatedAt) || motivation === null);
 
   async function handleRegenerate() {
+    if (blockInSampleMode()) return;
     setRegenerating(true);
     setRegenerateError(null);
     try {

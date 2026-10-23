@@ -1,3 +1,5 @@
+import { assertNotSampleMode } from "@/shared/lib/sample-mode";
+
 export interface ExtractedProject {
   name: string;
   description: string;
@@ -8,6 +10,7 @@ export interface ExtractedProject {
 export async function extractProject(
   input: { githubUrl: string } | { text: string }
 ): Promise<ExtractedProject> {
+  assertNotSampleMode();
   let response: Response;
   try {
     response = await fetch("/api/extract-project", {

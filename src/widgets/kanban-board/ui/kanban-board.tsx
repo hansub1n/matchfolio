@@ -25,6 +25,7 @@ import {
   type CreateApplicationStatus,
 } from "@/features/create-application";
 import { todayKST } from "@/shared/lib/kst-date";
+import { blockInSampleMode } from "@/shared/lib/sample-mode";
 
 import {
   applyStageChange,
@@ -105,11 +106,13 @@ export function KanbanBoard({
   );
 
   function openDetail(id: string, mode: "view" | "edit") {
+    if (mode === "edit" && blockInSampleMode()) return;
     setDetailMode(mode);
     setDetailId(id);
   }
 
   function handleDragEnd({ active, over }: DragEndEvent) {
+    if (over && blockInSampleMode()) return;
     if (!over) return;
     const target = over.id as BoardColumnId;
     const draggedId = active.id as string;
@@ -145,6 +148,7 @@ export function KanbanBoard({
   }
 
   function handleUpdateApplication(id: string, input: UpdateApplicationInput) {
+    if (blockInSampleMode()) return;
     setItems((prev) =>
       prev.map((app) =>
         app.id === id
@@ -163,6 +167,7 @@ export function KanbanBoard({
 
   // "지원하기" — 같은 카드를 서류로 넘긴다(매칭/분석 결과가 그대로 이어짐).
   function handleApply(app: Application) {
+    if (blockInSampleMode()) return;
     const input = buildApplyInput(todayKST());
     setItems((prev) => prev.map((a) => (a.id === app.id ? { ...a, ...input } : a)));
     setDetailId(null);
@@ -172,10 +177,12 @@ export function KanbanBoard({
   }
 
   function handleFilesDrop(files: File[], status: CreateApplicationStatus) {
+    if (blockInSampleMode()) return;
     setFileDrop({ id: Date.now(), files, status });
   }
 
   function handleDeleteApplication(id: string) {
+    if (blockInSampleMode()) return;
     const app = items.find((a) => a.id === id);
     setItems((prev) => prev.filter((a) => a.id !== id));
     setDetailId(null);

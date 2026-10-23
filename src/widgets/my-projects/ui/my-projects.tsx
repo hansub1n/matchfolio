@@ -11,6 +11,7 @@ import {
 } from "@/entities/my-project";
 import type { ProjectMatchWithCompany } from "@/entities/project-match";
 import { CreateMyProjectDialog } from "@/features/create-my-project";
+import { blockInSampleMode } from "@/shared/lib/sample-mode";
 import { Button } from "@/shared/ui/button";
 import { EmptyHint, PlaceholderBar, PlaceholderBox } from "@/shared/ui/placeholder";
 
@@ -47,11 +48,13 @@ export function MyProjects({
   const skillGap = computeSkillGap(applications, items);
 
   function openDetail(id: string, mode: "view" | "edit") {
+    if (mode === "edit" && blockInSampleMode()) return;
     setDetailMode(mode);
     setDetailId(id);
   }
 
   function handleUpdate(id: string, input: UpdateMyProjectInput) {
+    if (blockInSampleMode()) return;
     setItems((prev) =>
       prev.map((project) =>
         project.id === id
@@ -68,6 +71,7 @@ export function MyProjects({
   }
 
   function handleDelete(id: string) {
+    if (blockInSampleMode()) return;
     setItems((prev) => prev.filter((project) => project.id !== id));
     setDetailId(null);
     deleteMyProject(id).catch(console.error);

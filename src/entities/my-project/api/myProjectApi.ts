@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { getBrowserSupabase } from "@/shared/api/supabase";
+import { assertNotSampleMode } from "@/shared/lib/sample-mode";
 
 import type { MyProject } from "../model/types";
 
@@ -44,6 +45,7 @@ export interface CreateMyProjectInput {
 }
 
 export async function createMyProject(input: CreateMyProjectInput): Promise<MyProject> {
+  assertNotSampleMode();
   const { data, error } = await getBrowserSupabase()
     .from("my_projects")
     .insert({
@@ -67,6 +69,7 @@ export interface UpdateMyProjectInput {
 }
 
 export async function updateMyProject(id: string, input: UpdateMyProjectInput): Promise<void> {
+  assertNotSampleMode();
   const { error } = await getBrowserSupabase()
     .from("my_projects")
     .update({
@@ -81,6 +84,7 @@ export async function updateMyProject(id: string, input: UpdateMyProjectInput): 
 }
 
 export async function deleteMyProject(id: string): Promise<void> {
+  assertNotSampleMode();
   const { error } = await getBrowserSupabase().from("my_projects").delete().eq("id", id);
   if (error) throw error;
 }

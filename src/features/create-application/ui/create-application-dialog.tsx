@@ -16,6 +16,7 @@ import { createApplication } from "@/entities/application";
 import { extractJobPosting } from "@/features/extract-job-posting";
 import { todayKST } from "@/shared/lib/kst-date";
 import { useObjectUrl } from "@/shared/lib/use-object-url";
+import { blockInSampleMode } from "@/shared/lib/sample-mode";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -216,6 +217,7 @@ export function CreateApplicationDialog({
   const canSubmit = Boolean(company.trim()) && (!isApplied || Boolean(position.trim()));
 
   function handleOpenChange(nextOpen: boolean) {
+    if (nextOpen && blockInSampleMode()) return;
     setOpen(nextOpen);
     if (!nextOpen) reset();
   }

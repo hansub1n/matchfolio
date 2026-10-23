@@ -22,6 +22,7 @@ import { SubmissionSection } from "@/features/record-submission";
 import { formatDateTime } from "@/shared/lib/format-date-time";
 import { todayKST } from "@/shared/lib/kst-date";
 import { techSatisfies } from "@/shared/lib/tech-aliases";
+import { blockInSampleMode } from "@/shared/lib/sample-mode";
 import { Button } from "@/shared/ui/button";
 import { CompanyMonogram } from "@/shared/ui/company-monogram";
 import {
@@ -174,6 +175,7 @@ export function ApplicationDetailDialog(props: Props) {
   }
 
   function handleStartEdit() {
+    if (blockInSampleMode()) return;
     if (!entity) return;
     setCompany(entity.company);
     setPosition(entity.position ?? "");

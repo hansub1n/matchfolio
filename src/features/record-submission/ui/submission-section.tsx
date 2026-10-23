@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "cn";
 
 import { updateSubmission, type Application } from "@/entities/application";
+import { blockInSampleMode } from "@/shared/lib/sample-mode";
 import { Button } from "@/shared/ui/button";
 
 const SECTION_LABEL = "text-[11px] text-muted-foreground";
@@ -40,6 +41,7 @@ export function SubmissionSection({
   const isLongCoverLetter = (saved.coverLetter?.length ?? 0) > COVER_LETTER_PREVIEW_CHARS;
 
   function startEdit() {
+    if (blockInSampleMode()) return;
     setDraftProjectIds(saved.submittedProjectIds.filter((id) => nameById.has(id)));
     setDraftCoverLetter(saved.coverLetter ?? "");
     setError(null);

@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getBrowserSupabase } from "@/shared/api/supabase";
 import { JOB_POSTING_SCREENSHOTS_BUCKET } from "@/shared/config/constants";
 import { todayKST } from "@/shared/lib/kst-date";
+import { assertNotSampleMode } from "@/shared/lib/sample-mode";
 
 import { buildApplyInput } from "../model/stage";
 import type { Application, ApplicationOutcome, ApplicationStage } from "../model/types";
@@ -78,6 +79,7 @@ export interface CreateApplicationInput {
 export async function createApplication(
   input: CreateApplicationInput
 ): Promise<Application> {
+  assertNotSampleMode();
   const { data, error } = await getBrowserSupabase()
     .from("applications")
     .insert({
@@ -117,6 +119,7 @@ export async function updateApplication(
   id: string,
   input: UpdateApplicationInput
 ): Promise<void> {
+  assertNotSampleMode();
   const { error } = await getBrowserSupabase()
     .from("applications")
     .update({
@@ -145,6 +148,7 @@ export interface SubmissionInput {
 // submission_updated_at이 바뀌면 "제출 기록이 바뀌었으니 질문을 다시 만들라"는
 // 표시가 매번 잘못 뜨기 때문이다.
 export async function updateSubmission(id: string, input: SubmissionInput): Promise<string> {
+  assertNotSampleMode();
   const submissionUpdatedAt = new Date().toISOString();
   const { error } = await getBrowserSupabase()
     .from("applications")
@@ -160,6 +164,7 @@ export async function updateSubmission(id: string, input: SubmissionInput): Prom
 }
 
 export async function applyToApplication(id: string): Promise<void> {
+  assertNotSampleMode();
   await updateApplication(id, buildApplyInput(todayKST()));
 }
 
@@ -167,6 +172,7 @@ export async function deleteApplication(
   id: string,
   options?: { screenshotPaths?: string[] }
 ): Promise<void> {
+  assertNotSampleMode();
   const { error } = await getBrowserSupabase().from("applications").delete().eq("id", id);
   if (error) throw error;
 

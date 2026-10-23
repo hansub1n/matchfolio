@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { getBrowserSupabase } from "@/shared/api/supabase";
+import { assertNotSampleMode } from "@/shared/lib/sample-mode";
 
 import type { Schedule, ScheduleStage } from "../model/types";
 
@@ -49,6 +50,7 @@ export interface CreateScheduleInput {
 // 맞물려, 앱 쪽 판단이 어떤 이유로든 틀려서 이미 있는 행과 또 같은 조합으로
 // 저장을 시도해도 DB가 중복을 만들지 않고 그 행을 고치는 쪽으로 떨어진다.
 export async function upsertSchedule(input: CreateScheduleInput): Promise<Schedule> {
+  assertNotSampleMode();
   const { data, error } = await getBrowserSupabase()
     .from("schedules")
     .upsert(
@@ -73,6 +75,7 @@ export interface UpdateScheduleInput {
 }
 
 export async function updateSchedule(id: string, input: UpdateScheduleInput): Promise<Schedule> {
+  assertNotSampleMode();
   const { data, error } = await getBrowserSupabase()
     .from("schedules")
     .update({
@@ -89,6 +92,7 @@ export async function updateSchedule(id: string, input: UpdateScheduleInput): Pr
 
 // 이전 차수로 되돌릴 때, 그 뒤에 쌓인 차수 행들을 지우는 용도.
 export async function deleteSchedules(ids: string[]): Promise<void> {
+  assertNotSampleMode();
   if (ids.length === 0) return;
   const { error } = await getBrowserSupabase().from("schedules").delete().in("id", ids);
   if (error) throw error;
