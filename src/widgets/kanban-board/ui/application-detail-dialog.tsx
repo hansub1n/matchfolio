@@ -136,7 +136,7 @@ export function ApplicationDetailDialog(props: Props) {
   const deadlineLabel = formatDateTime(entity.deadline);
   const hasMeta = hasSchedule || appliedAtLabel || deadlineLabel || entity.jobPostingUrl;
   const showAnalysis =
-    application !== null && application.outcome === "in_progress" && application.stage !== "document";
+    application !== null && application.outcome === "in_progress" && hasSchedule;
   const parsedDescription = entity.description ? parseJobDescription(entity.description) : null;
 
   function handleOpenChange(open: boolean) {

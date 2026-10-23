@@ -12,6 +12,7 @@ import {
 
 import {
   APPLICATION_STAGES,
+  buildApplyInput,
   deleteApplication,
   updateApplication,
   type Application,
@@ -19,8 +20,19 @@ import {
 } from "@/entities/application";
 import type { MyProject } from "@/entities/my-project";
 import { recordedInterviewRounds, useScheduleRequests, type Schedule } from "@/entities/schedule";
+import {
+  CreateApplicationDialog,
+  type CreateApplicationStatus,
+} from "@/features/create-application";
+import { todayKST } from "@/shared/lib/kst-date";
 
-import { applyStageChange, type BoardColumnId } from "../model/apply-stage-change";
+import {
+  applyStageChange,
+  buildStageChangeInput,
+  canMoveToFinished,
+  type BoardColumnId,
+} from "../model/apply-stage-change";
+import { orderByDeadline } from "../model/order-by-deadline";
 import { ApplicationDetailDialog } from "./application-detail-dialog";
 import { CodingTestScheduleDialog } from "./coding-test-schedule-dialog";
 import { FinishedColumn } from "./finished-column";
@@ -82,6 +94,12 @@ export function KanbanBoard({
   const [pendingOutcomeId, setPendingOutcomeId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [detailMode, setDetailMode] = useState<"view" | "edit">("view");
+  // 컬럼에 스크린샷을 놓으면 그 컬럼(관심/서류)을 상태로 정한 채 추가 모달을 연다.
+  const [fileDrop, setFileDrop] = useState<{
+    id: number;
+    files: File[];
+    status: CreateApplicationStatus;
+  } | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
@@ -99,16 +117,13 @@ export function KanbanBoard({
     if (!draggedApp) return;
 
     if (target === "finished") {
-      setPendingOutcomeId(draggedId);
+      if (canMoveToFinished(draggedApp)) setPendingOutcomeId(draggedId);
       return;
     }
 
-    const leavingFinished = draggedApp.outcome !== "in_progress";
-    setItems((prev) => applyStageChange(prev, draggedId, target));
-    updateApplication(draggedId, {
-      stage: target,
-      ...(leavingFinished ? { outcome: "in_progress" as const } : {}),
-    })
+    const today = todayKST();
+    setItems((prev) => applyStageChange(prev, draggedId, target, today));
+    updateApplication(draggedId, buildStageChangeInput(draggedApp, target, today))
       .then(() => router.refresh())
       .catch(console.error);
 
@@ -146,6 +161,20 @@ export function KanbanBoard({
       .catch(console.error);
   }
 
+  // "지원하기" — 같은 카드를 서류로 넘긴다(매칭/분석 결과가 그대로 이어짐).
+  function handleApply(app: Application) {
+    const input = buildApplyInput(todayKST());
+    setItems((prev) => prev.map((a) => (a.id === app.id ? { ...a, ...input } : a)));
+    setDetailId(null);
+    updateApplication(app.id, input)
+      .then(() => router.refresh())
+      .catch(console.error);
+  }
+
+  function handleFilesDrop(files: File[], status: CreateApplicationStatus) {
+    setFileDrop({ id: Date.now(), files, status });
+  }
+
   function handleDeleteApplication(id: string) {
     const app = items.find((a) => a.id === id);
     setItems((prev) => prev.filter((a) => a.id !== id));
@@ -158,14 +187,20 @@ export function KanbanBoard({
   const pendingOutcomeApplication = items.find((app) => app.id === pendingOutcomeId) ?? null;
   const detailApplication = items.find((app) => app.id === detailId) ?? null;
   const detailSchedule = detailApplication ? latestSchedules.get(detailApplication.id) : null;
+  const isInterestedDetail = detailApplication?.stage === "interested";
+  const today = todayKST();
 
   return (
     <DndContext id="kanban-board" sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="grid flex-1 grid-cols-[repeat(4,minmax(240px,1fr))] items-stretch gap-3 overflow-x-auto px-6 pb-4">
+      <div className="grid flex-1 grid-cols-[repeat(5,minmax(240px,1fr))] items-stretch gap-3 overflow-x-auto px-6 pb-4">
         {APPLICATION_STAGES.map((stage) => {
-          const columnApplications = items.filter(
+          const inColumn = items.filter(
             (app) => app.stage === stage.value && app.outcome === "in_progress"
           );
+          const columnApplications =
+            stage.value === "interested" ? orderByDeadline(inColumn, today) : inColumn;
+          const dropStatus: CreateApplicationStatus | null =
+            stage.value === "interested" ? "interested" : stage.value === "document" ? "applied" : null;
 
           return (
             <KanbanColumn
@@ -178,12 +213,13 @@ export function KanbanBoard({
               autoOpenRoundId={autoOpenRoundId}
               onAutoOpenHandled={() => setAutoOpenRoundId(null)}
               emptyPlaceholder={
-                stage.value === "document" ? (
+                stage.value === "interested" ? (
                   <div className="rounded-lg border border-dashed border-border p-4 text-center text-[11px] text-muted-foreground">
                     공고 스크린샷을 끌어다 놓으세요
                   </div>
                 ) : undefined
               }
+              onFilesDrop={dropStatus ? (files) => handleFilesDrop(files, dropStatus) : undefined}
               onSaveInterviewRound={handleSetInterviewRound}
               onRequestCodingTestSchedule={setPendingCodingTestId}
               onCardClick={(id) => openDetail(id, "view")}
@@ -216,22 +252,51 @@ export function KanbanBoard({
           if (!open) setPendingCodingTestId(null);
         }}
       />
-      <ApplicationDetailDialog
-        key={`detail-${detailApplication?.id ?? "none"}`}
-        application={detailApplication}
-        schedule={detailSchedule ?? null}
-        interviewRounds={detailApplication ? interviewRounds.get(detailApplication.id) ?? [] : []}
-        myProjectTechStack={myProjectTechStack}
-        myProjects={myProjects}
-        initialMode={detailMode}
-        onOpenChange={(open) => {
-          if (!open) setDetailId(null);
-        }}
-        onUpdate={handleUpdateApplication}
-        onDelete={handleDeleteApplication}
-        onSaveInterviewRound={handleSetInterviewRound}
-        onSaveCodingTestSchedule={handleSetCodingTestSchedule}
-      />
+      {isInterestedDetail ? (
+        <ApplicationDetailDialog
+          key={`detail-${detailApplication.id}`}
+          variant="interested"
+          company={detailApplication}
+          myProjectCount={myProjects.length}
+          myProjectTechStack={myProjectTechStack}
+          initialMode={detailMode}
+          onOpenChange={(open) => {
+            if (!open) setDetailId(null);
+          }}
+          onUpdate={handleUpdateApplication}
+          onDelete={handleDeleteApplication}
+          onApply={handleApply}
+        />
+      ) : (
+        <ApplicationDetailDialog
+          key={`detail-${detailApplication?.id ?? "none"}`}
+          application={detailApplication}
+          schedule={detailSchedule ?? null}
+          interviewRounds={detailApplication ? interviewRounds.get(detailApplication.id) ?? [] : []}
+          myProjectTechStack={myProjectTechStack}
+          myProjects={myProjects}
+          initialMode={detailMode}
+          onOpenChange={(open) => {
+            if (!open) setDetailId(null);
+          }}
+          onUpdate={handleUpdateApplication}
+          onDelete={handleDeleteApplication}
+          onSaveInterviewRound={handleSetInterviewRound}
+          onSaveCodingTestSchedule={handleSetCodingTestSchedule}
+        />
+      )}
+      {fileDrop && (
+        <CreateApplicationDialog
+          key={fileDrop.id}
+          trigger={null}
+          open
+          initialStatus={fileDrop.status}
+          initialFiles={fileDrop.files}
+          onOpenChange={(open) => {
+            if (!open) setFileDrop(null);
+          }}
+        />
+      )}
     </DndContext>
   );
 }

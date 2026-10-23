@@ -1,11 +1,15 @@
 "use client";
 
 import {
+  useEffect,
+  useEffectEvent,
+  useRef,
   useState,
   type ClipboardEvent,
   type FormEvent,
   type ReactNode,
 } from "react";
+import { cn } from "cn";
 import { useRouter } from "next/navigation";
 
 import { createApplication } from "@/entities/application";
@@ -29,6 +33,9 @@ const inputClassName =
   "rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
 type Step = "drop" | "extracting" | "form";
+// 새 공고는 보통 "괜찮아 보여서 저장해둘 때" 캡처하므로 관심이 기본. 이미 지원한
+// 공고를 나중에 기록할 때만 지원 완료를 고른다.
+export type CreateApplicationStatus = "interested" | "applied";
 type AiField = "company" | "position" | "deadline" | "techStack" | "description";
 
 function FieldLabel({ children, aiFilled }: { children: ReactNode; aiFilled: boolean }) {
@@ -42,74 +49,75 @@ function FieldLabel({ children, aiFilled }: { children: ReactNode; aiFilled: boo
   );
 }
 
-export interface CreateApplicationInitialValues {
-  company?: string;
-  position?: string;
-  deadline?: string | null;
-  jobPostingUrl?: string | null;
-  techStack?: string[];
-  description?: string | null;
-  memo?: string | null;
-  screenshotPaths?: string[];
-}
+const STATUS_OPTIONS: { value: CreateApplicationStatus; label: string }[] = [
+  { value: "interested", label: "관심" },
+  { value: "applied", label: "지원 완료" },
+];
 
 export function CreateApplicationDialog({
   trigger,
-  initialValues,
+  initialStatus = "interested",
+  initialFiles,
   open: openProp,
   onOpenChange: onOpenChangeProp,
-  onCreated,
 }: {
   trigger?: ReactNode;
-  initialValues?: CreateApplicationInitialValues;
+  initialStatus?: CreateApplicationStatus;
+  // 보드 컬럼에 스크린샷을 바로 놓은 경우 — 열리자마자 추출을 시작한다.
+  initialFiles?: File[];
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  onCreated?: () => void;
 } = {}) {
   const router = useRouter();
   const [openState, setOpenState] = useState(false);
   const open = openProp ?? openState;
   const setOpen = onOpenChangeProp ?? setOpenState;
 
-  const [step, setStep] = useState<Step>(initialValues ? "form" : "drop");
-  const [previewFile, setPreviewFile] = useState<File | null>(null);
+  const [step, setStep] = useState<Step>(initialFiles ? "extracting" : "drop");
+  const [previewFile, setPreviewFile] = useState<File | null>(initialFiles?.[0] ?? null);
   const previewUrl = useObjectUrl(previewFile);
 
-  const [company, setCompany] = useState(initialValues?.company ?? "");
-  const [position, setPosition] = useState(initialValues?.position ?? "");
+  const [status, setStatus] = useState<CreateApplicationStatus>(initialStatus);
+  const [company, setCompany] = useState("");
+  const [position, setPosition] = useState("");
   const [appliedAt, setAppliedAt] = useState(todayKST());
-  const [deadline, setDeadline] = useState(initialValues?.deadline ?? "");
-  const [jobPostingUrl, setJobPostingUrl] = useState(initialValues?.jobPostingUrl ?? "");
-  const [techStack, setTechStack] = useState<string[]>(initialValues?.techStack ?? []);
-  const [description, setDescription] = useState(initialValues?.description ?? "");
-  const [memo, setMemo] = useState(initialValues?.memo ?? "");
-  const [screenshotPaths, setScreenshotPaths] = useState<string[]>(
-    initialValues?.screenshotPaths ?? []
-  );
+  const [deadline, setDeadline] = useState("");
+  const [jobPostingUrl, setJobPostingUrl] = useState("");
+  const [techStack, setTechStack] = useState<string[]>([]);
+  const [description, setDescription] = useState("");
+  const [memo, setMemo] = useState("");
+  const [screenshotPaths, setScreenshotPaths] = useState<string[]>([]);
   const [aiFilled, setAiFilled] = useState<Set<AiField>>(new Set());
   const [extractError, setExtractError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   function reset() {
-    setStep(initialValues ? "form" : "drop");
+    setStep("drop");
     setPreviewFile(null);
-    setCompany(initialValues?.company ?? "");
-    setPosition(initialValues?.position ?? "");
+    setStatus(initialStatus);
+    setCompany("");
+    setPosition("");
     setAppliedAt(todayKST());
-    setDeadline(initialValues?.deadline ?? "");
-    setJobPostingUrl(initialValues?.jobPostingUrl ?? "");
-    setTechStack(initialValues?.techStack ?? []);
-    setDescription(initialValues?.description ?? "");
-    setMemo(initialValues?.memo ?? "");
-    setScreenshotPaths(initialValues?.screenshotPaths ?? []);
+    setDeadline("");
+    setJobPostingUrl("");
+    setTechStack([]);
+    setDescription("");
+    setMemo("");
+    setScreenshotPaths([]);
     setAiFilled(new Set());
     setExtractError(null);
+    setSubmitError(null);
   }
 
-  async function extractFromFiles(files: File[]) {
+  function extractFromFiles(files: File[]) {
     setPreviewFile(files[0] ?? null);
     setStep("extracting");
     setExtractError(null);
+    void runExtraction(files);
+  }
+
+  async function runExtraction(files: File[]) {
     try {
       const extracted = await extractJobPosting(files);
       setCompany(extracted.company);
@@ -133,6 +141,18 @@ export function CreateApplicationDialog({
     }
   }
 
+  // 컬럼에 놓은 파일은 열리는 순간 한 번만 추출한다. 개발 모드(StrictMode)에서
+  // effect가 두 번 돌아도 AI 호출이 중복되지 않게 ref로 막는다.
+  const startedRef = useRef(false);
+  const startInitialExtraction = useEffectEvent(() => {
+    if (initialFiles) void runExtraction(initialFiles);
+  });
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    startInitialExtraction();
+  }, []);
+
   function handlePaste(e: ClipboardEvent) {
     if (step !== "drop") return;
     const files = Array.from(e.clipboardData.items)
@@ -153,14 +173,16 @@ export function CreateApplicationDialog({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!company.trim() || !position.trim()) return;
+    if (!canSubmit) return;
 
     setPending(true);
+    setSubmitError(null);
     try {
       await createApplication({
         company: company.trim(),
-        position: position.trim(),
-        appliedAt: appliedAt || null,
+        position: position.trim() || null,
+        stage: isApplied ? "document" : "interested",
+        appliedAt: isApplied ? appliedAt || null : null,
         deadline: deadline || null,
         jobPostingUrl: jobPostingUrl.trim() || null,
         screenshotPaths,
@@ -170,14 +192,18 @@ export function CreateApplicationDialog({
       });
       reset();
       setOpen(false);
-      onCreated?.();
       router.refresh();
     } catch (error) {
-      console.error(error);
+      console.error("공고 추가 실패:", error);
+      setSubmitError("추가하지 못했습니다. 입력값을 확인하고 다시 시도해주세요.");
     } finally {
       setPending(false);
     }
   }
+
+  const isApplied = status === "applied";
+  // 관심 단계는 직무가 정해지지 않았을 수 있어서 지원 완료일 때만 직무를 필수로 받는다.
+  const canSubmit = Boolean(company.trim()) && (!isApplied || Boolean(position.trim()));
 
   function handleOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);
@@ -236,6 +262,27 @@ export function CreateApplicationDialog({
             )}
 
             <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">상태</label>
+              <div className="flex gap-1 self-start rounded-full bg-muted p-0.5">
+                {STATUS_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setStatus(option.value)}
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs",
+                      status === option.value
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
               <FieldLabel aiFilled={aiFilled.has("company")}>회사명</FieldLabel>
               <input
                 value={company}
@@ -260,15 +307,17 @@ export function CreateApplicationDialog({
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground">지원일</label>
-                <input
-                  type="date"
-                  value={appliedAt}
-                  onChange={(e) => setAppliedAt(e.target.value)}
-                  className={inputClassName}
-                />
-              </div>
+              {isApplied && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted-foreground">지원일</label>
+                  <input
+                    type="date"
+                    value={appliedAt}
+                    onChange={(e) => setAppliedAt(e.target.value)}
+                    className={inputClassName}
+                  />
+                </div>
+              )}
               <div className="flex flex-col gap-1">
                 <FieldLabel aiFilled={aiFilled.has("deadline")}>마감일</FieldLabel>
                 <input
@@ -327,11 +376,13 @@ export function CreateApplicationDialog({
               />
             </div>
 
+            {submitError && <p className="text-xs text-destructive">{submitError}</p>}
+
             <DialogFooter className="py-3">
               <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)}>
                 취소
               </Button>
-              <Button type="submit" disabled={pending || !company.trim() || !position.trim()}>
+              <Button type="submit" disabled={pending || !canSubmit}>
                 {pending ? "추가 중..." : "추가"}
               </Button>
             </DialogFooter>

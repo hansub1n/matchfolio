@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type DragEvent, type ReactNode } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "cn";
 
@@ -21,6 +21,7 @@ export function KanbanColumn({
   variant = "default",
   headerExtra,
   emptyPlaceholder,
+  onFilesDrop,
   onSaveInterviewRound,
   onRequestCodingTestSchedule,
   onCardClick,
@@ -37,6 +38,8 @@ export function KanbanColumn({
   variant?: "default" | "outline";
   headerExtra?: ReactNode;
   emptyPlaceholder?: ReactNode;
+  // 공고 스크린샷 파일을 이 컬럼에 놓으면 호출 — 놓은 컬럼이 새 공고의 상태가 된다.
+  onFilesDrop?: (files: File[]) => void;
   onSaveInterviewRound: (id: string, round: string, scheduledAt: string | null) => void;
   onRequestCodingTestSchedule?: (id: string) => void;
   onCardClick?: (id: string) => void;
@@ -44,16 +47,39 @@ export function KanbanColumn({
   onDelete?: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
+  const [fileOver, setFileOver] = useState(false);
+
+  // 카드 드래그(dnd-kit, 포인터 이벤트)와 별개로, 브라우저 파일 드래그만 받는다.
+  const isFileDrag = (e: DragEvent) => e.dataTransfer.types.includes("Files");
+  const fileDropHandlers = onFilesDrop && {
+    onDragOver: (e: DragEvent) => {
+      if (!isFileDrag(e)) return;
+      e.preventDefault();
+      setFileOver(true);
+    },
+    onDragLeave: (e: DragEvent) => {
+      if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+      setFileOver(false);
+    },
+    onDrop: (e: DragEvent) => {
+      if (!isFileDrag(e)) return;
+      e.preventDefault();
+      setFileOver(false);
+      const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
+      if (files.length > 0) onFilesDrop(files);
+    },
+  };
 
   return (
     <div
       ref={setNodeRef}
+      {...fileDropHandlers}
       className={cn(
         // 높이는 고정값 없이 그리드의 stretch에 맡긴다 — 부모(칸반 영역)가
         // flex-1로 남은 화면 높이를 갖고, 카드가 그보다 많아지면 자연히 더 늘어난다.
         "flex flex-col gap-3 rounded-xl p-2 transition-colors",
         variant === "outline" ? "border border-border" : "bg-lane",
-        isOver && "bg-accent"
+        (isOver || fileOver) && "bg-accent"
       )}
     >
       <div className="flex items-center gap-2 px-1">

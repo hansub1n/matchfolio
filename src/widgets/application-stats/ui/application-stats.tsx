@@ -81,7 +81,8 @@ export function ApplicationStats({
         <p className="text-[26px] leading-snug font-medium tracking-tight">
           첫 공고 스크린샷을 올려보세요
         </p>
-        <CreateApplicationDialog />
+        {/* 통계는 지원한 공고만 세므로, 여기서 추가하는 건 지원 완료가 기본 */}
+        <CreateApplicationDialog initialStatus="applied" />
       </div>
     );
   }

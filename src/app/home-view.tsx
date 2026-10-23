@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BarChart3, CalendarDays, FolderGit2, LayoutGrid, Star } from "lucide-react";
+import { BarChart3, CalendarDays, FolderGit2, LayoutGrid } from "lucide-react";
 
 import { isSubmitted, type Application } from "@/entities/application";
 import type { MyProject } from "@/entities/my-project";
@@ -12,7 +12,6 @@ import { BoardHeader } from "@/widgets/board-header";
 import { CalendarView } from "@/widgets/calendar-view";
 import { KanbanBoard } from "@/widgets/kanban-board";
 import { MyProjects } from "@/widgets/my-projects";
-import { Watchlist } from "@/widgets/watchlist";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 
 export function HomeView({
@@ -27,19 +26,13 @@ export function HomeView({
   allProjectMatches: ProjectMatchWithCompany[];
 }) {
   const [tab, setTab] = useState("board");
-  // 관심 단계도 같은 applications에 있지만, 화면 구조를 바꾸기 전(이번 단계)까지는
-  // 보드/내 프로젝트는 지원한 카드만, 관심기업 탭은 관심 단계만 보여준다.
+  // 내 프로젝트의 "지원 공고 대비 없는 기술"은 실제로 지원한 공고 기준으로 센다.
   const submitted = applications.filter(isSubmitted);
-  const interested = applications.filter((app) => !isSubmitted(app));
 
-  // 프로젝트 모달의 "잘 맞는 공고" 클릭 — 지원 중이면 보드, 아니면 관심기업
-  // 탭으로 옮겨준다. 정확히 어떤 카드인지까지 자동으로 열어주진 않는다.
+  // 프로젝트 모달의 "잘 맞는 공고" 클릭 — 관심/지원 모두 보드에 있으니 보드로
+  // 옮겨준다. 정확히 어떤 카드인지까지 자동으로 열어주진 않는다.
   function handleNavigateToCompany(company: string) {
-    if (submitted.some((app) => app.company === company)) {
-      setTab("board");
-    } else if (interested.some((app) => app.company === company)) {
-      setTab("watchlist");
-    }
+    if (applications.some((app) => app.company === company)) setTab("board");
   }
 
   return (
@@ -51,10 +44,6 @@ export function HomeView({
             <TabsTrigger value="board">
               <LayoutGrid data-icon="inline-start" />
               보드
-            </TabsTrigger>
-            <TabsTrigger value="watchlist">
-              <Star data-icon="inline-start" />
-              관심기업
             </TabsTrigger>
             <TabsTrigger value="my-projects">
               <FolderGit2 data-icon="inline-start" />내 프로젝트
@@ -71,14 +60,7 @@ export function HomeView({
         </div>
         <TabsContent value="board" className="flex flex-col gap-4">
           <BoardHeader applications={applications} schedules={schedules} />
-          <KanbanBoard applications={submitted} schedules={schedules} myProjects={myProjects} />
-        </TabsContent>
-        <TabsContent value="watchlist">
-          <Watchlist
-            companies={interested}
-            allProjectMatches={allProjectMatches}
-            myProjectCount={myProjects.length}
-          />
+          <KanbanBoard applications={applications} schedules={schedules} myProjects={myProjects} />
         </TabsContent>
         <TabsContent value="my-projects">
           <MyProjects
