@@ -21,9 +21,11 @@ import { InterestedCompanyRow } from "./interested-company-row";
 export function Watchlist({
   companies,
   allProjectMatches,
+  myProjectCount,
 }: {
   companies: InterestedCompany[];
   allProjectMatches: ProjectMatchWithCompany[];
+  myProjectCount: number;
 }) {
   const [items, setItems] = useState(companies);
   const [prevCompanies, setPrevCompanies] = useState(companies);
@@ -129,6 +131,7 @@ export function Watchlist({
         key={`detail-${detailCompany?.id ?? "none"}`}
         variant="interested"
         company={detailCompany}
+        myProjectCount={myProjectCount}
         onOpenChange={(open) => {
           if (!open) setDetailId(null);
         }}

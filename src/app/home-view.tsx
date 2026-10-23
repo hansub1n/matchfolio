@@ -77,7 +77,11 @@ export function HomeView({
           <KanbanBoard applications={applications} schedules={schedules} myProjects={myProjects} />
         </TabsContent>
         <TabsContent value="watchlist">
-          <Watchlist companies={companies} allProjectMatches={allProjectMatches} />
+          <Watchlist
+            companies={companies}
+            allProjectMatches={allProjectMatches}
+            myProjectCount={myProjects.length}
+          />
         </TabsContent>
         <TabsContent value="my-projects">
           <MyProjects

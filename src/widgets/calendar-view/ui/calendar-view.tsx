@@ -366,6 +366,7 @@ export function CalendarView({
         key={`detail-company-${detailCompany?.id ?? "none"}`}
         variant="interested"
         company={detailCompany}
+        myProjectCount={myProjects.length}
         onOpenChange={(open: boolean) => {
           if (!open) setDetailCompanyId(null);
         }}

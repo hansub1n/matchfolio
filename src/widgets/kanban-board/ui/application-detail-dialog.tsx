@@ -86,6 +86,7 @@ type ApplicationVariantProps = CommonProps & {
 type InterestedVariantProps = CommonProps & {
   variant: "interested";
   company: InterestedCompany | null;
+  myProjectCount?: number;
   onUpdate: (id: string, input: UpdateInterestedCompanyInput) => void;
   onApply?: (company: InterestedCompany) => void;
 };
@@ -286,17 +287,15 @@ export function ApplicationDetailDialog(props: Props) {
             )}
 
             {showAnalysis && application && (
-              <div>
-                <p className={cn(SECTION_LABEL, "mb-1.5")}>기업분석 · 예상 질문</p>
-                <AnalyzeCompanyPanel key={application.id} application={application} />
-              </div>
+              <AnalyzeCompanyPanel key={application.id} application={application} />
             )}
 
             {isInterested && (
-              <div>
-                <p className={cn(SECTION_LABEL, "mb-1.5")}>프로젝트 매칭</p>
-                <MatchProjectsPanel key={entity.id} company={entity as InterestedCompany} />
-              </div>
+              <MatchProjectsPanel
+                key={entity.id}
+                company={entity as InterestedCompany}
+                myProjectCount={props.variant === "interested" ? (props.myProjectCount ?? 0) : 0}
+              />
             )}
 
             {entity.techStack.length > 0 && (

@@ -4,9 +4,23 @@ import { useEffect, useState } from "react";
 
 import type { Application } from "@/entities/application";
 import { getInterviewPrep, type InterviewPrep } from "@/entities/interview-prep";
-import { Button } from "@/shared/ui/button";
+import { AiSection, AiSectionButton, AiSectionSkeleton } from "@/shared/ui/ai-section";
 
 import { analyzeCompany } from "../api/analyzeCompany";
+
+const TITLE = "기업분석 · 예상 질문";
+
+function LinkButton({ onClick, children }: { onClick: () => void; children: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="text-[11px] text-muted-foreground hover:text-foreground"
+    >
+      {children}
+    </button>
+  );
+}
 
 export function AnalyzeCompanyPanel({ application }: { application: Application }) {
   const [prep, setPrep] = useState<InterviewPrep | null>(null);
@@ -48,72 +62,78 @@ export function AnalyzeCompanyPanel({ application }: { application: Application 
     }
   }
 
-  if (loading) {
-    return <p className="text-sm text-muted-foreground">기업분석 불러오는 중...</p>;
+  if (error) {
+    return (
+      <AiSection title={TITLE}>
+        <p className="mb-3 text-xs text-destructive">{error}</p>
+        <AiSectionButton onClick={handleAnalyze}>다시 시도</AiSectionButton>
+      </AiSection>
+    );
+  }
+
+  if (loading || analyzing) {
+    return (
+      <AiSection title={TITLE}>
+        <p className="mb-3 text-xs text-muted-foreground">회사 정보를 찾는 중</p>
+        <AiSectionSkeleton />
+      </AiSection>
+    );
   }
 
   if (!prep) {
     return (
-      <>
-        <Button variant="outline" size="sm" onClick={handleAnalyze} disabled={analyzing}>
-          {analyzing ? "생성 중... (최대 1분 정도 걸릴 수 있어요)" : "기업분석 생성"}
-        </Button>
-        {error && <p className="text-xs text-destructive">{error}</p>}
-      </>
-    );
-  }
-
-  if (!expanded) {
-    return (
-      <div className="flex flex-col gap-2">
-        <p className="line-clamp-2 text-sm leading-relaxed">{prep.companyAnalysis}</p>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">
-            예상 질문 {prep.interviewQuestions.length}개
-          </span>
-          <Button variant="outline" size="sm" onClick={() => setExpanded(true)}>
-            전체 보기
-          </Button>
-        </div>
-      </div>
+      <AiSection title={TITLE}>
+        <p className="mb-3 text-xs text-muted-foreground">
+          회사 정보를 찾아서 정리하고 예상 면접 질문을 만들어요
+        </p>
+        <AiSectionButton onClick={handleAnalyze}>분석하기</AiSectionButton>
+      </AiSection>
     );
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-3">
-      <p className="whitespace-pre-wrap text-sm leading-relaxed">{prep.companyAnalysis}</p>
-      <div>
-        <p className="mb-1 text-xs font-medium text-foreground">예상 면접질문</p>
-        <ul className="list-inside list-disc text-sm leading-relaxed">
-          {prep.interviewQuestions.map((q, i) => (
-            <li key={i}>{q}</li>
-          ))}
-        </ul>
-      </div>
-      {prep.sources.length > 0 && (
-        <div className="flex min-w-0 flex-col gap-0.5 text-xs text-muted-foreground">
-          {prep.sources.map((source) => (
-            <a
-              key={source.url}
-              href={source.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block min-w-0 truncate underline underline-offset-2"
-            >
-              {source.title}
-            </a>
-          ))}
+    <AiSection title={TITLE} headerAction={<LinkButton onClick={handleAnalyze}>다시 분석</LinkButton>}>
+      {!expanded ? (
+        <div className="mt-2 flex flex-col gap-2">
+          <p className="line-clamp-2 text-sm leading-relaxed">{prep.companyAnalysis}</p>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              예상 질문 {prep.interviewQuestions.length}개
+            </span>
+            <LinkButton onClick={() => setExpanded(true)}>전체 보기</LinkButton>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-2 flex min-w-0 flex-col gap-3">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">{prep.companyAnalysis}</p>
+          <div>
+            <p className="mb-1 text-xs font-medium text-foreground">예상 면접질문</p>
+            <ul className="list-inside list-disc text-sm leading-relaxed">
+              {prep.interviewQuestions.map((q, i) => (
+                <li key={i}>{q}</li>
+              ))}
+            </ul>
+          </div>
+          {prep.sources.length > 0 && (
+            <div className="flex min-w-0 flex-col gap-0.5 text-xs text-muted-foreground">
+              {prep.sources.map((source) => (
+                <a
+                  key={source.url}
+                  href={source.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block min-w-0 truncate underline underline-offset-2"
+                >
+                  {source.title}
+                </a>
+              ))}
+            </div>
+          )}
+          <span className="self-start">
+            <LinkButton onClick={() => setExpanded(false)}>접기</LinkButton>
+          </span>
         </div>
       )}
-      <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={() => setExpanded(false)}>
-          접기
-        </Button>
-        <Button variant="outline" size="sm" onClick={handleAnalyze} disabled={analyzing}>
-          {analyzing ? "다시 분석 중... (최대 1분 정도 걸릴 수 있어요)" : "다시 분석"}
-        </Button>
-      </div>
-      {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
+    </AiSection>
   );
 }

@@ -4,11 +4,32 @@ import { useEffect, useState } from "react";
 
 import type { InterestedCompany } from "@/entities/interested-company";
 import { getProjectMatches, type ProjectMatchItem } from "@/entities/project-match";
-import { Button } from "@/shared/ui/button";
+import { CreateMyProjectDialog } from "@/features/create-my-project";
+import { AiSection, AiSectionButton, AiSectionSkeleton } from "@/shared/ui/ai-section";
 
 import { matchProjects } from "../api/matchProjects";
 
-export function MatchProjectsPanel({ company }: { company: InterestedCompany }) {
+const TITLE = "프로젝트 매칭";
+
+function LinkButton({ onClick, children }: { onClick: () => void; children: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="text-[11px] text-muted-foreground hover:text-foreground"
+    >
+      {children}
+    </button>
+  );
+}
+
+export function MatchProjectsPanel({
+  company,
+  myProjectCount,
+}: {
+  company: InterestedCompany;
+  myProjectCount: number;
+}) {
   const [matches, setMatches] = useState<ProjectMatchItem[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [matching, setMatching] = useState(false);
@@ -46,40 +67,83 @@ export function MatchProjectsPanel({ company }: { company: InterestedCompany }) 
     }
   }
 
+  if (error) {
+    return (
+      <AiSection title={TITLE}>
+        <p className="mb-3 text-xs text-destructive">{error}</p>
+        <AiSectionButton onClick={handleMatch}>다시 시도</AiSectionButton>
+      </AiSection>
+    );
+  }
+
+  if (loading || matching) {
+    return (
+      <AiSection title={TITLE}>
+        <p className="mb-3 text-xs text-muted-foreground">공고와 프로젝트를 비교하는 중</p>
+        <AiSectionSkeleton />
+      </AiSection>
+    );
+  }
+
+  if (!matches) {
+    if (myProjectCount === 0) {
+      return (
+        <AiSection title={TITLE}>
+          <p className="mb-3 text-xs text-muted-foreground">
+            먼저 내 프로젝트를 등록해야 매칭할 수 있어요
+          </p>
+          <CreateMyProjectDialog
+            trigger={
+              <AiSectionButton icon={false} type="button">
+                프로젝트 추가
+              </AiSectionButton>
+            }
+          />
+        </AiSection>
+      );
+    }
+    return (
+      <AiSection title={TITLE}>
+        <p className="mb-3 text-xs text-muted-foreground">
+          내 프로젝트 {myProjectCount}개를 이 공고와 비교해서 어필할 포인트를 찾아요
+        </p>
+        <AiSectionButton onClick={handleMatch}>매칭하기</AiSectionButton>
+      </AiSection>
+    );
+  }
+
+  const topScore = matches.reduce((max, m) => Math.max(max, m.fitScore), 0);
+
   return (
-    <div className="flex min-w-0 flex-col gap-3 border-t pt-3">
-      {loading ? (
-        <p className="text-sm text-muted-foreground">매칭 결과 불러오는 중...</p>
-      ) : matches && matches.length > 0 ? (
-        <div className="flex flex-col gap-3">
+    <AiSection title={TITLE} headerAction={<LinkButton onClick={handleMatch}>다시 매칭</LinkButton>}>
+      {matches.length > 0 ? (
+        <div className="mt-2 flex flex-col gap-3">
           {matches.map((match) => (
-            <div key={match.projectName} className="flex flex-col gap-1">
-              <div className="flex items-baseline gap-2">
-                <span className="text-base font-semibold tabular-nums">{match.fitScore}%</span>
-                <h3 className="text-sm font-semibold">{match.projectName}</h3>
+            <div key={match.projectName} className="flex flex-col gap-0.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <h3 className="text-sm font-medium">{match.projectName}</h3>
+                <span className="num shrink-0 text-sm">
+                  <span
+                    className={
+                      match.fitScore === topScore
+                        ? "bg-[linear-gradient(transparent_58%,var(--highlight)_58%)] px-0.5"
+                        : undefined
+                    }
+                  >
+                    {match.fitScore}
+                  </span>
+                  <span className="text-muted-foreground">점</span>
+                </span>
               </div>
-              <p className="text-sm leading-relaxed text-muted-foreground">{match.reason}</p>
               {match.highlightPoints.length > 0 && (
-                <ul className="list-inside list-disc text-sm leading-relaxed">
-                  {match.highlightPoints.map((point) => (
-                    <li key={point}>{point}</li>
-                  ))}
-                </ul>
+                <p className="text-[11.5px] text-muted-foreground">{match.highlightPoints[0]}</p>
               )}
             </div>
           ))}
         </div>
-      ) : matches ? (
-        <p className="text-sm text-muted-foreground">관련 있는 프로젝트를 찾지 못했습니다.</p>
-      ) : null}
-      <Button variant="outline" size="sm" onClick={handleMatch} disabled={matching}>
-        {matching
-          ? "매칭 중... (최대 1분 정도 걸릴 수 있어요)"
-          : matches
-            ? "다시 매칭"
-            : "프로젝트 매칭"}
-      </Button>
-      {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
+      ) : (
+        <p className="mt-2 text-sm text-muted-foreground">관련 있는 프로젝트를 찾지 못했습니다.</p>
+      )}
+    </AiSection>
   );
 }
