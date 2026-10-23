@@ -32,7 +32,10 @@ import {
 import { domainToSiteName, extractDomain } from "../model/filter-sources";
 import { formatLegacyAnalysis } from "../model/format-legacy-analysis";
 import { formatFact, normalizeFacts } from "../model/normalize-facts";
-import { hasNewerProjectSinceGeneration } from "../model/project-questions-staleness";
+import {
+  hasNewerProjectSinceGeneration,
+  hasNewerSubmissionSinceGeneration,
+} from "../model/project-questions-staleness";
 import { countQuestionGroups, type QuestionGroupTab } from "../model/question-groups";
 
 const TITLE = "기업분석 · 예상 질문";
@@ -353,6 +356,7 @@ function QuestionsArea({
   projectQuestions,
   motivation,
   projectQuestionsUpdatedAt,
+  submissionUpdatedAt,
   myProjects,
   onProjectLayerUpdated,
 }: {
@@ -361,6 +365,7 @@ function QuestionsArea({
   projectQuestions: InterviewPrepQuestion[] | null;
   motivation: InterviewPrepMotivation[] | null;
   projectQuestionsUpdatedAt: string | null;
+  submissionUpdatedAt: string | null;
   myProjects: MyProjectRef[];
   onProjectLayerUpdated: (result: ProjectLayerUpdate) => void;
 }) {
@@ -373,6 +378,8 @@ function QuestionsArea({
   const hasProjects = myProjects.length > 0;
   // 지원 동기 포인트가 없는 건 이 레이어가 추가되기 전에 만든 레코드라서,
   // 새 프로젝트가 생긴 것과 똑같이 "다시 만들기"를 띄운다.
+  const submissionChanged =
+    hasProjects && hasNewerSubmissionSinceGeneration(submissionUpdatedAt, projectQuestionsUpdatedAt);
   const isOutdated =
     hasProjects &&
     (hasNewerProjectSinceGeneration(myProjects, projectQuestionsUpdatedAt) || motivation === null);
@@ -403,6 +410,8 @@ function QuestionsArea({
     <span className="text-[11px] text-muted-foreground">다시 만드는 중</span>
   ) : !projectQuestions ? (
     <LinkButton onClick={handleRegenerate}>만들기</LinkButton>
+  ) : submissionChanged ? (
+    <LinkButton onClick={handleRegenerate}>제출 기록 반영 안 됨 · 다시 만들기</LinkButton>
   ) : isOutdated ? (
     <LinkButton onClick={handleRegenerate}>새 프로젝트 반영 안 됨 · 다시 만들기</LinkButton>
   ) : undefined;
@@ -506,12 +515,14 @@ function LegacyResult({
 function StructuredResult({
   prep,
   company,
+  submissionUpdatedAt,
   myProjects,
   onReanalyze,
   onProjectLayerUpdated,
 }: {
   prep: InterviewPrep;
   company: string;
+  submissionUpdatedAt: string | null;
   myProjects: MyProjectRef[];
   onReanalyze: () => void;
   onProjectLayerUpdated: (result: ProjectLayerUpdate) => void;
@@ -571,6 +582,7 @@ function StructuredResult({
           projectQuestions={prep.projectQuestions}
           motivation={prep.motivation}
           projectQuestionsUpdatedAt={prep.projectQuestionsUpdatedAt}
+          submissionUpdatedAt={submissionUpdatedAt}
           myProjects={myProjects}
           onProjectLayerUpdated={onProjectLayerUpdated}
         />
@@ -667,6 +679,7 @@ export function AnalyzeCompanyPanel({
     <StructuredResult
       prep={prep}
       company={application.company}
+      submissionUpdatedAt={application.submissionUpdatedAt}
       myProjects={myProjects}
       onReanalyze={handleAnalyze}
       onProjectLayerUpdated={handleProjectLayerUpdated}

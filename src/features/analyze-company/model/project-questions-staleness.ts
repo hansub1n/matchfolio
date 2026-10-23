@@ -10,3 +10,12 @@ export function hasNewerProjectSinceGeneration(
   const generatedAt = new Date(projectQuestionsUpdatedAt).getTime();
   return myProjects.some((p) => new Date(p.createdAt).getTime() > generatedAt);
 }
+
+// 질문을 만든 뒤에 제출 기록(자소서/어필한 프로젝트)이 바뀌었는지.
+export function hasNewerSubmissionSinceGeneration(
+  submissionUpdatedAt: string | null,
+  projectQuestionsUpdatedAt: string | null
+): boolean {
+  if (!submissionUpdatedAt || !projectQuestionsUpdatedAt) return false;
+  return new Date(submissionUpdatedAt).getTime() > new Date(projectQuestionsUpdatedAt).getTime();
+}

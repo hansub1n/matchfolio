@@ -19,6 +19,9 @@ function buildApplication(overrides: Partial<Application> = {}): Application {
     description: null,
     memo: null,
     techStack: [],
+    submittedProjectIds: [],
+    coverLetter: null,
+    submissionUpdatedAt: null,
     createdAt: "2026-01-01T00:00:00Z",
     updatedAt: "2026-01-01T00:00:00Z",
     ...overrides,
@@ -243,4 +246,5 @@ describe("computeApplicationStats", () => {
       expect(stats.total).toBe(0);
     });
   });
+
 });

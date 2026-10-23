@@ -13,6 +13,7 @@ import {
 import type { Schedule } from "@/entities/schedule";
 import { AnalyzeCompanyPanel } from "@/features/analyze-company";
 import { MatchProjectsPanel } from "@/features/match-projects";
+import { SubmissionSection } from "@/features/record-submission";
 import { formatDateTime } from "@/shared/lib/format-date-time";
 import { todayKST } from "@/shared/lib/kst-date";
 import { techSatisfies } from "@/shared/lib/tech-aliases";
@@ -303,6 +304,10 @@ export function ApplicationDetailDialog(props: Props) {
                   </>
                 )}
               </div>
+            )}
+
+            {application && (
+              <SubmissionSection key={application.id} application={application} myProjects={myProjects} />
             )}
 
             {showAnalysis && application && (

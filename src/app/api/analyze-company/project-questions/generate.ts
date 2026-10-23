@@ -6,6 +6,7 @@ import {
   buildProjectQuestionsUpdatePayload,
   shouldGenerateProjectQuestions,
 } from "@/features/analyze-company/model/project-questions-payload";
+import { buildSubmissionContext } from "@/features/analyze-company/model/submission-context";
 import { computeSkillGap } from "@/widgets/my-projects";
 import { env } from "@/shared/config/env";
 import { supabaseAdmin } from "@/shared/api/supabase-admin";
@@ -81,7 +82,7 @@ export async function generateProjectQuestions(
 ): Promise<GenerateProjectQuestionsResult | { error: string; status: number }> {
   const { data: application, error: applicationError } = await supabaseAdmin
     .from("applications")
-    .select("company, position, description, tech_stack")
+    .select("company, position, description, tech_stack, submitted_project_ids, cover_letter")
     .eq("id", applicationId)
     .single();
 
@@ -97,7 +98,11 @@ export async function generateProjectQuestions(
     return { error: "등록된 프로젝트가 없습니다. 먼저 '내 프로젝트' 탭에서 추가해주세요.", status: 400 };
   }
 
-  const { data: allApplications } = await supabaseAdmin.from("applications").select("tech_stack");
+  // "내 프로젝트" 탭의 기술 격차와 같은 기준 — 실제로 지원한 공고(관심 단계 제외)만 센다.
+  const { data: allApplications } = await supabaseAdmin
+    .from("applications")
+    .select("tech_stack")
+    .neq("stage", "interested");
 
   // 지원 동기 포인트를 회사 사업과 연결하려면 기업분석에서 정리한 사업 내용이
   // 필요하다 — 첫 분석에서는 기본 분석 저장 직후에 불리므로 항상 채워져 있다.
@@ -114,6 +119,13 @@ export async function generateProjectQuestions(
   );
 
   const { company, position, description, tech_stack: techStack } = application;
+  const nameById = new Map(myProjects.map((p) => [p.id, p.name]));
+  const submissionContext = buildSubmissionContext(
+    application.cover_letter,
+    ((application.submitted_project_ids ?? []) as string[])
+      .map((id) => nameById.get(id))
+      .filter((name): name is string => Boolean(name))
+  );
 
   const projectsText = myProjects
     .map(
@@ -134,9 +146,9 @@ export async function generateProjectQuestions(
 ${projectsText}
 
 지원자가 자주 지원하는 공고에서 요구하지만 등록된 프로젝트로는 아직 못 채운 기술: ${skillGap.map((s) => s.name).join(", ") || "없음"}
-
+${submissionContext ? `\n이 공고에 지원하면서 낸 제출 기록 (면접 질문은 대부분 여기서 나온다):\n${submissionContext}\n` : ""}
 다음 두 종류의 면접 질문을 정확히 5개 만들어줘.
-1. "내 경험" 질문 3개: relatedProjectId를 반드시 채워라(등록된 프로젝트 중 가장 관련 있는 것). hint는 그 프로젝트의 설명/핵심 포인트에 실제로 있는 사실만으로 2~3문장짜리 답변 초안을 써라. 없는 경험을 지어내지 마라. noExperience는 false로 둬라.
+1. "내 경험" 질문 3개: relatedProjectId를 반드시 채워라(등록된 프로젝트 중 가장 관련 있는 것). 제출 기록이 있으면 자소서에 쓴 내용과 어필한 프로젝트를 우선 근거로 삼아, 면접관이 자소서를 보고 파고들 만한 질문으로 만들어라. hint는 그 프로젝트의 설명/핵심 포인트에 실제로 있는 사실만으로 2~3문장짜리 답변 초안을 써라. 없는 경험을 지어내지 마라. noExperience는 false로 둬라.
 2. "대비 필요" 질문 2개: noExperience를 true로 하고, 공고에는 있지만 등록된 프로젝트로는 못 채우는 요구사항(위 기술 목록 참고)에 대해 물어라. hint는 그 경험이 없다는 걸 인정하고 가까운 경험으로 연결해서 답하는 법을 써라. relatedProjectId는 null로 둬라.
 
 category는 각 질문 성격에 맞게 기술/프로젝트 경험/회사·도메인/협업 중 하나로 골라라.

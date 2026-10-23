@@ -21,6 +21,12 @@ create table applications (
   description text,
   memo text,
   tech_stack text[] not null default '{}',
+  -- 제출 기록: 지원할 때 어필한 프로젝트(my_projects id, FK 없음 — 삭제된 id는 읽을 때
+  -- 무시)와 낸 자소서. 프로젝트 기반 예상 질문 생성에 쓰이고, submission_updated_at은
+  -- 질문 생성 이후 기록이 바뀌었는지 판단하는 데 쓴다. 일반 수정과 따로 저장한다.
+  submitted_project_ids uuid[] not null default '{}',
+  cover_letter text,
+  submission_updated_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

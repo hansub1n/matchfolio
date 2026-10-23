@@ -18,6 +18,9 @@ interface ApplicationRow {
   description: string | null;
   memo: string | null;
   tech_stack: string[];
+  submitted_project_ids: string[];
+  cover_letter: string | null;
+  submission_updated_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -36,6 +39,9 @@ function toApplication(row: ApplicationRow): Application {
     description: row.description,
     memo: row.memo,
     techStack: row.tech_stack,
+    submittedProjectIds: row.submitted_project_ids ?? [],
+    coverLetter: row.cover_letter,
+    submissionUpdatedAt: row.submission_updated_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -124,6 +130,29 @@ export async function updateApplication(
     .eq("id", id);
 
   if (error) throw error;
+}
+
+export interface SubmissionInput {
+  submittedProjectIds: string[];
+  coverLetter: string | null;
+}
+
+// 제출 기록은 일반 수정과 따로 저장한다 — 다른 필드를 고칠 때마다
+// submission_updated_at이 바뀌면 "제출 기록이 바뀌었으니 질문을 다시 만들라"는
+// 표시가 매번 잘못 뜨기 때문이다.
+export async function updateSubmission(id: string, input: SubmissionInput): Promise<string> {
+  const submissionUpdatedAt = new Date().toISOString();
+  const { error } = await supabase
+    .from("applications")
+    .update({
+      submitted_project_ids: input.submittedProjectIds,
+      cover_letter: input.coverLetter,
+      submission_updated_at: submissionUpdatedAt,
+    })
+    .eq("id", id);
+
+  if (error) throw error;
+  return submissionUpdatedAt;
 }
 
 export async function applyToApplication(id: string): Promise<void> {
