@@ -139,3 +139,11 @@ create policy "본인 데이터만" on project_matches for all to authenticated
     user_id = (select auth.uid())
     and exists (select 1 from applications a where a.id = application_id and a.user_id = (select auth.uid()))
   );
+
+-- 스크린샷 Storage(012): 경로는 {user_id}/{파일명}, 첫 폴더가 본인 id인 파일만 접근. 버킷은 private.
+create policy "스크린샷 본인 폴더 읽기" on storage.objects for select to authenticated
+  using (bucket_id = 'job-posting-screenshots' and (storage.foldername(name))[1] = (select auth.uid())::text);
+create policy "스크린샷 본인 폴더 올리기" on storage.objects for insert to authenticated
+  with check (bucket_id = 'job-posting-screenshots' and (storage.foldername(name))[1] = (select auth.uid())::text);
+create policy "스크린샷 본인 폴더 지우기" on storage.objects for delete to authenticated
+  using (bucket_id = 'job-posting-screenshots' and (storage.foldername(name))[1] = (select auth.uid())::text);

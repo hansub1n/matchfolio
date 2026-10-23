@@ -8,10 +8,10 @@ import {
   normalizeExtraction,
   type ExtractedJobPosting,
 } from "@/features/extract-job-posting/model/normalize-extraction";
+import { buildScreenshotPath } from "@/features/extract-job-posting/model/screenshot-path";
 import { getRequestUser } from "@/shared/api/supabase-server";
 import { env } from "@/shared/config/env";
 import { JOB_POSTING_SCREENSHOTS_BUCKET } from "@/shared/config/constants";
-import { supabaseAdmin } from "@/shared/api/supabase-admin";
 import { isRetryable as isGeminiRetryable, GEMINI_MODEL } from "@/shared/lib/gemini";
 import { describeGroqError, GROQ_VISION_MODEL, isRetryable as isGroqRetryable } from "@/shared/lib/groq";
 import { isSameOrigin, unauthorizedResponse } from "@/shared/lib/request-guard";
@@ -162,7 +162,7 @@ export async function POST(request: Request) {
   if (!isSameOrigin(request)) {
     return NextResponse.json({ error: "허용되지 않은 요청입니다." }, { status: 403 });
   }
-  const { user } = await getRequestUser();
+  const { supabase, user } = await getRequestUser();
   if (!user) return unauthorizedResponse();
 
   const formData = await request.formData();
@@ -178,9 +178,9 @@ export async function POST(request: Request) {
   for (const file of files) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const mimeType = file.type || "image/png";
-    const screenshotPath = `${randomUUID()}-${file.name}`;
+    const screenshotPath = buildScreenshotPath(user.id, randomUUID(), file.name);
 
-    const { error: uploadError } = await supabaseAdmin.storage
+    const { error: uploadError } = await supabase.storage
       .from(JOB_POSTING_SCREENSHOTS_BUCKET)
       .upload(screenshotPath, buffer, { contentType: mimeType });
 
