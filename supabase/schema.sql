@@ -170,7 +170,7 @@ create policy "스크린샷 본인 폴더 지우기" on storage.objects for dele
 -- AI 하루 사용량(013). 사용자는 읽기만, 쓰기는 서버(service role)가 아래 함수로만.
 create table ai_usage (
   user_id uuid not null references auth.users (id) on delete cascade,
-  kind text not null check (kind in ('extract_job_posting', 'analyze_company', 'match_projects')),
+  kind text not null check (kind in ('extract_job_posting', 'analyze_company', 'match_projects', 'extract_project')),
   date date not null,
   count integer not null default 0 check (count >= 0),
   primary key (user_id, kind, date)

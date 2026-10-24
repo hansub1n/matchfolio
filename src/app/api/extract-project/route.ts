@@ -3,6 +3,7 @@ import Groq from "groq-sdk";
 
 import { getRequestUser } from "@/shared/api/supabase-server";
 import { env } from "@/shared/config/env";
+import { consumeAiQuota, quotaExceededResponse } from "@/shared/lib/ai-quota";
 import { describeGroqError, GROQ_TEXT_MODEL, isRetryable } from "@/shared/lib/groq";
 import { isSameOrigin, unauthorizedResponse } from "@/shared/lib/request-guard";
 
@@ -12,6 +13,8 @@ function sleep(ms: number) {
 
 // 재시도 3회 × 25초 + 백오프 ≈ 78초가 최악의 경우 (Vercel Hobby 기본 300초 안에 넉넉히 들어옴).
 export const maxDuration = 90;
+
+const MAX_SOURCE_CHARS = 6000;
 
 function parseGithubRepo(githubUrl: string) {
   const match = githubUrl.match(/github\.com\/([^/]+)\/([^/#?]+)/i);
@@ -89,9 +92,17 @@ export async function POST(request: Request) {
     );
   }
 
+  // README·글 길이에 제한이 없으면 Groq 분당 토큰 한도(8000)를 넘어 실패한다. 이름·소개·기술스택·핵심
+  // 기능은 보통 앞부분에 있어서 앞쪽만 보낸다.
+  const trimmedSource = sourceText.slice(0, MAX_SOURCE_CHARS);
+
+  // README를 못 가져온 경우(주소 오류·비공개 저장소)는 위에서 끝나서 횟수가 줄지 않는다. AI를 부르기 직전에 차감.
+  const quota = await consumeAiQuota(user.id, "extract_project");
+  if (!quota) return quotaExceededResponse();
+
   const prompt = `다음은 한 개발자가 만든 프로젝트에 대한 설명(README 또는 블로그 글)이다.
 
-${sourceText}
+${trimmedSource}
 
 위 내용을 바탕으로 프로젝트 이름, 한두 문장 소개, 기술스택 태그, 이력서/면접에서 어필할 만한 주요 기능이나 경험 3~5개를 뽑아줘.`;
 
@@ -105,6 +116,8 @@ ${sourceText}
         {
           model: GROQ_TEXT_MODEL,
           messages: [{ role: "user", content: prompt }],
+          // 이름·소개·태그·핵심 포인트 몇 개라 출력이 짧다. 상한을 둬야 분당 토큰 계산에서 크게 잡히지 않는다.
+          max_completion_tokens: 1500,
           response_format: {
             type: "json_schema",
             json_schema: { name: "project_extraction", schema: EXTRACTION_SCHEMA, strict: true },
@@ -123,6 +136,7 @@ ${sourceText}
         continue;
       }
 
+      await quota.refund();
       return NextResponse.json(
         { error: `프로젝트 정보 추출에 실패했습니다: ${describeGroqError(error)}` },
         { status: 500 }
