@@ -258,13 +258,10 @@ export async function POST(request: Request) {
   // 그룹 전용 "다시 만들기"로만 갱신된다.
   const { data: existingPrep } = await supabase
     .from("interview_prep")
-    .select("id, project_questions, motivation")
+    .select("id, project_questions")
     .eq("application_id", applicationId)
     .maybeSingle();
-  // 지원 동기 포인트(motivation)는 이 레이어에 나중에 추가돼서, 프로젝트
-  // 질문은 있는데 motivation만 비어 있는 레코드도 같이 채운다.
-  const needsProjectQuestions =
-    !existingPrep || existingPrep.project_questions === null || existingPrep.motivation === null;
+  const needsProjectQuestions = !existingPrep || existingPrep.project_questions === null;
 
   const quota = await consumeAiQuota(user.id, "analyze_company");
   if (!quota) return quotaExceededResponse();
@@ -377,13 +374,11 @@ ${newsContext}
       if (error) throw error;
 
       let projectQuestions = data.project_questions;
-      let motivation = data.motivation;
       let projectQuestionsUpdatedAt = data.project_questions_updated_at;
       if (needsProjectQuestions && shouldGenerateProjectQuestions(myProjects?.length ?? 0)) {
         const projectResult = await generateProjectQuestions(supabase, applicationId);
         if (!("error" in projectResult)) {
           projectQuestions = projectResult.projectQuestions;
-          motivation = projectResult.motivation;
           projectQuestionsUpdatedAt = projectResult.projectQuestionsUpdatedAt;
         } else {
           console.warn("프로젝트 기반 질문 생성 실패:", projectResult.error);
@@ -400,7 +395,6 @@ ${newsContext}
         questions: data.questions,
         confidence: data.confidence,
         projectQuestions,
-        motivation,
         projectQuestionsUpdatedAt,
         companyAnalysis: data.company_analysis,
         interviewQuestions: data.interview_questions,

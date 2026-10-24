@@ -15,11 +15,10 @@ import type { Schedule } from "@/entities/schedule";
 import {
   CompanyAnalysisSection,
   InterviewPrepSection,
-  MotivationSection,
   useInterviewPrep,
 } from "@/features/analyze-company";
 import { MatchProjectsPanel } from "@/features/match-projects";
-import { SubmissionSection } from "@/features/record-submission";
+import { SubmissionRow } from "@/features/record-submission";
 import { formatDateTime } from "@/shared/lib/format-date-time";
 import { todayKST } from "@/shared/lib/kst-date";
 import { techSatisfies } from "@/shared/lib/tech-aliases";
@@ -34,6 +33,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
+import { AiBadge } from "@/shared/ui/ai-section";
 import { HelpButton } from "@/shared/ui/help-button";
 import { ScreenshotGallery } from "@/shared/ui/screenshot-gallery";
 import { TagInput } from "@/shared/ui/tag-input";
@@ -94,7 +94,7 @@ type CommonProps = {
   // 기업분석의 "관련 프로젝트" 칩 이름을 AI 응답이 아니라 여기서 조인해서
   // 보여주는 용도라 id/name만 있으면 된다.
   myProjects?: { id: string; name: string; createdAt: string }[];
-  // 내 자료의 이력서·자소서 — 공고 매칭과 제출 기록에서 쓴다.
+  // 내 자료의 이력서·자소서 — 공고 매칭과 제출 자료에서 쓴다.
   documents?: UserDocument[];
   initialMode?: "view" | "edit";
   onOpenChange: (open: boolean) => void;
@@ -171,7 +171,7 @@ export function ApplicationDetailDialog(props: Props) {
   const scheduleForApplication = props.variant !== "interested" ? props.schedule ?? null : null;
   const appliedAtLabel = application ? formatDateTime(application.appliedAt) : null;
   const deadlineLabel = formatDateTime(entity.deadline);
-  const hasMeta = hasSchedule || appliedAtLabel || deadlineLabel || entity.jobPostingUrl;
+  const hasMeta = hasSchedule || application !== null || deadlineLabel || entity.jobPostingUrl;
   const parsedDescription = entity.description ? parseJobDescription(entity.description) : null;
 
   function handleOpenChange(open: boolean) {
@@ -308,6 +308,14 @@ export function ApplicationDetailDialog(props: Props) {
                     <span>{appliedAtLabel}</span>
                   </>
                 )}
+                {application && (
+                  <SubmissionRow
+                    key={application.id}
+                    application={application}
+                    myProjects={myProjects}
+                    coverLetters={documents.filter((d) => d.kind === "cover_letter")}
+                  />
+                )}
                 {deadlineLabel && (
                   <>
                     <span className="text-muted-foreground">마감일</span>
@@ -368,7 +376,12 @@ export function ApplicationDetailDialog(props: Props) {
               title="회사 분석"
               open={openGroups.has("company")}
               onToggle={() => toggleGroup("company")}
-              help={<HelpButton chapterId="early-ai" label="회사 분석" />}
+              help={
+                <>
+                  <AiBadge />
+                  <HelpButton chapterId="early-ai" label="회사 분석" />
+                </>
+              }
             >
               <CompanyAnalysisSection state={prepState} company={entity.company} onAnalyze={analyze} />
             </DetailGroup>
@@ -397,20 +410,16 @@ export function ApplicationDetailDialog(props: Props) {
                   coverLetterCount: documents.filter((d) => d.kind === "cover_letter").length,
                 }}
               />
-              <MotivationSection state={prepState} hasProjects={myProjects.length > 0} />
-              {application && (
-                <SubmissionSection
-                  key={application.id}
-                  application={application}
-                  myProjects={myProjects}
-                  coverLetters={documents.filter((d) => d.kind === "cover_letter")}
-                />
-              )}
             </DetailGroup>
 
             <DetailGroup
               title="면접 준비"
-              help={<HelpButton chapterId="interview" label="예상 질문" />}
+              help={
+                <>
+                  <AiBadge />
+                  <HelpButton chapterId="interview" label="예상 질문" />
+                </>
+              }
               open={openGroups.has("interview")}
               onToggle={() => toggleGroup("interview")}
             >

@@ -83,8 +83,7 @@ create table interview_prep (
   -- 그룹 자체의 "다시 만들기"로만 갱신된다. updated_at을 따로 둬서 새
   -- 프로젝트가 반영 안 됐는지(project의 created_at과 비교) 판단한다.
   project_questions jsonb,
-  -- "지원 동기에 쓸 포인트" — 프로젝트 정보가 필요해서 project_questions와
-  -- 같이 생성/갱신된다.
+  -- 지금은 쓰지 않음(지원 동기 포인트는 공고 매칭 project_matches.review로 옮김).
   motivation jsonb,
   project_questions_updated_at timestamptz,
   sources jsonb not null default '[]',

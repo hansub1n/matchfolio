@@ -1,7 +1,7 @@
 // 자소서 전체를 넣으면 Groq TPM 한도(입력+출력 분당 8000)를 넘기 쉬워서 앞부분만 쓴다.
 export const MAX_COVER_LETTER_CHARS = 1200;
 
-// 프로젝트 기반 질문 프롬프트에 넣을 "제출 기록" 단락. 기록이 없으면 null —
+// 프로젝트 기반 질문 프롬프트에 넣을 "제출 자료" 단락. 기록이 없으면 null —
 // 그때는 프롬프트에서 단락 자체를 뺀다.
 export function buildSubmissionContext(
   coverLetter: string | null,

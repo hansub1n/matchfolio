@@ -1,9 +1,8 @@
-import type { InterviewPrepMotivation, InterviewPrepQuestion } from "@/entities/interview-prep";
+import type { InterviewPrepQuestion } from "@/entities/interview-prep";
 import { assertNotSampleMode } from "@/shared/lib/sample-mode";
 
 export interface GenerateProjectQuestionsResponse {
   projectQuestions: InterviewPrepQuestion[];
-  motivation: InterviewPrepMotivation[];
   projectQuestionsUpdatedAt: string;
 }
 

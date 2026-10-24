@@ -1,6 +1,7 @@
 export type {
   ApplicationReview,
   CoverLetterEdit,
+  MotivationPoint,
   DetailedProjectMatchItem,
   LegacyProjectMatchItem,
   ProjectMatches,

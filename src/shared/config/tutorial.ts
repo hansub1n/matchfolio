@@ -68,8 +68,8 @@ export const TUTORIAL_CHAPTERS: TutorialChapter[] = [
     title: "관심·서류 단계의 AI",
     scenes: [
       { id: "early-ai.company", title: "회사 분석", caption: "회사가 하는 일과 최근 소식을 출처와 함께 정리해요" },
-      { id: "early-ai.match", title: "공고 매칭", caption: "내 자료를 이 공고에 맞춰 자소서 첨삭, 이력서 강조점, 어필할 프로젝트를 보여줘요" },
-      { id: "early-ai.motivation", title: "지원 동기 포인트", caption: "자소서 지원 동기에 이어 쓸 수 있는 문장을 만들어요" },
+      { id: "early-ai.match", title: "공고 매칭", caption: "내 자료를 이 공고에 맞춰 자소서 첨삭, 지원 동기, 이력서 강조점, 어필할 프로젝트를 보여줘요" },
+      { id: "early-ai.motivation", title: "지원 동기 포인트", caption: "공고 매칭에서 회사 사업과 내 경험을 이은 지원 동기 문장을 만들어요" },
     ],
   },
   {

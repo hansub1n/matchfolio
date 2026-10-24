@@ -7,7 +7,7 @@ describe("defaultOpenGroups", () => {
     expect(defaultOpenGroups({ stage: "interested", outcome: "in_progress" })).toEqual(["company", "application"]);
   });
 
-  it("서류 단계는 지원 준비(제출 기록)만 펼친다", () => {
+  it("서류 단계는 지원 준비만 펼친다", () => {
     expect(defaultOpenGroups({ stage: "document", outcome: "in_progress" })).toEqual(["application"]);
   });
 

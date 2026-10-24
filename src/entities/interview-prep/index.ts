@@ -3,7 +3,6 @@ export type {
   InterviewPrepBriefing,
   InterviewPrepFact,
   InterviewPrepFactLabel,
-  InterviewPrepMotivation,
   InterviewPrepQuestion,
   InterviewPrepQuestionCategory,
   InterviewPrepReverseQuestion,

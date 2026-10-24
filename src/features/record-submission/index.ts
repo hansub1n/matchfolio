@@ -1,1 +1,1 @@
-export { SubmissionSection } from "./ui/submission-section";
+export { SubmissionRow } from "./ui/submission-row";

@@ -40,12 +40,6 @@ export interface InterviewPrepBriefing {
   reverseQuestions: InterviewPrepReverseQuestion[];
 }
 
-export interface InterviewPrepMotivation {
-  point: string;
-  // 자소서에 바로 넣을 수 있는 1~2문장. 프로젝트에 실제로 있는 사실만.
-  example: string;
-}
-
 export interface InterviewPrepSource {
   title: string;
   url: string;
@@ -66,9 +60,6 @@ export interface InterviewPrep {
   confidence: "high" | "low" | null;
   // "내 프로젝트 기반 질문" — 프로젝트가 있을 때만 별도로 생성/갱신된다.
   projectQuestions: InterviewPrepQuestion[] | null;
-  // "지원 동기에 쓸 포인트" — 프로젝트 정보가 필요해서 프로젝트 기반 질문과
-  // 같이 생성/갱신된다.
-  motivation: InterviewPrepMotivation[] | null;
   projectQuestionsUpdatedAt: string | null;
   // 구조화 이전에 저장된 레코드 — 새 분석부터는 채워지지 않는다. 화면에서 이
   // 필드가 있으면(= briefing/sections가 둘 다 null이면) 구버전 레이아웃으로 보여준다.

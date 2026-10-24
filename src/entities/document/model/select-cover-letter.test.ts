@@ -22,7 +22,7 @@ describe("selectCoverLetter", () => {
     expect(selectCoverLetter(docs, "b")?.id).toBe("b");
   });
 
-  it("제출 기록이 없으면 대표 자소서", () => {
+  it("제출 자료이 없으면 대표 자소서", () => {
     const docs = [doc({ id: "a" }), doc({ id: "b", isPrimary: true })];
     expect(selectCoverLetter(docs, null)?.id).toBe("b");
   });
@@ -32,7 +32,7 @@ describe("selectCoverLetter", () => {
     expect(selectCoverLetter(docs, null)?.id).toBe("b");
   });
 
-  it("제출 기록이 지워진 자소서를 가리키면 대표로 넘어간다", () => {
+  it("제출 자료이 지워진 자소서를 가리키면 대표로 넘어간다", () => {
     const docs = [doc({ id: "a", isPrimary: true })];
     expect(selectCoverLetter(docs, "deleted")?.id).toBe("a");
   });

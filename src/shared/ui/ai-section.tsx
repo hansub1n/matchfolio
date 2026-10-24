@@ -33,6 +33,7 @@ export function AiSection({
         <div className="flex items-center gap-1.5">
           <Sparkles className="size-3.5" />
           <p className="text-sm font-medium">{title}</p>
+          <AiBadge />
           {help}
         </div>
         {headerAction}
@@ -75,7 +76,19 @@ export function AiSectionSkeleton() {
   );
 }
 
-// AI 결과 맨 아래에 붙이는 한 줄. 경고가 아니라 사실만 알린다.
-export function AiDisclaimer() {
-  return <p className="text-[11px] text-muted-foreground">AI가 만든 내용이라 사실과 다를 수 있어요</p>;
+// AI가 만든 결과가 나오는 영역 제목 옆의 작은 "AI" 표시. 결과마다 맨 아래에 안내 문장을 반복해 붙이면
+// 산만해서, 표시만 두고 문구는 마우스를 올리거나 포커스했을 때 보여준다.
+const AI_NOTICE = "AI가 만든 내용이라 사실과 다를 수 있어요";
+
+export function AiBadge() {
+  return (
+    <span
+      tabIndex={0}
+      title={AI_NOTICE}
+      aria-label={AI_NOTICE}
+      className="inline-flex h-4 shrink-0 cursor-default items-center rounded px-1 text-[10px] leading-none font-medium text-muted-foreground ring-1 ring-border outline-none focus-visible:ring-ring"
+    >
+      AI
+    </span>
+  );
 }

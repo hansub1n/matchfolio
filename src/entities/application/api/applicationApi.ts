@@ -144,8 +144,8 @@ export interface SubmissionInput {
   submittedCoverLetterId: string | null;
 }
 
-// 제출 기록은 일반 수정과 따로 저장한다 — 다른 필드를 고칠 때마다
-// submission_updated_at이 바뀌면 "제출 기록이 바뀌었으니 질문을 다시 만들라"는
+// 제출 자료은 일반 수정과 따로 저장한다 — 다른 필드를 고칠 때마다
+// submission_updated_at이 바뀌면 "제출 자료이 바뀌었으니 질문을 다시 만들라"는
 // 표시가 매번 잘못 뜨기 때문이다.
 export async function updateSubmission(id: string, input: SubmissionInput): Promise<string> {
   assertNotSampleMode();

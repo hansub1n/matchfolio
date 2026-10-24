@@ -1,4 +1,4 @@
-import type { InterviewPrepMotivation, InterviewPrepQuestion } from "@/entities/interview-prep";
+import type { InterviewPrepQuestion } from "@/entities/interview-prep";
 
 // 등록된 프로젝트가 하나도 없으면 "내 경험" 질문을 만들 근거 자체가 없다.
 export function shouldGenerateProjectQuestions(myProjectCount: number): boolean {
@@ -11,13 +11,11 @@ export function shouldGenerateProjectQuestions(myProjectCount: number): boolean 
 export function buildProjectQuestionsUpdatePayload(
   applicationId: string,
   questions: InterviewPrepQuestion[],
-  motivation: InterviewPrepMotivation[],
   updatedAt: string
 ) {
   return {
     application_id: applicationId,
     project_questions: questions,
-    motivation,
     project_questions_updated_at: updatedAt,
   };
 }

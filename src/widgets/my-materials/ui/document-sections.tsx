@@ -146,7 +146,7 @@ export function CoverLetterSection({ coverLetters }: { coverLetters: UserDocumen
       {coverLetters.length > 0 ? (
         <>
           <p className="text-[11.5px] text-muted-foreground">
-            대표 자소서(★)를 기준으로 공고 매칭이 첨삭해요. 공고마다 실제로 낸 자소서는 제출 기록에서 고를 수 있어요
+            대표 자소서(★)를 기준으로 공고 매칭이 첨삭해요. 공고마다 실제로 낸 자소서는 상세 화면의 제출 자료에서 고를 수 있어요
           </p>
           <div className="flex flex-col">
             {coverLetters.map((letter) => (

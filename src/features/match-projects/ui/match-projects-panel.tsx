@@ -13,7 +13,7 @@ import {
 } from "@/entities/project-match";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
 import { requestTab } from "@/shared/lib/tab-store";
-import { AiDisclaimer, AiSection, AiSectionButton, AiSectionSkeleton } from "@/shared/ui/ai-section";
+import { AiSection, AiSectionButton, AiSectionSkeleton } from "@/shared/ui/ai-section";
 import { CopyButton } from "@/shared/ui/copy-button";
 import { HelpButton } from "@/shared/ui/help-button";
 
@@ -82,7 +82,10 @@ function MatchRow({
               <span className="text-muted-foreground">점</span>
             </span>
           </div>
-          {summaryLine && <p className="truncate text-[11.5px] text-muted-foreground">{summaryLine}</p>}
+          {summaryLine && (
+            // 접혀 있을 땐 한 줄로 줄이고, 펼치면 전체를 보여준다.
+            <p className={cn("text-[11.5px] text-muted-foreground", !isOpen && "truncate")}>{summaryLine}</p>
+          )}
         </div>
         <ChevronDown
           className={cn(
@@ -271,6 +274,23 @@ export function MatchProjectsPanel({
             ))}
           </div>
         )}
+        {review?.motivation && review.motivation.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-baseline gap-2">
+              <p className={SUB_LABEL}>지원 동기에 쓸 포인트</p>
+              <span className="text-[11px] text-muted-foreground">자소서 지원 동기에 이어 붙여 쓸 수 있어요</span>
+            </div>
+            {review.motivation.map((item, i) => (
+              <div key={i} className="flex flex-col gap-1.5 border-t py-2.5">
+                <p className="text-[13px]">{item.point}</p>
+                <div className="flex items-start justify-between gap-3 rounded-md bg-card p-2.5">
+                  <p className="text-xs leading-relaxed text-muted-foreground">{item.example}</p>
+                  <CopyButton text={item.example} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         {review && review.resumeTips.length > 0 && (
           <div className="flex flex-col gap-1">
             <p className={SUB_LABEL}>이력서에서 강조할 점</p>
@@ -295,7 +315,6 @@ export function MatchProjectsPanel({
             ))}
           </div>
         )}
-        <AiDisclaimer />
       </div>
     </AiSection>
   );

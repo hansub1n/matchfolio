@@ -2,5 +2,4 @@ export { useInterviewPrep, type InterviewPrepState } from "./model/use-interview
 export {
   CompanyAnalysisSection,
   InterviewPrepSection,
-  MotivationSection,
 } from "./ui/analysis-sections";

@@ -7,7 +7,6 @@ import { cn } from "cn";
 
 import {
   isLegacyInterviewPrep,
-  type InterviewPrepMotivation,
   type InterviewPrepQuestion,
   type InterviewPrepReverseQuestion,
   type InterviewPrepSection,
@@ -18,8 +17,7 @@ import { buildCompanySearchLinks } from "@/shared/lib/company-search-links";
 import { KST_TIME_ZONE } from "@/shared/lib/kst-date";
 import { useExpandable } from "@/shared/lib/use-expandable";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
-import { AiDisclaimer, AiSectionButton, AiSectionSkeleton } from "@/shared/ui/ai-section";
-import { CopyButton } from "@/shared/ui/copy-button";
+import { AiSectionButton, AiSectionSkeleton } from "@/shared/ui/ai-section";
 import { HelpButton } from "@/shared/ui/help-button";
 import { ExpandToggle } from "@/shared/ui/expand-toggle";
 
@@ -74,31 +72,6 @@ function BulletSection({ title, points }: { title: string; points: string[] }) {
           <li key={i}>{point}</li>
         ))}
       </ul>
-    </div>
-  );
-}
-
-function MotivationRows({ items }: { items: InterviewPrepMotivation[] }) {
-  if (items.length === 0) return null;
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-baseline gap-2">
-        <SectionLabel>지원 동기에 쓸 포인트</SectionLabel>
-        <span className="text-[11px] text-muted-foreground">자소서 지원 동기에 이어 붙여 쓸 수 있어요</span>
-      </div>
-      <div className="flex flex-col">
-        {items.map((item, i) => (
-          <div key={i} className="flex flex-col gap-1.5 border-t py-2.5">
-            <p className="text-[13px] leading-normal">{item.point}</p>
-            <div className="relative rounded-md bg-muted p-2.5 pr-10">
-              <p className="text-[12.5px] leading-relaxed text-muted-foreground">{item.example}</p>
-              <span className="absolute top-2.5 right-2.5">
-                <CopyButton text={item.example} />
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -197,13 +170,23 @@ function MoreLinksRow({ company }: { company: string }) {
   );
 }
 
-function Footer({ sources, company }: { sources: InterviewPrepSource[]; company: string }) {
+// 최근 기사는 "최근 소식" 바로 아래에서 보여주므로(showNews=false), 고정 구조가 없는 구버전
+// 결과일 때만 여기서 같이 보여준다.
+function Footer({
+  sources,
+  company,
+  showNews,
+}: {
+  sources: InterviewPrepSource[];
+  company: string;
+  showNews: boolean;
+}) {
   const webSources = sources.filter((s) => s.kind !== "news");
   const newsSources = sources.filter((s) => s.kind === "news");
   return (
     <div className="mt-4 flex flex-col gap-3 border-t pt-3">
       <SourceLinks title="참고한 자료" sources={webSources} />
-      <SourceLinks title="최근 기사" sources={newsSources} />
+      {showNews && <SourceLinks title="최근 기사" sources={newsSources} />}
       <MoreLinksRow company={company} />
     </div>
   );
@@ -352,7 +335,6 @@ function QuestionsArea({
   applicationId,
   basicQuestions,
   projectQuestions,
-  motivation,
   projectQuestionsUpdatedAt,
   submissionUpdatedAt,
   myProjects,
@@ -361,7 +343,6 @@ function QuestionsArea({
   applicationId: string;
   basicQuestions: InterviewPrepQuestion[];
   projectQuestions: InterviewPrepQuestion[] | null;
-  motivation: InterviewPrepMotivation[] | null;
   projectQuestionsUpdatedAt: string | null;
   submissionUpdatedAt: string | null;
   myProjects: MyProjectRef[];
@@ -374,13 +355,9 @@ function QuestionsArea({
   const counts = countQuestionGroups(basicQuestions, projectQuestions ?? []);
   const projectNameById = new Map(myProjects.map((p) => [p.id, p.name]));
   const hasProjects = myProjects.length > 0;
-  // 지원 동기 포인트가 없는 건 이 레이어가 추가되기 전에 만든 레코드라서,
-  // 새 프로젝트가 생긴 것과 똑같이 "다시 만들기"를 띄운다.
   const submissionChanged =
     hasProjects && hasNewerSubmissionSinceGeneration(submissionUpdatedAt, projectQuestionsUpdatedAt);
-  const isOutdated =
-    hasProjects &&
-    (hasNewerProjectSinceGeneration(myProjects, projectQuestionsUpdatedAt) || motivation === null);
+  const isOutdated = hasProjects && hasNewerProjectSinceGeneration(myProjects, projectQuestionsUpdatedAt);
 
   async function handleRegenerate() {
     if (blockInSampleMode()) return;
@@ -410,7 +387,7 @@ function QuestionsArea({
   ) : !projectQuestions ? (
     <LinkButton onClick={handleRegenerate}>만들기</LinkButton>
   ) : submissionChanged ? (
-    <LinkButton onClick={handleRegenerate}>제출 기록 반영 안 됨 · 다시 만들기</LinkButton>
+    <LinkButton onClick={handleRegenerate}>제출 자료 반영 안 됨 · 다시 만들기</LinkButton>
   ) : isOutdated ? (
     <LinkButton onClick={handleRegenerate}>새 프로젝트 반영 안 됨 · 다시 만들기</LinkButton>
   ) : undefined;
@@ -531,7 +508,7 @@ export function CompanyAnalysisSection({
     return (
       <AnalysisStatus
         state={state}
-        idleText="회사 정보를 찾아서 정리하고, 예상 면접 질문과 지원 동기 포인트도 같이 만들어요"
+        idleText="회사 정보를 찾아서 정리하고, 예상 면접 질문도 같이 만들어요"
         onAnalyze={onAnalyze}
       />
     );
@@ -576,6 +553,7 @@ export function CompanyAnalysisSection({
             <>
               <BulletSection title="무슨 사업을 하나요" points={prep.briefing.business} />
               <BulletSection title="최근 소식" points={prep.briefing.recent} />
+              <SourceLinks title="최근 기사" sources={prep.sources.filter((s) => s.kind === "news")} />
             </>
           ) : (
             <LegacySections sections={prep.sections ?? []} />
@@ -583,16 +561,9 @@ export function CompanyAnalysisSection({
         </>
       )}
 
-      <Footer sources={prep.sources} company={company} />
-      <AiDisclaimer />
+      <Footer sources={prep.sources} company={company} showNews={!prep.briefing} />
     </div>
   );
-}
-
-// 지원 동기 포인트는 프로젝트 정보로 만드는 거라 프로젝트가 없으면 보여줄 게 없다.
-export function MotivationSection({ state, hasProjects }: { state: InterviewPrepState; hasProjects: boolean }) {
-  if (state.status !== "ready" || !hasProjects) return null;
-  return <MotivationRows items={state.prep.motivation ?? []} />;
 }
 
 export function InterviewPrepSection({
@@ -632,7 +603,6 @@ export function InterviewPrepSection({
           예전 형식으로 만든 질문이에요.{" "}
           <LinkButton onClick={onAnalyze}>다시 분석</LinkButton>하면 질문별 의도와 답변 힌트가 붙어요
         </p>
-        <AiDisclaimer />
       </div>
     );
   }
@@ -643,14 +613,12 @@ export function InterviewPrepSection({
         applicationId={prep.applicationId}
         basicQuestions={prep.questions ?? []}
         projectQuestions={prep.projectQuestions}
-        motivation={prep.motivation}
         projectQuestionsUpdatedAt={prep.projectQuestionsUpdatedAt}
         submissionUpdatedAt={submissionUpdatedAt}
         myProjects={myProjects}
         onProjectLayerUpdated={onProjectLayerUpdated}
       />
       {prep.briefing && <ReverseQuestionRows items={prep.briefing.reverseQuestions} />}
-      <AiDisclaimer />
     </div>
   );
 }

@@ -29,15 +29,15 @@ describe("hasNewerProjectSinceGeneration", () => {
 });
 
 describe("hasNewerSubmissionSinceGeneration", () => {
-  it("질문 생성 뒤에 제출 기록을 고쳤으면 true", () => {
+  it("질문 생성 뒤에 제출 자료을 고쳤으면 true", () => {
     expect(hasNewerSubmissionSinceGeneration("2026-10-23T10:00:00Z", "2026-10-22T00:00:00Z")).toBe(true);
   });
 
-  it("제출 기록이 질문보다 먼저면 false — 이미 반영됨", () => {
+  it("제출 자료이 질문보다 먼저면 false — 이미 반영됨", () => {
     expect(hasNewerSubmissionSinceGeneration("2026-10-21T00:00:00Z", "2026-10-22T00:00:00Z")).toBe(false);
   });
 
-  it("제출 기록이 없거나 질문을 아직 안 만들었으면 false", () => {
+  it("제출 자료이 없거나 질문을 아직 안 만들었으면 false", () => {
     expect(hasNewerSubmissionSinceGeneration(null, "2026-10-22T00:00:00Z")).toBe(false);
     expect(hasNewerSubmissionSinceGeneration("2026-10-23T00:00:00Z", null)).toBe(false);
   });

@@ -18,7 +18,7 @@ export function DetailGroup({
 }) {
   return (
     <section className="flex flex-col gap-3 border-t pt-4">
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
         <button
           type="button"
           onClick={onToggle}

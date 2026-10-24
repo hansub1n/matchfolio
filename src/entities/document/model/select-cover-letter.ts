@@ -1,6 +1,6 @@
 import type { UserDocument } from "./types";
 
-// 공고 매칭이 기준으로 삼을 자소서: 그 공고에 낸 자소서(제출 기록)가 있으면 그것,
+// 공고 매칭이 기준으로 삼을 자소서: 그 공고에 낸 자소서(제출 자료)가 있으면 그것,
 // 없으면 대표 자소서, 대표도 없으면 가장 최근 자소서. 하나도 없으면 null.
 export function selectCoverLetter(
   documents: UserDocument[],

@@ -4,7 +4,6 @@ import type {
   InterviewPrep,
   InterviewPrepBriefing,
   InterviewPrepFact,
-  InterviewPrepMotivation,
   InterviewPrepQuestion,
   InterviewPrepSection,
   InterviewPrepSource,
@@ -20,7 +19,6 @@ interface InterviewPrepRow {
   questions: InterviewPrepQuestion[] | null;
   confidence: "high" | "low" | null;
   project_questions: InterviewPrepQuestion[] | null;
-  motivation: InterviewPrepMotivation[] | null;
   project_questions_updated_at: string | null;
   company_analysis: string | null;
   interview_questions: string[] | null;
@@ -40,7 +38,6 @@ function toInterviewPrep(row: InterviewPrepRow): InterviewPrep {
     questions: row.questions,
     confidence: row.confidence,
     projectQuestions: row.project_questions,
-    motivation: row.motivation,
     projectQuestionsUpdatedAt: row.project_questions_updated_at,
     companyAnalysis: row.company_analysis,
     interviewQuestions: row.interview_questions,

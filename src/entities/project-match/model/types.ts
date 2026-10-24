@@ -36,11 +36,19 @@ export interface CoverLetterEdit {
   reason: string;
 }
 
+// 자소서 지원 동기에 쓸 포인트 — 회사 사업과 내 자료를 연결한 한 줄 + 자소서에 바로 넣을 예시 문장.
+export interface MotivationPoint {
+  point: string;
+  example: string;
+}
+
 export interface ApplicationReview {
-  // 기준으로 삼은 자소서(제출 기록 → 대표 → 최근 순). 자소서가 없으면 null.
+  // 기준으로 삼은 자소서(제출 자료 → 대표 → 최근 순). 자소서가 없으면 null.
   coverLetter: { documentId: string; title: string; edits: CoverLetterEdit[] } | null;
   // 이 공고 기준으로 이력서에서 강조할 점. 이력서가 없으면 빈 배열.
   resumeTips: string[];
+  // 구버전 캐시(지원 동기를 면접 준비 쪽에서 만들던 때)엔 없다.
+  motivation?: MotivationPoint[];
 }
 
 export interface ProjectMatches {
