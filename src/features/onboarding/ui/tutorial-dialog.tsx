@@ -4,7 +4,7 @@ import { useEffect, useState, type KeyboardEvent } from "react";
 import { Check } from "lucide-react";
 import { cn } from "cn";
 
-import { TUTORIAL_CHAPTERS, type TutorialChapterId } from "@/shared/config/tutorial";
+import { TUTORIAL_CHAPTERS as ALL_CHAPTERS, type TutorialChapterId } from "@/shared/config/tutorial";
 import {
   closeTutorial,
   openTutorial,
@@ -22,7 +22,11 @@ import {
   type TutorialMode,
   type TutorialPosition,
 } from "../model/tutorial-navigation";
+import { selectReadyChapters } from "../model/ready-chapters";
 import { ComingSoonScene, SCENES } from "./scenes";
+
+// 장면을 만든 챕터·장면만 보여준다("준비 중"이 배포 화면에 보이지 않게). 없는 챕터로 열면 첫 챕터(기본 흐름).
+const TUTORIAL_CHAPTERS = selectReadyChapters(ALL_CHAPTERS, Object.keys(SCENES));
 
 const SEEN_KEY = "matchfolio:tutorial-seen";
 const CHAPTERS_SEEN_KEY = "matchfolio:tutorial-chapters-seen";

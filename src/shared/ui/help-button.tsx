@@ -3,11 +3,12 @@
 import { CircleHelp } from "lucide-react";
 
 import type { TutorialChapterId } from "@/shared/config/tutorial";
-import { openTutorial } from "@/shared/lib/tutorial-store";
+import { isChapterReady, openTutorial } from "@/shared/lib/tutorial-store";
 
 // 기능 이름 옆 "?" — 누르면 사용법(가이드 모드)을 그 기능 챕터로 바로 연다.
-// 크기는 고정이고 hover에는 색만 바뀐다.
+// 크기는 고정이고 hover에는 색만 바뀐다. 그 챕터 장면을 아직 안 만들었으면 버튼을 그리지 않는다.
 export function HelpButton({ chapterId, label }: { chapterId: TutorialChapterId; label: string }) {
+  if (!isChapterReady(chapterId)) return null;
   return (
     <button
       type="button"

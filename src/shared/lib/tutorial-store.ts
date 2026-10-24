@@ -15,6 +15,18 @@ export interface TutorialState {
   version: number;
 }
 
+// 장면을 만든 챕터 — 튜토리얼 feature가 불러와질 때 등록한다(shared는 장면 목록을 직접 볼 수 없어서).
+// 기능 옆 "?" 버튼은 여기 없는 챕터면 숨는다. 등록 전에는 막지 않는다.
+let readyChapters: ReadonlySet<TutorialChapterId> | null = null;
+
+export function registerReadyChapters(ids: TutorialChapterId[]) {
+  readyChapters = new Set(ids);
+}
+
+export function isChapterReady(id: TutorialChapterId): boolean {
+  return readyChapters === null || readyChapters.has(id);
+}
+
 let state: TutorialState = { request: null, version: 0 };
 const SERVER_STATE: TutorialState = { request: null, version: 0 };
 const listeners = new Set<() => void>();
