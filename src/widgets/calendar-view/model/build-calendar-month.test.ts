@@ -61,6 +61,7 @@ describe("buildCalendarMonth", () => {
     const day12 = calendar.weeks.flat().find((d) => d.date === "2026-03-12");
     expect(day10?.appliedCount).toBe(2);
     expect(day11?.appliedCount).toBe(1);
+    expect(day11?.applied.map((a) => a.id)).toHaveLength(1);
     expect(day12?.appliedCount).toBe(0);
   });
 });

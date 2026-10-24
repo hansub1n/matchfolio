@@ -23,6 +23,8 @@ export interface CalendarDay {
   isToday: boolean;
   events: CalendarEvent[];
   appliedCount: number;
+  // 그날 지원한 공고 — 날짜를 고르면 오른쪽 패널에 어디 지원했는지 보여준다.
+  applied: Pick<Application, "id" | "company" | "position">[];
 }
 
 export interface CalendarMonthData {
@@ -48,10 +50,12 @@ export function buildCalendarMonth(
 
   const eventsByDate = buildCalendarEvents(applications, schedules);
 
-  const appliedCountByDate = new Map<string, number>();
+  const appliedByDate = new Map<string, CalendarDay["applied"]>();
   for (const app of applications) {
     if (!app.appliedAt) continue;
-    appliedCountByDate.set(app.appliedAt, (appliedCountByDate.get(app.appliedAt) ?? 0) + 1);
+    const list = appliedByDate.get(app.appliedAt) ?? [];
+    list.push({ id: app.id, company: app.company, position: app.position });
+    appliedByDate.set(app.appliedAt, list);
   }
 
   const weeks: CalendarDay[][] = [];
@@ -65,7 +69,8 @@ export function buildCalendarMonth(
         isCurrentMonth: date >= firstOfMonth && date <= lastOfMonth,
         isToday: date === today,
         events: eventsByDate.get(date) ?? [],
-        appliedCount: appliedCountByDate.get(date) ?? 0,
+        appliedCount: appliedByDate.get(date)?.length ?? 0,
+        applied: appliedByDate.get(date) ?? [],
       });
     }
     weeks.push(week);

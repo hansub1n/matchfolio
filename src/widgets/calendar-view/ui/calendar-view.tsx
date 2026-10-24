@@ -20,6 +20,7 @@ import { formatDateTime } from "@/shared/lib/format-date-time";
 import { todayKST } from "@/shared/lib/kst-date";
 import { CreateApplicationDialog } from "@/features/create-application";
 import { Button } from "@/shared/ui/button";
+import { CompanyMonogram } from "@/shared/ui/company-monogram";
 import { PageLayout } from "@/shared/ui/page-layout";
 import {
   ApplicationDetailDialog,
@@ -27,7 +28,7 @@ import {
   InterviewSchedulePopover,
 } from "@/widgets/kanban-board";
 
-import { buildCalendarMonth, type CalendarEvent } from "../model/build-calendar-month";
+import { buildCalendarMonth, type CalendarDay, type CalendarEvent } from "../model/build-calendar-month";
 import { buildUpcomingSchedule, type UnscheduledItem } from "../model/build-upcoming-schedule";
 
 const WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
@@ -145,44 +146,66 @@ function EmptySchedulePlaces({ onNavigateToBoard }: { onNavigateToBoard?: () => 
   );
 }
 
+const PANEL_LABEL = "text-[11px] text-muted-foreground";
+
+// 달력에서 고른 날의 일정과 지원한 곳. "오늘" 버튼이나 같은 날짜를 다시 누르면 다가오는 일정으로 돌아간다.
 function SelectedDayPanel({
   day,
   today,
   onOpenEvent,
-  onClose,
+  onOpenApplication,
 }: {
-  day: { date: string; events: CalendarEvent[]; appliedCount: number };
+  day: CalendarDay;
   today: string;
   onOpenEvent: (event: CalendarEvent) => void;
-  onClose: () => void;
+  onOpenApplication: (id: string) => void;
 }) {
   return (
     <>
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-muted-foreground">
-          {formatDateTime(day.date)}
-          {day.date === today && " · 오늘"}
-        </p>
-        <button type="button" onClick={onClose} className="text-[11px] text-muted-foreground hover:text-foreground">
-          다가오는 일정 보기
-        </button>
-      </div>
-      {day.appliedCount > 0 && <p className="text-[11.5px] text-muted-foreground">{day.appliedCount}곳 지원</p>}
-      {day.events.length === 0 ? (
-        <p className="text-sm text-muted-foreground">이날은 일정이 없어요</p>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {day.events.map((event) => (
+      {/* "다가오는 일정" 제목 줄과 같은 높이 — 패널이 바뀌어도 아래 내용이 밀리지 않게. */}
+      <p className="flex h-4 items-center text-xs font-medium">
+        {formatDateTime(day.date)}
+        {day.date === today && <span className="ml-1 font-normal text-muted-foreground">· 오늘</span>}
+      </p>
+
+      <div className="flex flex-col gap-2">
+        <p className={PANEL_LABEL}>일정{day.events.length > 0 && ` ${day.events.length}`}</p>
+        {day.events.length === 0 ? (
+          <p className="text-xs text-muted-foreground">없어요</p>
+        ) : (
+          day.events.map((event) => (
             <button
               key={event.id}
               type="button"
               onClick={() => onOpenEvent(event)}
-              className="flex flex-col gap-0.5 text-left"
+              className="grid grid-cols-[2.5rem_1fr] items-baseline gap-2 rounded text-left hover:bg-accent/60"
             >
               <span className="text-[11px] tabular-nums text-muted-foreground">{event.time ?? "종일"}</span>
-              <span className="text-sm">
+              <span className="truncate text-sm">
                 <span className="font-medium">{event.company}</span>{" "}
                 <span className="text-muted-foreground">{event.label}</span>
+              </span>
+            </button>
+          ))
+        )}
+      </div>
+
+      {day.applied.length > 0 && (
+        <div className="flex flex-col gap-2 border-t pt-3">
+          <p className={PANEL_LABEL}>지원 {day.applied.length}곳</p>
+          {day.applied.map((app) => (
+            <button
+              key={app.id}
+              type="button"
+              onClick={() => onOpenApplication(app.id)}
+              className="flex items-center gap-2 rounded text-left hover:bg-accent/60"
+            >
+              <CompanyMonogram company={app.company} />
+              <span className="min-w-0">
+                <span className="block truncate text-sm">{app.company}</span>
+                {app.position && (
+                  <span className="block truncate text-[11px] text-muted-foreground">{app.position}</span>
+                )}
               </span>
             </button>
           ))}
@@ -243,9 +266,11 @@ export function CalendarView({
     setMonth(next.month);
   }
 
+  // 이번 달로 돌아오면서 고른 날짜도 풀어 오른쪽 패널을 다가오는 일정으로 되돌린다.
   function goToday() {
     setYear(Number(today.slice(0, 4)));
     setMonth(Number(today.slice(5, 7)));
+    setSelectedDate(null);
   }
 
   const selectedDay = calendar.weeks.flat().find((day) => day.date === selectedDate) ?? null;
@@ -389,11 +414,11 @@ export function CalendarView({
               day={selectedDay}
               today={today}
               onOpenEvent={openEvent}
-              onClose={() => setSelectedDate(null)}
+              onOpenApplication={setDetailId}
             />
           ) : (
             <>
-            <p className="text-xs text-muted-foreground">다가오는 일정</p>
+            <p className="flex h-4 items-center text-xs text-muted-foreground">다가오는 일정</p>
 
             {upcoming.length === 0 && unscheduled.length === 0 ? (
               <>
