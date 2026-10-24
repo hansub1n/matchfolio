@@ -374,6 +374,45 @@ export function ApplicationDetailDialog(props: Props) {
               </div>
             )}
 
+            {(entity.description || entity.screenshotPaths.length > 0) && (
+              <DetailGroup
+                title="공고 내용"
+                open={openGroups.has("posting")}
+                onToggle={() => toggleGroup("posting")}
+              >
+                {entity.description && (
+                  <div>
+                    {parsedDescription ? (
+                      <div className="flex flex-col gap-3">
+                        {parsedDescription.sections.map((section, i) => (
+                          <div key={i}>
+                            {section.title && (
+                              <p className="mb-1.5 text-xs font-medium text-foreground">
+                                {section.title}
+                              </p>
+                            )}
+                            <ul className="list-inside list-disc text-sm leading-relaxed">
+                              {section.items.map((item, j) => (
+                                <li key={j}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed">{entity.description}</p>
+                    )}
+                  </div>
+                )}
+                {entity.screenshotPaths.length > 0 && (
+                  <div className="flex flex-col gap-1.5">
+                    <p className={SECTION_LABEL}>스크린샷</p>
+                    <ScreenshotGallery paths={entity.screenshotPaths} />
+                  </div>
+                )}
+              </DetailGroup>
+            )}
+
             <DetailGroup
               title="회사 분석"
               open={openGroups.has("company")}
@@ -435,44 +474,6 @@ export function ApplicationDetailDialog(props: Props) {
               />
             </DetailGroup>
 
-            {(entity.description || entity.screenshotPaths.length > 0) && (
-              <DetailGroup
-                title="공고 내용"
-                open={openGroups.has("posting")}
-                onToggle={() => toggleGroup("posting")}
-              >
-                {entity.description && (
-                  <div>
-                    {parsedDescription ? (
-                      <div className="flex flex-col gap-3">
-                        {parsedDescription.sections.map((section, i) => (
-                          <div key={i}>
-                            {section.title && (
-                              <p className="mb-1.5 text-xs font-medium text-foreground">
-                                {section.title}
-                              </p>
-                            )}
-                            <ul className="list-inside list-disc text-sm leading-relaxed">
-                              {section.items.map((item, j) => (
-                                <li key={j}>{item}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed">{entity.description}</p>
-                    )}
-                  </div>
-                )}
-                {entity.screenshotPaths.length > 0 && (
-                  <div className="flex flex-col gap-1.5">
-                    <p className={SECTION_LABEL}>스크린샷</p>
-                    <ScreenshotGallery paths={entity.screenshotPaths} />
-                  </div>
-                )}
-              </DetailGroup>
-            )}
           </div>
         ) : (
           <div className="flex flex-col gap-3 overflow-y-auto px-5 py-4">
