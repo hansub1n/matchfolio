@@ -13,7 +13,7 @@ import { computeTileRects } from "@/features/extract-job-posting/model/split-tal
 import { getRequestUser } from "@/shared/api/supabase-server";
 import { env } from "@/shared/config/env";
 import { JOB_POSTING_SCREENSHOTS_BUCKET } from "@/shared/config/constants";
-import { GEMINI_FALLBACK_MODEL, GEMINI_MODEL, isOverloaded } from "@/shared/lib/gemini";
+import { GEMINI_MODELS, isOverloaded } from "@/shared/lib/gemini";
 import { consumeAiQuota, quotaExceededResponse } from "@/shared/lib/ai-quota";
 import { isSameOrigin, unauthorizedResponse } from "@/shared/lib/request-guard";
 
@@ -149,8 +149,7 @@ export async function POST(request: Request) {
         return extractWithGemini(modelImages, model);
       },
       {
-        primary: GEMINI_MODEL,
-        fallback: GEMINI_FALLBACK_MODEL,
+        models: GEMINI_MODELS,
         isOverloaded,
         retryDelayMs: OVERLOAD_RETRY_DELAY_MS,
       }
