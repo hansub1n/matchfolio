@@ -25,10 +25,25 @@ const IMPLIES: Record<string, string[]> = {
 // 포함 관계 비교를 적용한다.
 const MIN_CONTAINS_LENGTH = 3;
 
+// 한쪽 표기가 다른 쪽을 포함하지만 전혀 다른 기술인 쌍 — 포함 관계 비교에서 뺀다.
+const UNRELATED_CONTAINS: [string, string][] = [["java", "javascript"]];
+
+function isUnrelatedContains(a: string, b: string): boolean {
+  return UNRELATED_CONTAINS.some(([x, y]) => (a === x && b === y) || (a === y && b === x));
+}
+
+// "React.js"/"React", "Node.js"/"Node"처럼 끝의 js만 다른 표기를 같은 기술로 본다(같은지·별칭 비교에만 쓴다 —
+// 포함 비교에 쓰면 "next"가 "nextauth"에 걸리는 식의 오탐이 생긴다).
+function canonical(key: string): string {
+  return key.length > 4 && key.endsWith("js") ? key.slice(0, -2) : key;
+}
+
 function impliedKeys(tech: string): Set<string> {
-  const key = normalizeTech(tech);
+  const key = canonical(normalizeTech(tech));
   const result = new Set([key]);
-  for (const implied of IMPLIES[key] ?? []) result.add(implied);
+  for (const [from, implied] of Object.entries(IMPLIES)) {
+    if (canonical(from) === key) for (const k of implied) result.add(canonical(k));
+  }
   return result;
 }
 
@@ -40,11 +55,11 @@ export function techSatisfies(required: string, owned: string): boolean {
   const req = normalizeTech(required);
   const own = normalizeTech(owned);
   if (!req || !own) return false;
-  if (req === own) return true;
-  if (req.length >= MIN_CONTAINS_LENGTH && own.length >= MIN_CONTAINS_LENGTH) {
+  if (req === own || canonical(req) === canonical(own)) return true;
+  if (req.length >= MIN_CONTAINS_LENGTH && own.length >= MIN_CONTAINS_LENGTH && !isUnrelatedContains(req, own)) {
     if (req.includes(own) || own.includes(req)) return true;
   }
-  if (impliedKeys(owned).has(req)) return true;
-  if (impliedKeys(required).has(own)) return true;
+  if (impliedKeys(owned).has(canonical(req))) return true;
+  if (impliedKeys(required).has(canonical(own))) return true;
   return false;
 }

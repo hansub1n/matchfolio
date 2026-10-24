@@ -26,6 +26,18 @@ describe("techSatisfies", () => {
     expect(techSatisfies("Go", "MongoDB")).toBe(false);
   });
 
+  it("treats a trailing .js as the same tech (React.js vs React, also via Next.js)", () => {
+    expect(techSatisfies("React.js", "React")).toBe(true);
+    expect(techSatisfies("React.js", "Next.js")).toBe(true);
+    expect(techSatisfies("Node", "Node.js")).toBe(true);
+    expect(techSatisfies("Next.js", "NextAuth")).toBe(false);
+  });
+
+  it("does not treat Java and JavaScript as the same tech", () => {
+    expect(techSatisfies("Java", "JavaScript")).toBe(false);
+    expect(techSatisfies("JavaScript", "Java")).toBe(false);
+  });
+
   it("returns false for genuinely unrelated tech", () => {
     expect(techSatisfies("React", "Vue")).toBe(false);
   });
