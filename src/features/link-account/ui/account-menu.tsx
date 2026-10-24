@@ -56,7 +56,9 @@ export function AccountMenu({
   const searchParams = useSearchParams();
   const [account, setAccount] = useState<GithubAccount | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
-  const errorKind = classifyAuthError(searchParams.get("auth_error"));
+  // 오류는 두 경로로 온다: 우리 /auth/callback을 거치면 ?auth_error=, 연결 단계에서 바로 실패하면 Supabase가 첫 화면
+  // 주소에 ?error_code=를 붙여 보낸다(이미 다른 보드에 연결된 GitHub가 이쪽).
+  const errorKind = classifyAuthError(searchParams.get("auth_error") ?? searchParams.get("error_code"));
   const hasLocalData = localCounts.applications + localCounts.materials > 0;
   // 이 GitHub에 이미 보드가 있는데 이 브라우저엔 넣은 게 없으면 물어볼 이유가 없다 — 바로 그 보드로 로그인.
   const autoSwitch = errorKind === "already_linked" && !hasLocalData;
