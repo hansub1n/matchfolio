@@ -5,15 +5,8 @@ import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 
 import type { MyProject } from "@/entities/my-project";
 import { splitNameSubtitle } from "@/shared/lib/split-name-subtitle";
-import { Button } from "@/shared/ui/button";
 import { CompanyMonogram } from "@/shared/ui/company-monogram";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
+import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -119,27 +112,12 @@ export function ProjectRow({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent onClick={stopClick}>
-          <DialogHeader>
-            <DialogTitle>{project.name} 프로젝트를 삭제할까요?</DialogTitle>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
-              취소
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                onDelete?.(project.id);
-                setConfirmOpen(false);
-              }}
-            >
-              삭제
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDeleteDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        subject="프로젝트"
+        onConfirm={() => onDelete?.(project.id)}
+      />
     </div>
   );
 }

@@ -54,7 +54,8 @@ function DropdownMenuItem({
       data-slot="dropdown-menu-item"
       data-variant={variant}
       className={cn(
-        "relative flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 outline-none select-none hover:bg-muted data-[variant=destructive]:text-destructive data-[variant=destructive]:hover:bg-destructive/10",
+        // 항목은 13px, 아이콘은 회색. 삭제(destructive)는 글자·아이콘 색만 빨강이고 hover 배경은 다른 항목과 같다.
+        "relative flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] outline-none select-none hover:bg-muted focus:bg-muted [&_svg]:text-muted-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:[&_svg]:text-destructive",
         className
       )}
       {...props}

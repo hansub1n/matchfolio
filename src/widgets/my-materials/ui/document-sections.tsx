@@ -1,17 +1,23 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Star } from "lucide-react";
+import { MoreHorizontal, Pencil, Star, Trash2 } from "lucide-react";
 import { cn } from "cn";
 
 import { deleteDocument, setPrimaryCoverLetter, type UserDocument } from "@/entities/document";
-import { DocumentDialog } from "@/features/edit-document";
+import { DELETE_NOTE, DELETE_SUBJECT, DocumentDialog } from "@/features/edit-document";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
+import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
 import { EmptyHint } from "@/shared/ui/placeholder";
 
 export const SECTION_ACTION = "rounded-full border bg-card px-3 py-1.5 text-xs hover:bg-accent";
-const ROW_ACTION = "text-[11px] text-muted-foreground hover:text-foreground";
 
 function stopClick(e: React.MouseEvent) {
   e.stopPropagation();
@@ -40,66 +46,95 @@ export function SectionHeader({
 function DocumentRow({
   document,
   leading,
-  extraActions,
 }: {
   document: UserDocument;
   leading?: ReactNode;
-  extraActions?: ReactNode;
 }) {
   const router = useRouter();
+  // 행 클릭 → 보기, "…" 메뉴의 수정 → 바로 수정. 열 때마다 key를 바꿔 새로 마운트한다.
+  const [dialog, setDialog] = useState<{ mode: "view" | "edit"; key: number } | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  function open(mode: "view" | "edit") {
+    if (mode === "edit" && blockInSampleMode()) return;
+    setDialog({ mode, key: Date.now() });
+  }
 
   function handleDelete() {
     if (blockInSampleMode()) return;
-    if (!window.confirm(`"${document.title}"을(를) 삭제할까요?`)) return;
     deleteDocument(document.id)
       .then(() => router.refresh())
       .catch(console.error);
   }
 
-  // 프로젝트 행처럼 행 전체를 누르면 전체 본문을 보는 화면이 열린다. 안의 버튼(★·수정·삭제)은 클릭이
-  // 행까지 올라가지 않게 막는다(수정 다이얼로그 안의 클릭도 React 트리를 따라 올라오므로 같이 막힌다).
+  // 프로젝트 행과 같은 틀 — 행 전체를 누르면 상세, 오른쪽 위 "…"(hover 시 노출)에 수정·삭제.
   return (
-    <DocumentDialog
-      kind={document.kind}
-      document={document}
-      initialMode="view"
-      trigger={
-        <div
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
-              e.preventDefault();
-              e.currentTarget.click();
-            }
-          }}
-          className="grid cursor-pointer grid-cols-[20px_1fr_auto] items-start gap-3 rounded-lg border-t px-2 py-3.5 last:border-b hover:bg-accent"
-        >
-          <span className="flex h-5 items-center justify-center" onClick={stopClick}>
-            {leading}
-          </span>
-          <div className="flex min-w-0 flex-col gap-1">
-            <p className="truncate text-[15px] font-medium">{document.title}</p>
-            <p className="line-clamp-2 text-[13px] whitespace-pre-line text-muted-foreground">{document.content}</p>
-          </div>
-          <div className="flex items-center gap-3 pt-0.5" onClick={stopClick}>
-            {extraActions}
-            <DocumentDialog
-              kind={document.kind}
-              document={document}
-              trigger={
-                <button type="button" className={ROW_ACTION}>
-                  수정
-                </button>
-              }
-            />
-            <button type="button" onClick={handleDelete} className={ROW_ACTION}>
-              삭제
-            </button>
-          </div>
-        </div>
-      }
-    />
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => open("view")}
+      onKeyDown={(e) => {
+        if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
+          e.preventDefault();
+          open("view");
+        }
+      }}
+      className="group relative grid cursor-pointer grid-cols-[20px_1fr] items-start gap-3 rounded-lg border-t px-2 py-3.5 pr-9 last:border-b hover:bg-accent"
+    >
+      <span className="flex h-5 items-center justify-center" onClick={stopClick}>
+        {leading}
+      </span>
+      <div className="flex min-w-0 flex-col gap-1">
+        <p className="truncate text-[15px] font-medium">{document.title}</p>
+        <p className="line-clamp-2 text-[13px] whitespace-pre-line text-muted-foreground">{document.content}</p>
+      </div>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            onClick={stopClick}
+            className="absolute top-3 right-2 rounded-sm p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-muted hover:text-foreground [@media(hover:none)]:opacity-100"
+          >
+            <MoreHorizontal className="size-3.5" />
+            <span className="sr-only">더보기</span>
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" onClick={stopClick}>
+          <DropdownMenuItem onSelect={() => open("edit")}>
+            <Pencil className="size-3.5" />
+            수정
+          </DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onSelect={() => setConfirmOpen(true)}>
+            <Trash2 className="size-3.5" />
+            삭제
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* 다이얼로그 안의 클릭이 React 트리를 따라 행까지 올라오지 않게 감싼다. */}
+      <div className="contents" onClick={stopClick}>
+        {dialog && (
+          <DocumentDialog
+            key={dialog.key}
+            kind={document.kind}
+            document={document}
+            initialMode={dialog.mode}
+            open
+            onOpenChange={(next) => {
+              if (!next) setDialog(null);
+            }}
+          />
+        )}
+        <ConfirmDeleteDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          subject={DELETE_SUBJECT[document.kind]}
+          description={DELETE_NOTE[document.kind]}
+          onConfirm={handleDelete}
+        />
+      </div>
+    </div>
   );
 }
 

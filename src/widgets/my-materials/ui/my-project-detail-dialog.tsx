@@ -12,13 +12,8 @@ import type { ProjectMatchWithCompany } from "@/entities/project-match";
 import { splitNameSubtitle } from "@/shared/lib/split-name-subtitle";
 import { Button } from "@/shared/ui/button";
 import { CompanyMonogram } from "@/shared/ui/company-monogram";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
+import { ConfirmDeleteDialog, ModalEditActions } from "@/shared/ui/confirm-delete-dialog";
+import { Dialog, DialogContent } from "@/shared/ui/dialog";
 import { TagInput } from "@/shared/ui/tag-input";
 
 import { computeProjectMatchList } from "../model/compute-project-match-list";
@@ -202,48 +197,24 @@ export function MyProjectDetailDialog({
               rows={3}
               className={inputClassName}
             />
-            <div className="flex items-center justify-between gap-2 pt-1">
-              <button
-                type="button"
-                className="text-sm text-destructive hover:underline"
-                onClick={() => setConfirmOpen(true)}
-              >
-                삭제
-              </button>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setEditing(false)}>
-                  취소
-                </Button>
-                <Button onClick={handleSave}>저장</Button>
-              </div>
-            </div>
+            <ModalEditActions
+              onDelete={() => setConfirmOpen(true)}
+              onCancel={() => setEditing(false)}
+              onSave={handleSave}
+            />
           </div>
         )}
       </DialogContent>
 
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent onClick={stopClick}>
-          <DialogHeader>
-            <DialogTitle>이 프로젝트를 삭제할까요?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">매칭 기록도 함께 삭제돼요.</p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
-              취소
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                onDelete?.(project.id);
-                setConfirmOpen(false);
-                onOpenChange(false);
-              }}
-            >
-              삭제
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDeleteDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        subject="프로젝트"
+        onConfirm={() => {
+          onDelete?.(project.id);
+          onOpenChange(false);
+        }}
+      />
     </Dialog>
   );
 }

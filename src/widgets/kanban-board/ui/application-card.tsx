@@ -16,15 +16,8 @@ import { type DdayTier } from "@/shared/lib/dday";
 import { formatDateTime } from "@/shared/lib/format-date-time";
 import { formatDeadlineBadge } from "@/shared/lib/format-deadline";
 import { todayKST } from "@/shared/lib/kst-date";
-import { Button } from "@/shared/ui/button";
 import { CompanyMonogram } from "@/shared/ui/company-monogram";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
+import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -335,27 +328,13 @@ export function ApplicationCard({
         )}
       </div>
 
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent onClick={stopClick}>
-          <DialogHeader>
-            <DialogTitle>{application.company} 카드를 삭제할까요?</DialogTitle>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
-              취소
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                onDelete?.(application.id);
-                setConfirmOpen(false);
-              }}
-            >
-              삭제
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDeleteDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        subject={application.stage === "interested" ? "관심 공고" : "공고"}
+        description="스크린샷과 회사 분석·공고 매칭 결과, 일정도 함께 지워져요."
+        onConfirm={() => onDelete?.(application.id)}
+      />
     </div>
   );
 }

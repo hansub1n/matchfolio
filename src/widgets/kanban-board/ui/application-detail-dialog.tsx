@@ -26,13 +26,8 @@ import { blockInSampleMode } from "@/shared/lib/sample-mode";
 import { requestTab } from "@/shared/lib/tab-store";
 import { Button } from "@/shared/ui/button";
 import { CompanyMonogram } from "@/shared/ui/company-monogram";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
+import { ConfirmDeleteDialog, ModalEditActions } from "@/shared/ui/confirm-delete-dialog";
+import { Dialog, DialogContent } from "@/shared/ui/dialog";
 import { AiBadge } from "@/shared/ui/ai-section";
 import { HelpButton } from "@/shared/ui/help-button";
 import { ScreenshotGallery } from "@/shared/ui/screenshot-gallery";
@@ -530,21 +525,11 @@ export function ApplicationDetailDialog(props: Props) {
               rows={2}
               className={inputClassName}
             />
-            <div className="flex items-center justify-between gap-2 pt-1">
-              <button
-                type="button"
-                className="text-sm text-destructive hover:underline"
-                onClick={() => setConfirmOpen(true)}
-              >
-                삭제
-              </button>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setEditing(false)}>
-                  취소
-                </Button>
-                <Button onClick={handleSave}>저장</Button>
-              </div>
-            </div>
+            <ModalEditActions
+              onDelete={() => setConfirmOpen(true)}
+              onCancel={() => setEditing(false)}
+              onSave={handleSave}
+            />
           </div>
         )}
       </DialogContent>
@@ -561,31 +546,16 @@ export function ApplicationDetailDialog(props: Props) {
         />
       )}
 
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent onClick={stopClick}>
-          <DialogHeader>
-            <DialogTitle>{isInterested ? "이 관심기업을 삭제할까요?" : "이 공고를 삭제할까요?"}</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            스크린샷과 기업분석·공고 매칭 기록도 함께 삭제돼요.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
-              취소
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                onDelete?.(entity.id);
-                setConfirmOpen(false);
-                onOpenChange(false);
-              }}
-            >
-              삭제
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDeleteDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        subject={isInterested ? "관심 공고" : "공고"}
+        description="스크린샷과 회사 분석·공고 매칭 결과, 일정도 함께 지워져요."
+        onConfirm={() => {
+          onDelete?.(entity.id);
+          onOpenChange(false);
+        }}
+      />
     </Dialog>
   );
 }
