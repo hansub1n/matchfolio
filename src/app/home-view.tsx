@@ -68,6 +68,7 @@ export function HomeView({
             projects={myProjects}
             applications={submitted}
             allProjectMatches={allProjectMatches}
+            comparableCount={applications.filter((app) => app.outcome === "in_progress").length}
             onNavigateToCompany={handleNavigateToCompany}
           />
         </TabsContent>

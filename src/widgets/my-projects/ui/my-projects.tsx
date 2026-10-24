@@ -10,11 +10,10 @@ import {
   type UpdateMyProjectInput,
 } from "@/entities/my-project";
 import type { ProjectMatchWithCompany } from "@/entities/project-match";
-import { CreateMyProjectDialog } from "@/features/create-my-project";
+import { CreateMyProjectDialog, InlineProjectImport } from "@/features/create-my-project";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
-import { Button } from "@/shared/ui/button";
 import { PageLayout } from "@/shared/ui/page-layout";
-import { EmptyHint, PlaceholderBar, PlaceholderBox } from "@/shared/ui/placeholder";
+import { PlaceholderBar, PlaceholderBox } from "@/shared/ui/placeholder";
 
 import { computeBestMatch } from "../model/compute-best-match";
 import { computeSkillGap } from "../model/compute-skill-gap";
@@ -27,11 +26,14 @@ export function MyProjects({
   projects,
   applications,
   allProjectMatches,
+  comparableCount,
   onNavigateToCompany,
 }: {
   projects: MyProject[];
   applications: Application[];
   allProjectMatches: ProjectMatchWithCompany[];
+  // 관심/진행 중인 공고 수 — 빈 상태에서 "관심 공고 N개와 비교할 수 있어요" 안내에 쓴다.
+  comparableCount: number;
   onNavigateToCompany?: (company: string) => void;
 }) {
   const [items, setItems] = useState(projects);
@@ -81,7 +83,13 @@ export function MyProjects({
   return (
     <PageLayout
       title={isEmpty ? "등록된 프로젝트가 없어요" : `프로젝트 ${items.length}개로 공고와 매칭하고 있어요`}
-      subtitle={`가장 많이 쓴 기술 · ${topTechStack.length > 0 ? topTechStack.join(", ") : "—"}`}
+      subtitle={
+        !isEmpty
+          ? `가장 많이 쓴 기술 · ${topTechStack.join(", ") || "—"}`
+          : comparableCount > 0
+            ? `관심 공고 ${comparableCount}개와 비교할 수 있어요`
+            : "등록한 프로젝트로 공고 매칭과 예상 질문을 만들어요"
+      }
       action={
         <CreateMyProjectDialog
           trigger={
@@ -101,7 +109,12 @@ export function MyProjects({
         </div>
       )}
 
-      {isEmpty && <EmptyProjectList />}
+      {isEmpty && (
+        <>
+          <p className="mb-4 text-xs text-muted-foreground">가장 많이 쓴 기술 · —</p>
+          <EmptyProjectList />
+        </>
+      )}
 
       <div className="flex flex-col">
         {items.map((project) => (
@@ -132,36 +145,19 @@ export function MyProjects({
   );
 }
 
-// 실제 행(ProjectRow)과 같은 구조의 흐린 예시 행 2개 위에, 프로젝트 추가 모달의 해당 탭으로
-// 바로 여는 버튼을 얹는다.
+// 실제 행(ProjectRow)과 같은 구조로 두 줄을 깐다 — 첫 줄은 그 자리에서 바로 등록하는
+// 입력 행, 둘째 줄은 흐린 예시 행.
 function EmptyProjectList() {
   return (
-    <div className="relative">
-      <div aria-hidden className="flex flex-col opacity-40">
-        {[0, 1].map((i) => (
-          <div key={i} className="grid grid-cols-[28px_1fr] items-start gap-3 border-t px-2 py-4 last:border-b">
-            <PlaceholderBox className="size-7" />
-            <div className="flex flex-col gap-2 pt-1">
-              <PlaceholderBar className={i === 0 ? "w-32" : "w-24"} />
-              <PlaceholderBar className={i === 0 ? "w-72" : "w-56"} />
-              <PlaceholderBar className="w-40" />
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5">
-        <div className="flex gap-2">
-          <CreateMyProjectDialog initialTab="github" trigger={<Button size="sm">GitHub 주소로 불러오기</Button>} />
-          <CreateMyProjectDialog
-            initialTab="manual"
-            trigger={
-              <Button size="sm" variant="outline">
-                직접 입력
-              </Button>
-            }
-          />
+    <div className="flex flex-col [&>*:last-child]:border-b">
+      <InlineProjectImport />
+      <div aria-hidden className="grid min-h-[104px] grid-cols-[28px_1fr] items-start gap-3 border-t px-2 py-4 opacity-40">
+        <PlaceholderBox className="size-7" />
+        <div className="flex flex-col gap-2 pt-1">
+          <PlaceholderBar className="w-24" />
+          <PlaceholderBar className="w-56" />
+          <PlaceholderBar className="w-40" />
         </div>
-        <EmptyHint>등록한 프로젝트는 공고 매칭과 예상 질문에 쓰여요</EmptyHint>
       </div>
     </div>
   );

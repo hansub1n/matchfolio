@@ -37,50 +37,73 @@ function FieldLabel({ children, aiFilled }: { children: ReactNode; aiFilled: boo
   );
 }
 
+function draftAiFields(draft: MyProjectDraft | undefined): Set<AiField> {
+  const fields = new Set<AiField>();
+  if (!draft) return fields;
+  if (draft.name) fields.add("name");
+  if (draft.description) fields.add("description");
+  if (draft.techStack.length > 0) fields.add("techStack");
+  if (draft.highlights.length > 0) fields.add("highlights");
+  return fields;
+}
+
+export interface MyProjectDraft {
+  name: string;
+  description: string;
+  techStack: string[];
+  highlights: string[];
+}
+
 export function CreateMyProjectDialog({
   trigger,
   initialTab = "github",
+  initialValues,
   open: openProp,
   onOpenChange: onOpenChangeProp,
+  onCreated,
 }: {
   trigger?: ReactNode;
-  // 빈 상태의 "GitHub 주소로 불러오기"/"직접 입력" 버튼처럼 특정 탭으로 바로 열 때.
+  // 빈 상태의 "직접 입력" 버튼처럼 특정 탭으로 바로 열 때.
   initialTab?: MyProjectSourceTab;
+  // 인라인 등록에서 불러온 결과를 "수정"할 때 — 직접 입력 탭에 채운 채로 연다.
+  initialValues?: MyProjectDraft;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  onCreated?: () => void;
 } = {}) {
   const router = useRouter();
   const [openState, setOpenState] = useState(false);
   const open = openProp ?? openState;
   const setOpen = onOpenChangeProp ?? setOpenState;
 
-  const [sourceTab, setSourceTab] = useState<SourceTab>(initialTab);
+  const startTab: SourceTab = initialValues ? "manual" : initialTab;
+  const [sourceTab, setSourceTab] = useState<SourceTab>(startTab);
   const [githubUrl, setGithubUrl] = useState("");
   const [pasteText, setPasteText] = useState("");
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
 
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [techStack, setTechStack] = useState<string[]>([]);
-  const [highlights, setHighlights] = useState("");
-  const [aiFilled, setAiFilled] = useState<Set<AiField>>(new Set());
+  const [name, setName] = useState(initialValues?.name ?? "");
+  const [description, setDescription] = useState(initialValues?.description ?? "");
+  const [techStack, setTechStack] = useState<string[]>(initialValues?.techStack ?? []);
+  const [highlights, setHighlights] = useState(joinHighlights(initialValues?.highlights ?? []));
+  const [aiFilled, setAiFilled] = useState<Set<AiField>>(() => draftAiFields(initialValues));
   const [pending, setPending] = useState(false);
 
   const showForm = sourceTab === "manual" || loaded;
 
   function reset() {
-    setSourceTab(initialTab);
+    setSourceTab(startTab);
     setGithubUrl("");
     setPasteText("");
     setExtractError(null);
     setLoaded(false);
-    setName("");
-    setDescription("");
-    setTechStack([]);
-    setHighlights("");
-    setAiFilled(new Set());
+    setName(initialValues?.name ?? "");
+    setDescription(initialValues?.description ?? "");
+    setTechStack(initialValues?.techStack ?? []);
+    setHighlights(joinHighlights(initialValues?.highlights ?? []));
+    setAiFilled(draftAiFields(initialValues));
   }
 
   async function handleExtract(input: { githubUrl: string } | { text: string }) {
@@ -130,6 +153,7 @@ export function CreateMyProjectDialog({
       });
       reset();
       setOpen(false);
+      onCreated?.();
       router.refresh();
     } catch (error) {
       console.error(error);
