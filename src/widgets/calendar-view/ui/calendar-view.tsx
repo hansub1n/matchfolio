@@ -17,7 +17,7 @@ import type { MyProject } from "@/entities/my-project";
 import { recordedInterviewRounds, useScheduleRequests, type Schedule } from "@/entities/schedule";
 import { getDdayTier, type DdayTier } from "@/shared/lib/dday";
 import { formatDateTime } from "@/shared/lib/format-date-time";
-import { todayKST } from "@/shared/lib/kst-date";
+import { toKSTTimeString, todayKST } from "@/shared/lib/kst-date";
 import { CreateApplicationDialog } from "@/features/create-application";
 import { Button } from "@/shared/ui/button";
 import { CompanyMonogram } from "@/shared/ui/company-monogram";
@@ -231,6 +231,7 @@ export function CalendarView({
   const router = useRouter();
   const myProjectTechStack = [...new Set(myProjects.flatMap((p) => p.techStack))];
   const today = todayKST();
+  const nowTime = toKSTTimeString(new Date());
   const [year, setYear] = useState(Number(today.slice(0, 4)));
   const [month, setMonth] = useState(Number(today.slice(5, 7)));
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -274,6 +275,13 @@ export function CalendarView({
   }
 
   const selectedDay = calendar.weeks.flat().find((day) => day.date === selectedDate) ?? null;
+
+  // 지난 날·앞으로의 날 모두 누르면 그날을 보여주고, 같은 날을 다시 눌러도 그대로 둔다(눌러서 풀리면 실수로
+  // 두 번 누를 때 패널이 갑자기 바뀌어서). 다가오는 일정으로 돌아가는 길은 "오늘" 버튼과 오늘 칸 — 다가오는
+  // 일정이 오늘부터 보여주므로 오늘 칸은 따로 고르지 않는다.
+  function selectDate(date: string) {
+    setSelectedDate(date === today ? null : date);
+  }
 
   function openEvent(event: CalendarEvent) {
     if (event.kind === "application") {
@@ -343,11 +351,11 @@ export function CalendarView({
                       role="button"
                       tabIndex={0}
                       aria-pressed={isSelected}
-                      onClick={() => setSelectedDate(isSelected ? null : day.date)}
+                      onClick={() => selectDate(day.date)}
                       onKeyDown={(e) => {
                         if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
                           e.preventDefault();
-                          setSelectedDate(isSelected ? null : day.date);
+                          selectDate(day.date);
                         }
                       }}
                       className={cn(
@@ -428,17 +436,22 @@ export function CalendarView({
             ) : (
               <>
                 <div className="flex flex-col gap-3">
-                  {upcoming.map((event) => (
+                  {upcoming.map((event) => {
+                    // 오늘 일정은 시간이 지나도 하루 동안 남기되(그날 무슨 일정이 있었는지 보려고) 흐리게 둔다.
+                    const isPastToday = event.date === today && event.time !== null && event.time < nowTime;
+                    return (
                     <button
                       key={event.id}
                       type="button"
                       onClick={() => openEvent(event)}
-                      className="flex flex-col gap-0.5 text-left"
+                      // 서버와 브라우저의 "지금" 분이 다를 수 있어서 흐림 여부 차이는 경고하지 않는다.
+                      suppressHydrationWarning
+                      className={cn("flex flex-col gap-0.5 text-left", isPastToday && "opacity-50")}
                     >
                       <span
                         className={cn(
                           "text-[11px] tabular-nums",
-                          event.date === today ? "text-urgent" : "text-muted-foreground"
+                          event.date === today && !isPastToday ? "text-urgent" : "text-muted-foreground"
                         )}
                       >
                         {formatUpcomingDate(event.date, event.time, today)}
@@ -448,7 +461,8 @@ export function CalendarView({
                         <span className="text-muted-foreground">{event.label}</span>
                       </span>
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {unscheduled.length > 0 && (
