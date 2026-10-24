@@ -145,6 +145,53 @@ function EmptySchedulePlaces({ onNavigateToBoard }: { onNavigateToBoard?: () => 
   );
 }
 
+function SelectedDayPanel({
+  day,
+  today,
+  onOpenEvent,
+  onClose,
+}: {
+  day: { date: string; events: CalendarEvent[]; appliedCount: number };
+  today: string;
+  onOpenEvent: (event: CalendarEvent) => void;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">
+          {formatDateTime(day.date)}
+          {day.date === today && " · 오늘"}
+        </p>
+        <button type="button" onClick={onClose} className="text-[11px] text-muted-foreground hover:text-foreground">
+          다가오는 일정 보기
+        </button>
+      </div>
+      {day.appliedCount > 0 && <p className="text-[11.5px] text-muted-foreground">{day.appliedCount}곳 지원</p>}
+      {day.events.length === 0 ? (
+        <p className="text-sm text-muted-foreground">이날은 일정이 없어요</p>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {day.events.map((event) => (
+            <button
+              key={event.id}
+              type="button"
+              onClick={() => onOpenEvent(event)}
+              className="flex flex-col gap-0.5 text-left"
+            >
+              <span className="text-[11px] tabular-nums text-muted-foreground">{event.time ?? "종일"}</span>
+              <span className="text-sm">
+                <span className="font-medium">{event.company}</span>{" "}
+                <span className="text-muted-foreground">{event.label}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 export function CalendarView({
   applications,
   schedules,
@@ -164,6 +211,8 @@ export function CalendarView({
   const [year, setYear] = useState(Number(today.slice(0, 4)));
   const [month, setMonth] = useState(Number(today.slice(5, 7)));
   const [detailId, setDetailId] = useState<string | null>(null);
+  // 달력에서 고른 날짜 — 고르면 오른쪽 패널이 "다가오는 일정" 대신 그날 일정을 보여준다(지난 날짜 포함).
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [detailCompanyId, setDetailCompanyId] = useState<string | null>(null);
 
   const [scheduleItems, setScheduleItems] = useState(schedules);
@@ -198,6 +247,8 @@ export function CalendarView({
     setYear(Number(today.slice(0, 4)));
     setMonth(Number(today.slice(5, 7)));
   }
+
+  const selectedDay = calendar.weeks.flat().find((day) => day.date === selectedDate) ?? null;
 
   function openEvent(event: CalendarEvent) {
     if (event.kind === "application") {
@@ -260,8 +311,25 @@ export function CalendarView({
               <div key={weekIndex} className="grid grid-cols-7 border-t border-border">
                 {week.map((day) => {
                   const tier = getDdayTier(day.date, today);
+                  const isSelected = day.date === selectedDate;
                   return (
-                    <div key={day.date} className="flex min-h-[76px] flex-col gap-1 p-1.5">
+                    <div
+                      key={day.date}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={isSelected}
+                      onClick={() => setSelectedDate(isSelected ? null : day.date)}
+                      onKeyDown={(e) => {
+                        if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
+                          e.preventDefault();
+                          setSelectedDate(isSelected ? null : day.date);
+                        }
+                      }}
+                      className={cn(
+                        "flex min-h-[76px] cursor-pointer flex-col gap-1 p-1.5 outline-none hover:bg-accent/60 focus-visible:bg-accent",
+                        isSelected && "bg-accent"
+                      )}
+                    >
                       <div className="flex items-center gap-1">
                         <span
                           className={cn(
@@ -288,7 +356,10 @@ export function CalendarView({
                           <button
                             key={event.id}
                             type="button"
-                            onClick={() => openEvent(event)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEvent(event);
+                            }}
                             className={cn(
                               "truncate rounded px-1.5 py-0.5 text-left text-[10.5px] hover:opacity-80",
                               tierClasses(tier)
@@ -298,8 +369,9 @@ export function CalendarView({
                           </button>
                         ))}
                         {day.events.length > MAX_VISIBLE_CHIPS && (
+                          // 칸이 좁아 2개까지만 보이고, 나머지는 날짜를 눌러 오른쪽 패널에서 본다.
                           <span className="px-1.5 text-[10.5px] text-muted-foreground">
-                            +{day.events.length - MAX_VISIBLE_CHIPS}
+                            +{day.events.length - MAX_VISIBLE_CHIPS}개 더
                           </span>
                         )}
                       </div>
@@ -312,60 +384,73 @@ export function CalendarView({
         </div>
 
         <div className="flex w-full flex-col gap-3 md:w-[220px] md:shrink-0">
-          <p className="text-xs text-muted-foreground">다가오는 일정</p>
-
-          {upcoming.length === 0 && unscheduled.length === 0 ? (
-            <EmptySchedulePlaces onNavigateToBoard={onNavigateToBoard} />
+          {selectedDay ? (
+            <SelectedDayPanel
+              day={selectedDay}
+              today={today}
+              onOpenEvent={openEvent}
+              onClose={() => setSelectedDate(null)}
+            />
           ) : (
             <>
-              <div className="flex flex-col gap-3">
-                {upcoming.map((event) => (
-                  <button
-                    key={event.id}
-                    type="button"
-                    onClick={() => openEvent(event)}
-                    className="flex flex-col gap-0.5 text-left"
-                  >
-                    <span
-                      className={cn(
-                        "text-[11px] tabular-nums",
-                        event.date === today ? "text-urgent" : "text-muted-foreground"
-                      )}
-                    >
-                      {formatUpcomingDate(event.date, event.time, today)}
-                    </span>
-                    <span className="text-sm">
-                      <span className="font-medium">{event.company}</span>{" "}
-                      <span className="text-muted-foreground">{event.label}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
+            <p className="text-xs text-muted-foreground">다가오는 일정</p>
 
-              {unscheduled.length > 0 && (
-                <div className="flex flex-col gap-3 border-t border-border pt-3">
-                  <p className="text-[11px] text-muted-foreground">일정 미정</p>
-                  {unscheduled.map((item) => (
-                    <UnscheduledRow
-                      key={item.applicationId}
-                      item={item}
-                      application={applications.find((a) => a.id === item.applicationId) ?? null}
-                      schedule={
-                        scheduleItems.find(
-                          (s) => s.applicationId === item.applicationId && s.stage === "interview"
-                        ) ?? null
-                      }
-                      recordedRounds={recordedInterviewRounds(scheduleItems, item.applicationId)}
-                      onSaveInterviewRound={handleSetInterviewRound}
-                      onRequestCodingTest={setPendingCodingTestId}
-                    />
+            {upcoming.length === 0 && unscheduled.length === 0 ? (
+              <>
+                <p className="text-sm">다가오는 일정이 없어요</p>
+                <EmptySchedulePlaces onNavigateToBoard={onNavigateToBoard} />
+              </>
+            ) : (
+              <>
+                <div className="flex flex-col gap-3">
+                  {upcoming.map((event) => (
+                    <button
+                      key={event.id}
+                      type="button"
+                      onClick={() => openEvent(event)}
+                      className="flex flex-col gap-0.5 text-left"
+                    >
+                      <span
+                        className={cn(
+                          "text-[11px] tabular-nums",
+                          event.date === today ? "text-urgent" : "text-muted-foreground"
+                        )}
+                      >
+                        {formatUpcomingDate(event.date, event.time, today)}
+                      </span>
+                      <span className="text-sm">
+                        <span className="font-medium">{event.company}</span>{" "}
+                        <span className="text-muted-foreground">{event.label}</span>
+                      </span>
+                    </button>
                   ))}
                 </div>
-              )}
+
+                {unscheduled.length > 0 && (
+                  <div className="flex flex-col gap-3 border-t border-border pt-3">
+                    <p className="text-[11px] text-muted-foreground">일정 미정</p>
+                    {unscheduled.map((item) => (
+                      <UnscheduledRow
+                        key={item.applicationId}
+                        item={item}
+                        application={applications.find((a) => a.id === item.applicationId) ?? null}
+                        schedule={
+                          scheduleItems.find(
+                            (s) => s.applicationId === item.applicationId && s.stage === "interview"
+                          ) ?? null
+                        }
+                        recordedRounds={recordedInterviewRounds(scheduleItems, item.applicationId)}
+                        onSaveInterviewRound={handleSetInterviewRound}
+                        onRequestCodingTest={setPendingCodingTestId}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
             </>
           )}
         </div>
-
       </div>
 
         <CodingTestScheduleDialog
