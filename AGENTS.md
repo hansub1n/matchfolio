@@ -104,6 +104,7 @@ matchfolio 프로젝트 작업 시 참고할 컨텍스트 문서.
 - 구조: 챕터/장면 정의는 `shared/config/tutorial.ts`(장면 id·제목·설명), 움직이는 미니 UI는 `features/onboarding/ui/scenes`의 `SCENES`에 같은 id로 등록(없으면 "준비 중"). shared가 features를 참조할 수 없어서 id로 연결
 - 여는 곳: 헤더 탭 옆 "사용법"(가이드 모드), 첫 접속 자동 재생(기본 흐름, localStorage `matchfolio:tutorial-seen`). 여는 요청은 `shared/lib/tutorial-store.ts`로 주고받는다(여러 feature에서 열어야 해서)
 - 기본 흐름 모드: 첫 챕터 장면만, 마지막 장면에 "기능별로 더 보기". 가이드 모드: 왼쪽 w-48 챕터 목록(본 챕터 체크) + 장면 영역, 챕터 마지막의 "다음"은 다음 챕터로, 전체 마지막은 "시작하기"
+- 장면: 영상/GIF가 아니라 실제 화면을 단순화한 미니 UI + Framer Motion 약 3초 반복(`scenes/mini.tsx`의 `useLoop`). 모션 줄이기 설정이면 마지막 프레임에서 멈춤. 상태 변화는 겹쳐둔 요소의 투명도로만 표현(크기 고정). 회사명은 가상 이름("오로라랩" 등)만. 지금 구현된 장면: 기본 흐름 5개 + 일정과 단계 4개, 나머지 챕터는 "준비 중"
 - 모달은 높이 고정(440px), 버튼 자리 고정. ←/→ 이동, Esc 닫기. 이동 규칙은 `model/tutorial-navigation.ts`
 
 ## 디자인 방향
