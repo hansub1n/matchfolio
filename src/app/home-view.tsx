@@ -9,6 +9,7 @@ import type { MyProject } from "@/entities/my-project";
 import type { ProjectMatchWithCompany } from "@/entities/project-match";
 import type { Schedule } from "@/entities/schedule";
 import { AnonymousSignIn } from "@/features/anonymous-sign-in";
+import { AccountMenu } from "@/features/link-account";
 import { TutorialDialog } from "@/features/onboarding";
 import { ApplicationStats } from "@/widgets/application-stats";
 import { BoardHeader } from "@/widgets/board-header";
@@ -81,7 +82,7 @@ export function HomeView({
               </TabsTrigger>
             </TabsList>
           </div>
-            {/* 사용법(?) 자리 — 휴대폰에선 1줄 오른쪽, sm부터는 탭 오른쪽. */}
+            {/* 사용법(?)과 계정 자리 — 휴대폰에선 1줄 오른쪽, sm부터는 탭 오른쪽. */}
             <div className="col-start-2 row-start-1 flex items-center gap-2">
               {/* 지금 보고 있는 탭에 맞는 챕터부터 연다. 탭처럼 보이지 않게 아이콘만 둔 둥근 버튼 —
                   기능 옆 "?"(HelpButton)와 같은 아이콘이라 "도움말"로 읽힌다. */}
@@ -94,6 +95,9 @@ export function HomeView({
               >
                 <CircleHelp className="size-4" />
               </button>
+              <AccountMenu
+                localCounts={{ applications: applications.length, materials: myProjects.length + documents.length }}
+              />
             </div>
         </div>
         <TabsContent value="board" className="flex flex-col gap-4">

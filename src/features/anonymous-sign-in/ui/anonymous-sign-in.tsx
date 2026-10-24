@@ -8,8 +8,9 @@ import { env } from "@/shared/config/env";
 
 const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 
-// 개발 모드의 effect 두 번 실행 등으로 계정이 두 개 만들어지지 않게, 이 탭에서 한 번만 시도한다.
-let signInStarted = false;
+// 개발 모드의 effect 두 번 실행 등으로 계정이 두 개 만들어지지 않게, 시도 중에는 한 번 더 시작하지 않는다.
+// 끝나면 풀어둔다 — 로그아웃하면 이 탭에서 다시 새 익명 계정을 만들어야 해서.
+let signInInFlight = false;
 
 interface TurnstileApi {
   render: (
@@ -59,14 +60,15 @@ export function AnonymousSignIn() {
     let widgetId: string | null = null;
 
     async function signIn(captchaToken?: string) {
-      if (signInStarted) return;
-      signInStarted = true;
-      const { error: signInError } = await getBrowserSupabase().auth.signInAnonymously(
-        captchaToken ? { options: { captchaToken } } : undefined
-      );
+      if (signInInFlight) return;
+      signInInFlight = true;
+      const { error: signInError } = await getBrowserSupabase()
+        .auth.signInAnonymously(captchaToken ? { options: { captchaToken } } : undefined)
+        .finally(() => {
+          signInInFlight = false;
+        });
       if (signInError) {
         console.error("익명 로그인 실패:", signInError.message);
-        signInStarted = false;
         setError("시작하지 못했어요. 새로고침해서 다시 시도해주세요");
         return;
       }
