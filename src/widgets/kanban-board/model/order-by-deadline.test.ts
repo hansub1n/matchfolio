@@ -19,7 +19,7 @@ function company(id: string, deadline: string | null): Application {
     memo: null,
     techStack: [],
     submittedProjectIds: [],
-    coverLetter: null,
+    submittedCoverLetterId: null,
     submissionUpdatedAt: null,
     createdAt: "2026-10-01T00:00:00.000Z",
     updatedAt: "2026-10-01T00:00:00.000Z",

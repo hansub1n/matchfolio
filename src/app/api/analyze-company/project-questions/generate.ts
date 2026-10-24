@@ -8,7 +8,7 @@ import {
   shouldGenerateProjectQuestions,
 } from "@/features/analyze-company/model/project-questions-payload";
 import { buildSubmissionContext } from "@/features/analyze-company/model/submission-context";
-import { computeSkillGap } from "@/widgets/my-projects";
+import { computeSkillGap } from "@/widgets/my-materials";
 import { env } from "@/shared/config/env";
 import { describeGroqError, GROQ_TEXT_MODEL, isRetryable } from "@/shared/lib/groq";
 
@@ -84,7 +84,7 @@ export async function generateProjectQuestions(
 ): Promise<GenerateProjectQuestionsResult | { error: string; status: number }> {
   const { data: application, error: applicationError } = await supabase
     .from("applications")
-    .select("company, position, description, tech_stack, submitted_project_ids, cover_letter")
+    .select("company, position, description, tech_stack, submitted_project_ids, submitted_cover_letter_id")
     .eq("id", applicationId)
     .single();
 
@@ -97,10 +97,10 @@ export async function generateProjectQuestions(
     .select("id, name, description, tech_stack, highlights");
 
   if (!myProjects || !shouldGenerateProjectQuestions(myProjects.length)) {
-    return { error: "등록된 프로젝트가 없습니다. 먼저 '내 프로젝트' 탭에서 추가해주세요.", status: 400 };
+    return { error: "등록된 프로젝트가 없습니다. 먼저 '내 자료' 탭에서 추가해주세요.", status: 400 };
   }
 
-  // "내 프로젝트" 탭의 기술 격차와 같은 기준 — 실제로 지원한 공고(관심 단계 제외)만 센다.
+  // "내 자료" 탭의 기술 격차와 같은 기준 — 실제로 지원한 공고(관심 단계 제외)만 센다.
   const { data: allApplications } = await supabase
     .from("applications")
     .select("tech_stack")
@@ -122,8 +122,16 @@ export async function generateProjectQuestions(
 
   const { company, position, description, tech_stack: techStack } = application;
   const nameById = new Map(myProjects.map((p) => [p.id, p.name]));
+  // 제출 기록에 고른 자소서의 본문 — 지워졌거나 고르지 않았으면 없음.
+  const { data: submittedCoverLetter } = application.submitted_cover_letter_id
+    ? await supabase
+        .from("documents")
+        .select("content")
+        .eq("id", application.submitted_cover_letter_id)
+        .maybeSingle()
+    : { data: null };
   const submissionContext = buildSubmissionContext(
-    application.cover_letter,
+    submittedCoverLetter?.content ?? null,
     ((application.submitted_project_ids ?? []) as string[])
       .map((id) => nameById.get(id))
       .filter((name): name is string => Boolean(name))

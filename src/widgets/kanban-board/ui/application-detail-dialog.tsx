@@ -10,6 +10,7 @@ import {
   type Application,
   type UpdateApplicationInput,
 } from "@/entities/application";
+import type { UserDocument } from "@/entities/document";
 import type { Schedule } from "@/entities/schedule";
 import {
   CompanyAnalysisSection,
@@ -23,6 +24,7 @@ import { formatDateTime } from "@/shared/lib/format-date-time";
 import { todayKST } from "@/shared/lib/kst-date";
 import { techSatisfies } from "@/shared/lib/tech-aliases";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
+import { requestTab } from "@/shared/lib/tab-store";
 import { Button } from "@/shared/ui/button";
 import { CompanyMonogram } from "@/shared/ui/company-monogram";
 import {
@@ -92,6 +94,8 @@ type CommonProps = {
   // 기업분석의 "관련 프로젝트" 칩 이름을 AI 응답이 아니라 여기서 조인해서
   // 보여주는 용도라 id/name만 있으면 된다.
   myProjects?: { id: string; name: string; createdAt: string }[];
+  // 내 자료의 이력서·자소서 — 공고 매칭과 제출 기록에서 쓴다.
+  documents?: UserDocument[];
   initialMode?: "view" | "edit";
   onOpenChange: (open: boolean) => void;
   onDelete?: (id: string) => void;
@@ -109,7 +113,7 @@ type ApplicationVariantProps = CommonProps & {
 
 type InterestedVariantProps = CommonProps & {
   variant: "interested";
-  // stage가 'interested'인 지원카드. 지원 전이라 "지원하기"/프로젝트 매칭이 붙는다.
+  // stage가 'interested'인 지원카드. 지원 전이라 "지원하기"가 붙는다.
   company: Application | null;
   onUpdate: (id: string, input: UpdateApplicationInput) => void;
   onApply?: (company: Application) => void;
@@ -118,7 +122,7 @@ type InterestedVariantProps = CommonProps & {
 type Props = ApplicationVariantProps | InterestedVariantProps;
 
 export function ApplicationDetailDialog(props: Props) {
-  const { myProjectTechStack = [], myProjects = [], initialMode = "view", onOpenChange, onDelete } = props;
+  const { myProjectTechStack = [], myProjects = [], documents = [], initialMode = "view", onOpenChange, onDelete } = props;
   const isInterested = props.variant === "interested";
   const entity = isInterested ? props.company : props.application;
 
@@ -374,10 +378,33 @@ export function ApplicationDetailDialog(props: Props) {
               open={openGroups.has("application")}
               onToggle={() => toggleGroup("application")}
             >
-              <MatchProjectsPanel key={entity.id} company={entity} myProjectCount={myProjects.length} />
+              <p className="text-[11.5px] text-muted-foreground">
+                내 자료(프로젝트·자소서·이력서)를 기준으로 이 공고에 맞춰봐요.{" "}
+                <button
+                  type="button"
+                  onClick={() => requestTab("materials")}
+                  className="underline underline-offset-2 hover:text-foreground"
+                >
+                  내 자료에서 등록·수정
+                </button>
+              </p>
+              <MatchProjectsPanel
+                key={entity.id}
+                company={entity}
+                materials={{
+                  projectCount: myProjects.length,
+                  hasResume: documents.some((d) => d.kind === "resume"),
+                  coverLetterCount: documents.filter((d) => d.kind === "cover_letter").length,
+                }}
+              />
               <MotivationSection state={prepState} hasProjects={myProjects.length > 0} />
               {application && (
-                <SubmissionSection key={application.id} application={application} myProjects={myProjects} />
+                <SubmissionSection
+                  key={application.id}
+                  application={application}
+                  myProjects={myProjects}
+                  coverLetters={documents.filter((d) => d.kind === "cover_letter")}
+                />
               )}
             </DetailGroup>
 
@@ -527,7 +554,7 @@ export function ApplicationDetailDialog(props: Props) {
             <DialogTitle>{isInterested ? "이 관심기업을 삭제할까요?" : "이 공고를 삭제할까요?"}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            스크린샷과 기업분석·프로젝트 매칭 기록도 함께 삭제돼요.
+            스크린샷과 기업분석·공고 매칭 기록도 함께 삭제돼요.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>

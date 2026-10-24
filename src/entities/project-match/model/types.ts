@@ -29,16 +29,32 @@ export function isDetailedProjectMatch(item: ProjectMatchItem): item is Detailed
   return "projectId" in item;
 }
 
+// 공고 매칭의 자소서 첨삭 — 고칠 문장과 이유, 고친 예시. 내 자료의 자소서 원문을 기준으로 한다.
+export interface CoverLetterEdit {
+  original: string;
+  suggestion: string;
+  reason: string;
+}
+
+export interface ApplicationReview {
+  // 기준으로 삼은 자소서(제출 기록 → 대표 → 최근 순). 자소서가 없으면 null.
+  coverLetter: { documentId: string; title: string; edits: CoverLetterEdit[] } | null;
+  // 이 공고 기준으로 이력서에서 강조할 점. 이력서가 없으면 빈 배열.
+  resumeTips: string[];
+}
+
 export interface ProjectMatches {
   id: string;
   applicationId: string;
   recommendation: string | null;
+  // 구버전(프로젝트 매칭만 하던 때) 캐시는 null.
+  review: ApplicationReview | null;
   matches: ProjectMatchItem[];
   createdAt: string;
   updatedAt: string;
 }
 
-// "내 프로젝트" 탭에서 프로젝트별 최고 매칭을 계산할 때 쓴다 — project_matches가
+// "내 자료" 탭에서 프로젝트별 최고 매칭을 계산할 때 쓴다 — project_matches가
 // application_id로만 묶여 있어서, 회사명을 조인해 평평하게 펴놓은 형태.
 export interface ProjectMatchWithCompany {
   company: string;

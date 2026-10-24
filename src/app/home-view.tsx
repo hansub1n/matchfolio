@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BarChart3, CalendarDays, FolderGit2, LayoutGrid } from "lucide-react";
 
 import { isSubmitted, type Application } from "@/entities/application";
+import type { UserDocument } from "@/entities/document";
 import type { MyProject } from "@/entities/my-project";
 import type { ProjectMatchWithCompany } from "@/entities/project-match";
 import type { Schedule } from "@/entities/schedule";
@@ -12,7 +13,8 @@ import { ApplicationStats } from "@/widgets/application-stats";
 import { BoardHeader } from "@/widgets/board-header";
 import { CalendarView } from "@/widgets/calendar-view";
 import { KanbanBoard } from "@/widgets/kanban-board";
-import { MyProjects } from "@/widgets/my-projects";
+import { MyMaterials } from "@/widgets/my-materials";
+import { registerTabHandler } from "@/shared/lib/tab-store";
 import { openTutorial } from "@/shared/lib/tutorial-store";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { Toaster } from "@/shared/ui/toast";
@@ -20,15 +22,19 @@ import { Toaster } from "@/shared/ui/toast";
 export function HomeView({
   applications,
   myProjects,
+  documents,
   schedules,
   allProjectMatches,
 }: {
   applications: Application[];
   myProjects: MyProject[];
+  documents: UserDocument[];
   schedules: Schedule[];
   allProjectMatches: ProjectMatchWithCompany[];
 }) {
-  const [tab, setTab] = useState("board");
+  const [tab, setTab] = useState<string>("board");
+  // 상세 모달 안의 "내 자료로 가기"처럼 깊은 곳에서 탭을 바꾸는 요청을 받는다.
+  useEffect(() => registerTabHandler(setTab), []);
   // 내 프로젝트의 "지원 공고 대비 없는 기술"은 실제로 지원한 공고 기준으로 센다.
   const submitted = applications.filter(isSubmitted);
 
@@ -49,8 +55,8 @@ export function HomeView({
                 <LayoutGrid data-icon="inline-start" />
                 보드
               </TabsTrigger>
-              <TabsTrigger value="my-projects">
-                <FolderGit2 data-icon="inline-start" />내 프로젝트
+              <TabsTrigger value="materials">
+                <FolderGit2 data-icon="inline-start" />내 자료
               </TabsTrigger>
               <TabsTrigger value="stats">
                 <BarChart3 data-icon="inline-start" />
@@ -72,14 +78,19 @@ export function HomeView({
         </div>
         <TabsContent value="board" className="flex flex-col gap-4">
           <BoardHeader applications={applications} schedules={schedules} />
-          <KanbanBoard applications={applications} schedules={schedules} myProjects={myProjects} />
+          <KanbanBoard
+            applications={applications}
+            schedules={schedules}
+            myProjects={myProjects}
+            documents={documents}
+          />
         </TabsContent>
-        <TabsContent value="my-projects">
-          <MyProjects
+        <TabsContent value="materials">
+          <MyMaterials
             projects={myProjects}
+            documents={documents}
             applications={submitted}
             allProjectMatches={allProjectMatches}
-            comparableCount={applications.filter((app) => app.outcome === "in_progress").length}
             onNavigateToCompany={handleNavigateToCompany}
           />
         </TabsContent>
@@ -88,6 +99,7 @@ export function HomeView({
             applications={applications}
             schedules={schedules}
             myProjects={myProjects}
+            documents={documents}
           />
         </TabsContent>
         <TabsContent value="calendar">
@@ -95,6 +107,7 @@ export function HomeView({
             applications={applications}
             schedules={schedules}
             myProjects={myProjects}
+            documents={documents}
             onNavigateToBoard={() => setTab("board")}
           />
         </TabsContent>

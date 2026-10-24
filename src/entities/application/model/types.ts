@@ -16,10 +16,10 @@ export interface Application {
   description: string | null;
   memo: string | null;
   techStack: string[];
-  // 제출 기록 — 지원할 때 어필한 프로젝트(my_projects id)와 낸 자소서. 프로젝트 기반
-  // 예상 질문 생성에 쓰인다. 삭제된 프로젝트 id는 읽을 때 무시한다.
+  // 제출 기록 — 지원할 때 어필한 프로젝트(my_projects id)와 어떤 자소서(documents)로
+  // 냈는지. 프로젝트 기반 예상 질문 생성에 쓰인다. 삭제된 id는 읽을 때 무시한다.
   submittedProjectIds: string[];
-  coverLetter: string | null;
+  submittedCoverLetterId: string | null;
   submissionUpdatedAt: string | null;
   createdAt: string;
   updatedAt: string;

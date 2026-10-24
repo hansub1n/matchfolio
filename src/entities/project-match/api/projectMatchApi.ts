@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getBrowserSupabase } from "@/shared/api/supabase";
 
 import type {
+  ApplicationReview,
   DetailedProjectMatchItem,
   LegacyProjectMatchItem,
   ProjectMatchItem,
@@ -36,6 +37,7 @@ interface ProjectMatchesRow {
   id: string;
   application_id: string;
   recommendation: string | null;
+  review: ApplicationReview | null;
   matches: StoredMatch[];
   created_at: string;
   updated_at: string;
@@ -56,6 +58,7 @@ export async function getProjectMatches(applicationId: string): Promise<ProjectM
     id: data.id,
     applicationId: data.application_id,
     recommendation: data.recommendation,
+    review: data.review ?? null,
     matches: data.matches.map((m) => resolveMatch(m, nameById)),
     createdAt: data.created_at,
     updatedAt: data.updated_at,
@@ -67,7 +70,7 @@ interface ProjectMatchesWithCompanyRow {
   applications: { company: string } | null;
 }
 
-// "내 프로젝트" 탭에서 프로젝트별로 "가장 잘 맞는 공고"를 보여주려고, 회사별로
+// "내 자료" 탭에서 프로젝트별로 "가장 잘 맞는 공고"를 보여주려고, 회사별로
 // 쌓인 매칭 결과를 전부 가져와 회사명과 함께 평평하게 편다.
 export async function getAllProjectMatches(
   client: SupabaseClient = getBrowserSupabase()

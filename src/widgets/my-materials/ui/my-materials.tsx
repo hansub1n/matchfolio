@@ -9,6 +9,7 @@ import {
   type MyProject,
   type UpdateMyProjectInput,
 } from "@/entities/my-project";
+import type { UserDocument } from "@/entities/document";
 import type { ProjectMatchWithCompany } from "@/entities/project-match";
 import { CreateMyProjectDialog, InlineProjectImport } from "@/features/create-my-project";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
@@ -21,20 +22,22 @@ import { computeSkillGap } from "../model/compute-skill-gap";
 import { computeTopTechStack } from "../model/compute-top-tech-stack";
 import { MyProjectDetailDialog } from "./my-project-detail-dialog";
 import { ProjectRow } from "./project-row";
+import { CoverLetterSection, ResumeSection, SECTION_ACTION, SectionHeader } from "./document-sections";
 import { SkillGapBox } from "./skill-gap-box";
 
-export function MyProjects({
+// "내 자료" 탭 — 이력서(1개)·자소서(여러 개, 대표 1개)·프로젝트. 공고 상세의 "공고 매칭"과
+// 예상 질문이 여기 등록한 자료를 기준으로 만들어진다.
+export function MyMaterials({
   projects,
+  documents,
   applications,
   allProjectMatches,
-  comparableCount,
   onNavigateToCompany,
 }: {
   projects: MyProject[];
+  documents: UserDocument[];
   applications: Application[];
   allProjectMatches: ProjectMatchWithCompany[];
-  // 관심/진행 중인 공고 수 — 빈 상태에서 "관심 공고 N개와 비교할 수 있어요" 안내에 쓴다.
-  comparableCount: number;
   onNavigateToCompany?: (company: string) => void;
 }) {
   const [items, setItems] = useState(projects);
@@ -48,6 +51,9 @@ export function MyProjects({
   const detailProject = items.find((p) => p.id === detailId) ?? null;
 
   const isEmpty = items.length === 0;
+  const resume = documents.find((d) => d.kind === "resume") ?? null;
+  const coverLetters = documents.filter((d) => d.kind === "cover_letter");
+  const materialCount = items.length + documents.length;
   const topTechStack = computeTopTechStack(items);
   const skillGap = computeSkillGap(applications, items);
 
@@ -85,54 +91,49 @@ export function MyProjects({
     <PageLayout
       title={
         <span className="inline-flex items-center gap-1.5">
-          {isEmpty ? "등록된 프로젝트가 없어요" : `프로젝트 ${items.length}개로 공고와 매칭하고 있어요`}
-          <HelpButton chapterId="projects" label="내 프로젝트" />
+          {materialCount === 0 ? "등록된 자료가 없어요" : "내 자료"}
+          <HelpButton chapterId="projects" label="내 자료" />
         </span>
       }
-      subtitle={
-        !isEmpty
-          ? `가장 많이 쓴 기술 · ${topTechStack.join(", ") || "—"}`
-          : comparableCount > 0
-            ? `관심 공고 ${comparableCount}개와 비교할 수 있어요`
-            : "등록한 프로젝트로 공고 매칭과 예상 질문을 만들어요"
-      }
-      action={
-        <CreateMyProjectDialog
-          trigger={
-            <button
-              type="button"
-              className="rounded-full bg-primary px-3 py-1.5 text-xs text-primary-foreground"
-            >
-              프로젝트 추가
-            </button>
-          }
-        />
-      }
+      subtitle="공고 매칭과 예상 질문에 쓰는 자료예요"
     >
-      {!isEmpty && skillGap.length > 0 && (
-        <div className="mb-4">
-          <SkillGapBox items={skillGap} />
-        </div>
-      )}
-
-      {isEmpty && (
-        <>
-          <p className="mb-4 text-xs text-muted-foreground">가장 많이 쓴 기술 · —</p>
-          <EmptyProjectList />
-        </>
-      )}
-
-      <div className="flex flex-col">
-        {items.map((project) => (
-          <ProjectRow
-            key={project.id}
-            project={project}
-            bestMatch={computeBestMatch(project.name, allProjectMatches)}
-            onOpenDetail={(id) => openDetail(id, "view")}
-            onEdit={(id) => openDetail(id, "edit")}
-            onDelete={handleDelete}
+      <div className="flex flex-col gap-10">
+        <section className="flex flex-col gap-3">
+          <SectionHeader
+            title={`프로젝트${isEmpty ? "" : ` ${items.length}`}`}
+            action={
+              <CreateMyProjectDialog
+                trigger={
+                  <button type="button" className={SECTION_ACTION}>
+                    프로젝트 추가
+                  </button>
+                }
+              />
+            }
           />
-        ))}
+          <p className="text-xs text-muted-foreground">
+            가장 많이 쓴 기술 · {topTechStack.join(", ") || "—"}
+          </p>
+          {!isEmpty && skillGap.length > 0 && <SkillGapBox items={skillGap} />}
+          {isEmpty && <EmptyProjectList />}
+
+          <div className="flex flex-col">
+            {items.map((project) => (
+              <ProjectRow
+                key={project.id}
+                project={project}
+                bestMatch={computeBestMatch(project.name, allProjectMatches)}
+                onOpenDetail={(id) => openDetail(id, "view")}
+                onEdit={(id) => openDetail(id, "edit")}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* 신입은 이력서·자소서가 없을 수 있어서 선택 자료로 프로젝트 아래에 둔다. */}
+        <CoverLetterSection coverLetters={coverLetters} />
+        <ResumeSection resume={resume} />
       </div>
 
       <MyProjectDetailDialog

@@ -19,6 +19,7 @@ import {
   type Application,
   type UpdateApplicationInput,
 } from "@/entities/application";
+import type { UserDocument } from "@/entities/document";
 import type { MyProject } from "@/entities/my-project";
 import { recordedInterviewRounds, useScheduleRequests, type Schedule } from "@/entities/schedule";
 import {
@@ -46,10 +47,12 @@ export function KanbanBoard({
   applications,
   schedules,
   myProjects,
+  documents,
 }: {
   applications: Application[];
   schedules: Schedule[];
   myProjects: MyProject[];
+  documents: UserDocument[];
 }) {
   const router = useRouter();
   const myProjectTechStack = [...new Set(myProjects.flatMap((p) => p.techStack))];
@@ -305,6 +308,7 @@ export function KanbanBoard({
           variant="interested"
           company={detailApplication}
           myProjects={myProjects}
+          documents={documents}
           myProjectTechStack={myProjectTechStack}
           initialMode={detailMode}
           onOpenChange={(open) => {
@@ -322,6 +326,7 @@ export function KanbanBoard({
           interviewRounds={detailApplication ? interviewRounds.get(detailApplication.id) ?? [] : []}
           myProjectTechStack={myProjectTechStack}
           myProjects={myProjects}
+          documents={documents}
           initialMode={detailMode}
           onOpenChange={(open) => {
             if (!open) setDetailId(null);

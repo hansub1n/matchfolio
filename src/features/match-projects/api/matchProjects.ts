@@ -23,7 +23,7 @@ export async function matchProjects(applicationId: string): Promise<ProjectMatch
         return null;
       }
     })();
-    throw new Error(error ?? `프로젝트 매칭에 실패했습니다. (${response.status})`);
+    throw new Error(error ?? `공고 매칭에 실패했습니다. (${response.status})`);
   }
 
   return response.json();

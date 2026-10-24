@@ -11,15 +11,17 @@ import {
   type ProjectMatchItem,
   type ProjectMatches,
 } from "@/entities/project-match";
-import { CreateMyProjectDialog } from "@/features/create-my-project";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
+import { requestTab } from "@/shared/lib/tab-store";
 import { AiDisclaimer, AiSection, AiSectionButton, AiSectionSkeleton } from "@/shared/ui/ai-section";
+import { CopyButton } from "@/shared/ui/copy-button";
 import { HelpButton } from "@/shared/ui/help-button";
 
 import { matchProjects } from "../api/matchProjects";
 
-const TITLE = "프로젝트 매칭";
-const HELP = <HelpButton chapterId="early-ai" label="프로젝트 매칭" />;
+const TITLE = "공고 매칭";
+const HELP = <HelpButton chapterId="early-ai" label="공고 매칭" />;
+const SUB_LABEL = "text-[11px] text-muted-foreground";
 
 function LinkButton({ onClick, children }: { onClick: () => void; children: string }) {
   return (
@@ -142,13 +144,22 @@ function MatchRow({
   );
 }
 
+export interface MatchMaterialsSummary {
+  projectCount: number;
+  hasResume: boolean;
+  coverLetterCount: number;
+}
+
+// 내 자료(프로젝트·자소서·이력서)를 이 공고에 맞춰본다 — 자소서 첨삭, 이력서 강조점,
+// 어필할 프로젝트. 자료가 하나도 없으면 돌릴 수 없고 "내 자료"로 안내한다.
 export function MatchProjectsPanel({
   company,
-  myProjectCount,
+  materials,
 }: {
   company: Application;
-  myProjectCount: number;
+  materials: MatchMaterialsSummary;
 }) {
+  const hasMaterials = materials.projectCount > 0 || materials.hasResume || materials.coverLetterCount > 0;
   const [result, setResult] = useState<ProjectMatches | null>(null);
   const [loading, setLoading] = useState(true);
   const [matching, setMatching] = useState(false);
@@ -172,7 +183,7 @@ export function MatchProjectsPanel({
         if (!cancelled) setResult(r);
       })
       .catch((err) => {
-        console.warn("프로젝트 매칭 조회 실패:", err);
+        console.warn("공고 매칭 조회 실패:", err);
         if (!cancelled) setError("매칭 결과를 불러오지 못했습니다.");
       })
       .finally(() => {
@@ -192,7 +203,7 @@ export function MatchProjectsPanel({
       const r = await matchProjects(company.id);
       setResult(r);
     } catch (err) {
-      console.warn("프로젝트 매칭 실패:", err);
+      console.warn("공고 매칭 실패:", err);
       setError(err instanceof Error ? err.message : "알 수 없는 오류");
     } finally {
       setMatching(false);
@@ -211,61 +222,89 @@ export function MatchProjectsPanel({
   if (loading || matching) {
     return (
       <AiSection title={TITLE} help={HELP}>
-        <p className="mb-3 text-xs text-muted-foreground">공고와 프로젝트를 비교하는 중</p>
+        <p className="mb-3 text-xs text-muted-foreground">내 자료를 공고와 맞춰보는 중</p>
         <AiSectionSkeleton />
       </AiSection>
     );
   }
 
   if (!result) {
-    if (myProjectCount === 0) {
+    if (!hasMaterials) {
       return (
         <AiSection title={TITLE} help={HELP}>
           <p className="mb-3 text-xs text-muted-foreground">
-            먼저 내 프로젝트를 등록해야 매칭할 수 있어요
+            내 자료에 프로젝트·자소서·이력서를 등록하면 이 공고에 맞춰 볼 수 있어요
           </p>
-          <CreateMyProjectDialog
-            trigger={
-              <AiSectionButton icon={false} type="button">
-                프로젝트 추가
-              </AiSectionButton>
-            }
-          />
+          <AiSectionButton icon={false} onClick={() => requestTab("materials")}>
+            내 자료로 가기
+          </AiSectionButton>
         </AiSection>
       );
     }
     return (
       <AiSection title={TITLE} help={HELP}>
-        <p className="mb-3 text-xs text-muted-foreground">
-          내 프로젝트 {myProjectCount}개를 이 공고와 비교해서 어필할 포인트를 찾아요
-        </p>
+        <p className="mb-3 text-xs text-muted-foreground">{describeMaterials(materials)}를 이 공고에 맞춰봐요</p>
         <AiSectionButton onClick={handleMatch}>매칭하기</AiSectionButton>
       </AiSection>
     );
   }
 
-  const { matches, recommendation } = result;
+  const { matches, recommendation, review } = result;
   const topScore = matches.reduce((max, m) => Math.max(max, m.fitScore), 0);
 
   return (
     <AiSection title={TITLE} help={HELP} headerAction={<LinkButton onClick={handleMatch}>다시 매칭</LinkButton>}>
       <div className="mt-2 flex flex-col gap-3">
         {recommendation && <p className="text-xs text-foreground">{recommendation}</p>}
-        {matches.length > 0 ? (
-          matches.map((match, i) => (
-            <MatchRow
-              key={match.projectName + i}
-              match={match}
-              isTop={match.fitScore === topScore}
-              isOpen={openIndices.has(i)}
-              onToggle={() => toggleOpen(i)}
-            />
-          ))
-        ) : (
-          <p className="text-sm text-muted-foreground">관련 있는 프로젝트를 찾지 못했습니다.</p>
+        {review?.coverLetter && review.coverLetter.edits.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <p className={SUB_LABEL}>자소서 첨삭 · {review.coverLetter.title}</p>
+            {review.coverLetter.edits.map((edit, i) => (
+              <div key={i} className="flex flex-col gap-1 border-t py-2.5">
+                <p className="text-xs text-muted-foreground">{edit.original}</p>
+                <div className="flex items-start justify-between gap-3 rounded-md bg-card p-2.5">
+                  <p className="text-xs leading-relaxed">{edit.suggestion}</p>
+                  <CopyButton text={edit.suggestion} />
+                </div>
+                <p className="text-[11px] text-muted-foreground">{edit.reason}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {review && review.resumeTips.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <p className={SUB_LABEL}>이력서에서 강조할 점</p>
+            <ul className="list-inside list-disc text-xs leading-relaxed">
+              {review.resumeTips.map((tip, i) => (
+                <li key={i}>{tip}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {matches.length > 0 && (
+          <div className="flex flex-col gap-3">
+            <p className={SUB_LABEL}>어필할 프로젝트</p>
+            {matches.map((match, i) => (
+              <MatchRow
+                key={match.projectName + i}
+                match={match}
+                isTop={match.fitScore === topScore}
+                isOpen={openIndices.has(i)}
+                onToggle={() => toggleOpen(i)}
+              />
+            ))}
+          </div>
         )}
         <AiDisclaimer />
       </div>
     </AiSection>
   );
+}
+
+function describeMaterials({ projectCount, hasResume, coverLetterCount }: MatchMaterialsSummary): string {
+  const parts: string[] = [];
+  if (hasResume) parts.push("이력서");
+  if (coverLetterCount > 0) parts.push("자소서");
+  if (projectCount > 0) parts.push(`프로젝트 ${projectCount}개`);
+  return parts.join("·");
 }

@@ -103,7 +103,7 @@ export function AiPrepScene() {
       <div className="flex w-[300px] flex-col gap-2.5 rounded-xl border bg-card p-3 text-[10.5px] shadow-sm">
         <span className="text-[11.5px] font-medium">{SAMPLE_COMPANY}</span>
         <div className="flex flex-col gap-1.5">
-          <span className="text-[10px] text-muted-foreground">프로젝트 매칭</span>
+          <span className="text-[10px] text-muted-foreground">공고 매칭</span>
           {bars.map((bar, i) => (
             <div key={bar.name} className="flex items-center gap-2">
               <span className="w-16 shrink-0 truncate">{bar.name}</span>

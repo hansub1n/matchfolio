@@ -37,7 +37,7 @@ export function buildSampleData(today: string): SampleData {
     memo: null,
     techStack: [],
     submittedProjectIds: [],
-    coverLetter: null,
+    submittedCoverLetterId: null,
     submissionUpdatedAt: null,
     createdAt: created(-30),
     updatedAt: created(-1),

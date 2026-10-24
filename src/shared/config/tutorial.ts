@@ -32,7 +32,7 @@ export const TUTORIAL_CHAPTERS: TutorialChapter[] = [
       { id: "basics.upload", title: "공고를 올려요", caption: "스크린샷을 끌어다 놓으면 AI가 읽어서 관심 카드로 만들어요" },
       { id: "basics.apply", title: "지원하면 옮겨요", caption: "지원을 마치면 서류로 옮겨요. 지원 기록이 쌓여요" },
       { id: "basics.progress", title: "결과에 따라 옮겨요", caption: "통과하면 다음 단계로, 끝나면 종료로 옮겨요" },
-      { id: "basics.ai", title: "AI가 준비를 도와요", caption: "카드를 열면 회사 분석, 프로젝트 매칭, 예상 질문을 볼 수 있어요" },
+      { id: "basics.ai", title: "AI가 준비를 도와요", caption: "카드를 열면 회사 분석, 공고 매칭, 예상 질문을 볼 수 있어요" },
       { id: "basics.flow", title: "흐름이 보여요", caption: "기록이 쌓이면 어디서 통과하고 떨어지는지 보여줘요" },
     ],
   },
@@ -57,10 +57,10 @@ export const TUTORIAL_CHAPTERS: TutorialChapter[] = [
   },
   {
     id: "projects",
-    title: "내 프로젝트",
+    title: "내 자료",
     scenes: [
-      { id: "projects.register", title: "프로젝트 등록", caption: "GitHub 주소나 README로 프로젝트를 등록해요" },
-      { id: "projects.usage", title: "어디에 쓰이나요", caption: "등록한 프로젝트는 공고 매칭과 예상 질문, 기술 격차에 쓰여요" },
+      { id: "projects.register", title: "자료 등록", caption: "이력서·자소서를 붙여넣고, 프로젝트는 GitHub 주소로 불러와요. 자소서는 대표를 정할 수 있어요" },
+      { id: "projects.usage", title: "어디에 쓰이나요", caption: "등록한 자료로 공고마다 자소서 첨삭과 어필할 프로젝트를 보여주고, 예상 질문을 만들어요" },
     ],
   },
   {
@@ -68,7 +68,7 @@ export const TUTORIAL_CHAPTERS: TutorialChapter[] = [
     title: "관심·서류 단계의 AI",
     scenes: [
       { id: "early-ai.company", title: "회사 분석", caption: "회사가 하는 일과 최근 소식을 출처와 함께 정리해요" },
-      { id: "early-ai.match", title: "프로젝트 매칭", caption: "어떤 프로젝트를 어필하면 좋은지, 왜 그런지 보여줘요" },
+      { id: "early-ai.match", title: "공고 매칭", caption: "내 자료를 이 공고에 맞춰 자소서 첨삭, 이력서 강조점, 어필할 프로젝트를 보여줘요" },
       { id: "early-ai.motivation", title: "지원 동기 포인트", caption: "자소서 지원 동기에 이어 쓸 수 있는 문장을 만들어요" },
     ],
   },

@@ -328,7 +328,7 @@ function EmptyProjectQuestionsGroup() {
   return (
     <div className="flex flex-col gap-2">
       <p className="text-[11px] text-muted-foreground">
-        내 프로젝트를 등록하면 내 경험 기준 질문 3개와 약점 대비 질문 2개가 추가돼요{" "}
+        내 자료에 프로젝트를 등록하면 내 경험 기준 질문 3개와 약점 대비 질문 2개가 추가돼요{" "}
         <CreateMyProjectDialog
           trigger={
             <button type="button" className="underline underline-offset-2 hover:text-foreground">

@@ -22,7 +22,7 @@ interface ApplicationRow {
   memo: string | null;
   tech_stack: string[];
   submitted_project_ids: string[];
-  cover_letter: string | null;
+  submitted_cover_letter_id: string | null;
   submission_updated_at: string | null;
   created_at: string;
   updated_at: string;
@@ -43,7 +43,7 @@ function toApplication(row: ApplicationRow): Application {
     memo: row.memo,
     techStack: row.tech_stack,
     submittedProjectIds: row.submitted_project_ids ?? [],
-    coverLetter: row.cover_letter,
+    submittedCoverLetterId: row.submitted_cover_letter_id,
     submissionUpdatedAt: row.submission_updated_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -141,7 +141,7 @@ export async function updateApplication(
 
 export interface SubmissionInput {
   submittedProjectIds: string[];
-  coverLetter: string | null;
+  submittedCoverLetterId: string | null;
 }
 
 // 제출 기록은 일반 수정과 따로 저장한다 — 다른 필드를 고칠 때마다
@@ -154,7 +154,7 @@ export async function updateSubmission(id: string, input: SubmissionInput): Prom
     .from("applications")
     .update({
       submitted_project_ids: input.submittedProjectIds,
-      cover_letter: input.coverLetter,
+      submitted_cover_letter_id: input.submittedCoverLetterId,
       submission_updated_at: submissionUpdatedAt,
     })
     .eq("id", id);

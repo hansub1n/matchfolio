@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { Sparkles } from "lucide-react";
 import { cn } from "cn";
 
-// 상세 모달 안의 AI 기능(프로젝트 매칭/기업분석)이 공유하는 패널 틀. 상태(대기/
+// 상세 모달 안의 AI 기능(공고 매칭/기업분석)이 공유하는 패널 틀. 상태(대기/
 // 로딩/결과/에러)에 따른 본문은 호출하는 쪽이 children으로 채우고, 여기는
 // 제목 줄(스파클 아이콘 + 제목 + 선택적 "다시 ~" 버튼)과 배경만 맡는다.
 export function AiSection({

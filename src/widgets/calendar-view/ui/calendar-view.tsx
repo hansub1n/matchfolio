@@ -12,6 +12,7 @@ import {
   type Application,
   type UpdateApplicationInput,
 } from "@/entities/application";
+import type { UserDocument } from "@/entities/document";
 import type { MyProject } from "@/entities/my-project";
 import { recordedInterviewRounds, useScheduleRequests, type Schedule } from "@/entities/schedule";
 import { getDdayTier, type DdayTier } from "@/shared/lib/dday";
@@ -148,11 +149,13 @@ export function CalendarView({
   applications,
   schedules,
   myProjects,
+  documents,
   onNavigateToBoard,
 }: {
   applications: Application[];
   schedules: Schedule[];
   myProjects: MyProject[];
+  documents: UserDocument[];
   onNavigateToBoard?: () => void;
 }) {
   const router = useRouter();
@@ -381,6 +384,7 @@ export function CalendarView({
           interviewRounds={detailId ? recordedInterviewRounds(scheduleItems, detailId) : []}
           myProjectTechStack={myProjectTechStack}
           myProjects={myProjects}
+          documents={documents}
           onOpenChange={(open) => {
             if (!open) setDetailId(null);
           }}
@@ -395,6 +399,7 @@ export function CalendarView({
           company={detailCompany}
           myProjectTechStack={myProjectTechStack}
           myProjects={myProjects}
+          documents={documents}
           onOpenChange={(open: boolean) => {
             if (!open) setDetailCompanyId(null);
           }}

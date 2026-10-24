@@ -1,3 +1,19 @@
+-- "내 자료"의 이력서(1개)·자소서(여러 개, 대표 1개). 014.
+create table documents (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  kind text not null check (kind in ('resume', 'cover_letter')),
+  title text not null,
+  content text not null,
+  is_primary boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create unique index documents_one_resume_per_user on documents (user_id) where kind = 'resume';
+create unique index documents_one_primary_cover_letter on documents (user_id)
+  where kind = 'cover_letter' and is_primary;
+create index documents_user_id_idx on documents (user_id);
+
 create table applications (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
@@ -22,10 +38,10 @@ create table applications (
   memo text,
   tech_stack text[] not null default '{}',
   -- 제출 기록: 지원할 때 어필한 프로젝트(my_projects id, FK 없음 — 삭제된 id는 읽을 때
-  -- 무시)와 낸 자소서. 프로젝트 기반 예상 질문 생성에 쓰이고, submission_updated_at은
-  -- 질문 생성 이후 기록이 바뀌었는지 판단하는 데 쓴다. 일반 수정과 따로 저장한다.
+  -- 무시)와 어떤 자소서로 냈는지(documents). 프로젝트 기반 예상 질문 생성에 쓰이고,
+  -- submission_updated_at은 질문 생성 이후 기록이 바뀌었는지 판단하는 데 쓴다.
   submitted_project_ids uuid[] not null default '{}',
-  cover_letter text,
+  submitted_cover_letter_id uuid references documents (id) on delete set null,
   submission_updated_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -94,6 +110,8 @@ create table project_matches (
   -- 전체 추천 한 줄. matches 각 항목의 evidence/gaps/pitch/projectId는 jsonb라
   -- 컬럼 없이도 들어간다.
   recommendation text,
+  -- 공고 매칭의 자소서 첨삭·이력서 강조점(014).
+  review jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -186,3 +204,8 @@ revoke execute on function public.consume_ai_usage(uuid, text, date, integer) fr
 revoke execute on function public.refund_ai_usage(uuid, text, date) from public, anon, authenticated;
 grant execute on function public.consume_ai_usage(uuid, text, date, integer) to service_role;
 grant execute on function public.refund_ai_usage(uuid, text, date) to service_role;
+
+alter table documents enable row level security;
+create policy "본인 데이터만" on documents for all to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));

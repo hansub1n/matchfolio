@@ -11,6 +11,7 @@ import {
   type Application,
   type UpdateApplicationInput,
 } from "@/entities/application";
+import type { UserDocument } from "@/entities/document";
 import type { MyProject } from "@/entities/my-project";
 import { recordedInterviewRounds, useScheduleRequests, type Schedule } from "@/entities/schedule";
 import { todayKST } from "@/shared/lib/kst-date";
@@ -36,10 +37,12 @@ export function ApplicationStats({
   applications,
   schedules,
   myProjects,
+  documents,
 }: {
   applications: Application[];
   schedules: Schedule[];
   myProjects: MyProject[];
+  documents: UserDocument[];
 }) {
   const router = useRouter();
   const stats = computeApplicationStats(applications, schedules);
@@ -171,6 +174,7 @@ export function ApplicationStats({
         interviewRounds={detailId ? recordedInterviewRounds(scheduleItems, detailId) : []}
         myProjectTechStack={myProjectTechStack}
         myProjects={myProjects}
+        documents={documents}
         onOpenChange={(open) => {
           if (!open) setDetailId(null);
         }}

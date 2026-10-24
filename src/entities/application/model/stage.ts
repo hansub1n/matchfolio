@@ -12,7 +12,7 @@ export function hasActiveDeadline(app: Pick<Application, "stage" | "deadline">):
 }
 
 // "지원하기"는 새 카드를 만드는 게 아니라 같은 카드의 단계를 넘기는 것 —
-// id가 그대로라 프로젝트 매칭/기업분석 결과가 그대로 이어진다.
+// id가 그대로라 공고 매칭/기업분석 결과가 그대로 이어진다.
 export function buildApplyInput(today: string) {
   return { stage: "document" as const, outcome: "in_progress" as const, appliedAt: today };
 }

@@ -1,7 +1,7 @@
 import "server-only";
 import Groq from "groq-sdk";
 
-// 텍스트만 다루는 라우트(기업분석/프로젝트 추출/프로젝트 매칭) 전용. 스크린샷 추출은
+// 텍스트만 다루는 라우트(기업분석/프로젝트 추출/공고 매칭) 전용. 스크린샷 추출은
 // Gemini만 쓴다 — 예전 Groq 비전 폴백(Qwen)은 한국어 공고를 못 읽고 내용을 지어내서 뺐다.
 export const GROQ_TEXT_MODEL = "openai/gpt-oss-120b";
 
