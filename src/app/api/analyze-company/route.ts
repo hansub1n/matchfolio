@@ -8,6 +8,12 @@ import {
   dedupeSourcesByUrl,
   filterSourcesByCompany,
 } from "@/features/analyze-company/model/filter-sources";
+import {
+  buildSearchCacheKey,
+  isSearchCacheFresh,
+  type SearchCacheOptions,
+} from "@/features/analyze-company/model/search-cache";
+import { supabaseAdmin } from "@/shared/api/supabase-admin";
 import { getRequestUser } from "@/shared/api/supabase-server";
 import { env } from "@/shared/config/env";
 import { describeGroqError, GROQ_TEXT_MODEL, isRetryable } from "@/shared/lib/groq";
@@ -36,10 +42,29 @@ interface TavilySource {
   publishedDate?: string;
 }
 
-async function tavilySearch(
-  query: string,
-  options: { includeDomains?: string[]; news?: boolean } = {}
-): Promise<TavilySource[]> {
+// 같은 검색어는 사용자끼리 저장된 결과를 다시 쓴다(017 search_cache). 캐시를 못 읽거나 못 써도 검색은 그대로 한다.
+async function tavilySearch(query: string, options: SearchCacheOptions = {}): Promise<TavilySource[]> {
+  const key = buildSearchCacheKey(query, options);
+  const { data: cached, error: cacheError } = await supabaseAdmin
+    .from("search_cache")
+    .select("results, created_at")
+    .eq("key", key)
+    .maybeSingle();
+  if (cacheError) console.warn("검색 캐시 조회 실패:", cacheError.message);
+  if (cached && isSearchCacheFresh(cached.created_at, options)) return cached.results as TavilySource[];
+
+  const results = await fetchTavily(query, options);
+  // 빈 결과는 저장하지 않는다 — Tavily가 잠깐 실패한 걸 며칠 동안 "결과 없음"으로 굳히지 않게.
+  if (results.length > 0) {
+    const { error } = await supabaseAdmin
+      .from("search_cache")
+      .upsert({ key, results, created_at: new Date().toISOString() });
+    if (error) console.warn("검색 캐시 저장 실패:", error.message);
+  }
+  return results;
+}
+
+async function fetchTavily(query: string, options: SearchCacheOptions): Promise<TavilySource[]> {
   try {
     const response = await fetch("https://api.tavily.com/search", {
       method: "POST",

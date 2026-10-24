@@ -210,3 +210,11 @@ alter table documents enable row level security;
 create policy "본인 데이터만" on documents for all to authenticated
   using (user_id = (select auth.uid()))
   with check (user_id = (select auth.uid()));
+
+-- 회사 분석 웹 검색 결과 공유 캐시(017). 사용자 데이터가 아니라 user_id 없음, service role만 접근.
+create table search_cache (
+  key text primary key,
+  results jsonb not null,
+  created_at timestamptz not null default now()
+);
+alter table search_cache enable row level security;
