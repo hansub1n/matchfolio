@@ -44,11 +44,22 @@ export interface MotivationPoint {
 
 export interface ApplicationReview {
   // 기준으로 삼은 자소서(제출 자료 → 대표 → 최근 순). 자소서가 없으면 null.
-  coverLetter: { documentId: string; title: string; edits: CoverLetterEdit[] } | null;
+  // editsSkipped: 공고와 기술이 거의 안 겹쳐서 첨삭을 만들지 않았을 때.
+  coverLetter: {
+    documentId: string;
+    title: string;
+    edits: CoverLetterEdit[];
+    editsSkipped?: "low_fit";
+  } | null;
   // 이 공고 기준으로 이력서에서 강조할 점. 이력서가 없으면 빈 배열.
   resumeTips: string[];
   // 구버전 캐시(지원 동기를 면접 준비 쪽에서 만들던 때)엔 없다.
   motivation?: MotivationPoint[];
+  // 공고 전체 기준 맨 위 1~2문장. 거의 안 맞는 공고(적합도 low)면 부족한 점을 인정하고 가까운 경험으로
+  // 메울 방법(gap), 어느 정도 맞으면 공고 핵심 업무에 맞닿은 경험을 묶은 내세울 점(strength).
+  opener?: { kind: "gap" | "strength"; text: string };
+  // 구버전 캐시 — 적합도와 상관없이 항상 부족한 점을 만들던 때. 화면에선 적합도 low일 때만 보여준다.
+  gapStatement?: string;
 }
 
 export interface ProjectMatches {

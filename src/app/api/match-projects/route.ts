@@ -3,12 +3,19 @@ import Groq from "groq-sdk";
 
 import { selectCoverLetter } from "@/entities/document";
 import type { ApplicationReview, CoverLetterEdit, MotivationPoint } from "@/entities/project-match";
+import { computeFitVerdict, describeFitForPrompt } from "@/features/match-projects/model/fit-verdict";
 import {
   buildMaterialsPrompt,
   canRunApplicationMatch,
 } from "@/features/match-projects/model/match-materials";
-import { stripBannedClosing, WRITING_RULES } from "@/features/match-projects/model/writing-rules";
+import {
+  isMetaRewrite,
+  stripBannedClosing,
+  WRITING_RULES,
+} from "@/features/match-projects/model/writing-rules";
 import { getRequestUser } from "@/shared/api/supabase-server";
+import { splitNameSubtitle } from "@/shared/lib/split-name-subtitle";
+import { techSatisfies } from "@/shared/lib/tech-aliases";
 import { env } from "@/shared/config/env";
 import { describeGroqError, GROQ_TEXT_MODEL, isRetryable } from "@/shared/lib/groq";
 import { consumeAiQuota, quotaExceededResponse } from "@/shared/lib/ai-quota";
@@ -24,21 +31,20 @@ export const maxDuration = 200;
 const MATCH_SCHEMA = {
   type: "object",
   properties: {
-    recommendation: {
-      type: "string",
-      description:
-        "전체 추천을 한 줄로. 예: '이 공고에는 A를 메인으로, B는 보조로 어필하면 좋아요'",
-    },
     coverLetterEdits: {
       type: "array",
       description:
-        "자소서가 있을 때만: 이 공고 기준으로 고치면 좋을 문장 0~3개. 자소서가 없으면 빈 배열. 원문에 없는 경험을 지어내 넣지 말 것",
+        "자소서가 있을 때만: 이 공고 기준으로 고치면 좋을 문장 0~3개. 자소서가 없으면 빈 배열. 원문에 없는 경험을 지어내 넣지 말고, 지원자의 직무·목표를 바꾸지 말 것",
       items: {
         type: "object",
         properties: {
           original: { type: "string", description: "자소서 원문 문장을 그대로 인용" },
-          suggestion: { type: "string", description: "고친 문장. 원문에 있는 사실만 다시 배치·강조" },
-          reason: { type: "string", description: "이 공고 요구사항 기준으로 왜 고치는지 한 줄" },
+          suggestion: {
+            type: "string",
+            description:
+              "원문 자리에 그대로 바꿔 넣을 문장 자체(지원자 본인의 말투·길이 유지). '~를 강조했습니다'처럼 고친 내용을 설명하지 말 것",
+          },
+          reason: { type: "string", description: "왜 고치는지 30자 안팎 한 줄, 평이한 말로(예: '공고가 상태 관리를 콕 집어 요구해서')" },
         },
         required: ["original", "suggestion", "reason"],
         additionalProperties: false,
@@ -57,6 +63,10 @@ const MATCH_SCHEMA = {
         required: ["point", "example"],
         additionalProperties: false,
       },
+    },
+    opener: {
+      type: "string",
+      description: "공고 전체 기준 한두 문장 — 무엇을 쓸지는 프롬프트의 opener 지시를 따른다. 쓸 게 없으면 빈 문자열",
     },
     resumeTips: {
       type: "array",
@@ -78,14 +88,14 @@ const MATCH_SCHEMA = {
           summary: { type: "string", description: "이 프로젝트가 이 공고와 왜 맞는지(또는 안 맞는지) 한 줄 요약" },
           evidence: {
             type: "array",
-            description: "공고 요구사항과 프로젝트 경험을 짝지은 근거 2~4개",
+            description: "공고 요구사항과 이 프로젝트에만 있는 구체적 경험을 짝지은 근거 2~4개. 다른 프로젝트 근거와 같은 문장 금지",
             items: {
               type: "object",
               properties: {
                 requirement: { type: "string", description: "공고 원문 표현을 짧게 인용" },
                 experience: {
                   type: "string",
-                  description: "프로젝트 설명/핵심 포인트에 실제로 있는 사실만",
+                  description: "이 프로젝트 설명/핵심 포인트에 실제로 있는 사실만, 40자 안팎 명사형(예: '비회원 임시 저장·방명록·참석 조사 구현'). 기술 이름만 쓰지 말고 그 기술로 무엇을 했는지. 프로젝트 이름은 넣지 않는다",
                 },
               },
               required: ["requirement", "experience"],
@@ -107,7 +117,7 @@ const MATCH_SCHEMA = {
       },
     },
   },
-  required: ["recommendation", "matches", "coverLetterEdits", "resumeTips", "motivation"],
+  required: ["matches", "coverLetterEdits", "resumeTips", "motivation", "opener"],
   additionalProperties: false,
 };
 
@@ -121,11 +131,11 @@ interface RawMatch {
 }
 
 interface MatchResult {
-  recommendation: string;
   matches: RawMatch[];
   coverLetterEdits: CoverLetterEdit[];
   resumeTips: string[];
   motivation: MotivationPoint[];
+  opener: string;
 }
 
 export async function POST(request: Request) {
@@ -198,6 +208,17 @@ export async function POST(request: Request) {
     );
   }
 
+  // 적합도는 AI가 아니라 기술스택 겹침으로 정한다 — 화면 맨 위 한 줄과 같은 계산.
+  const fit = computeFitVerdict(
+    company.tech_stack,
+    projects.flatMap((p) => p.tech_stack)
+  );
+  // 겹치는 기술이 거의 없는 공고(다른 직무 공고 등)에 맞춰 자소서를 고치면 지원자의 직무·목표를
+  // 바꾸는 첨삭이 나와서, 이때는 첨삭을 만들지 않는다.
+  const skipEdits = fit.level === "low";
+  // 맨 위 한두 문장 — 거의 안 맞는 공고면 부족한 점을 인정하는 말, 어느 정도 맞으면 내세울 점.
+  const openerKind = fit.level === "low" ? "gap" : "strength";
+
   const projectsText = projects.length === 0 ? "(등록된 프로젝트 없음)" : projects
     .map(
       (p) =>
@@ -212,6 +233,7 @@ export async function POST(request: Request) {
 공고 - 기술스택: ${company.tech_stack.join(", ") || "(정보 없음)"}
 공고 - 요약: ${company.description ?? "(정보 없음)"}
 회사 사업 내용(회사 분석 결과): ${businessPoints.join(" / ") || "(정보 없음)"}
+기술 겹침(계산 결과, 이 사실과 다르게 쓰지 마라): ${describeFitForPrompt(fit)}
 
 ${buildMaterialsPrompt(materials)}
 
@@ -220,9 +242,18 @@ ${projectsText}
 
 너는 이 지원자의 커리어 코치가 아니라 냉정한 채용 담당자처럼 평가해야 한다. 모든 프로젝트를 무조건 긍정적으로 포장하지 말고, 공고에 실제로 명시된 요구사항과 겹치는 부분이 얼마나 되는지만 근거로 점수를 매겨라. 공고에 기술스택이나 구체적인 업무가 적혀있지 않다면 "완벽히 부합" 같은 말은 쓰지 말고, 근거가 약하다는 걸 그대로 드러내고 점수도 낮게 줘라. 등록된 프로젝트 전부에 대해 fitScore를 매겨서 반환해.
 
-evidence의 requirement는 공고 원문 표현을 짧게 인용하고, experience는 그 프로젝트의 설명/핵심 포인트에 실제로 있는 사실만 써라. 없는 경험을 지어내지 마라. gaps는 이 프로젝트로 채우지 못하는 요구사항이고, 채울 게 없으면 빈 배열로 둬라. pitch는 이 프로젝트에서 공고 요구사항과 가장 맞닿은 일 하나를 골라 1~2문장으로 써라. recommendation은 이 공고에 지원할 때 내 자료(프로젝트·자소서·이력서) 중 무엇을 중심으로 어필하면 좋을지 한 줄로 요약해라.
+evidence는 공고 요구사항 중 이 프로젝트로 실제로 채워지는 것만 쓴다(못 채우는 건 gaps로). requirement는 공고 원문 표현을 짧게 인용하고, experience는 그 프로젝트의 설명/핵심 포인트에 실제로 있는 사실만 써라. Git·GitHub 사용처럼 개발자라면 누구나 하는 일은 근거로 쓰지 마라. 채워지는 게 하나뿐이면 하나만, 없으면 빈 배열로 둬라. 없는 경험을 지어내지 마라. gaps는 이 프로젝트로 채우지 못하는 요구사항이고, 채울 게 없으면 빈 배열로 둬라. 프로젝트마다 그 프로젝트에만 있는 사실로 근거를 써라 — 여러 프로젝트에 같은 근거 문장을 반복하지 말고, "○○ 사용 경험"처럼 기술 이름만 대지 말고 그 기술로 무엇을 만들었고 어떤 문제를 풀었는지 핵심 포인트에서 골라 써라. pitch는 이 프로젝트에서 공고 요구사항과 가장 맞닿은 일 하나를 골라 1~2문장으로 써라.
 
-coverLetterEdits는 자소서가 있을 때만 쓴다: 이 공고의 요구사항과 연결이 약하거나 막연한 문장을 원문 그대로 인용하고, 자소서·프로젝트에 실제로 있는 사실만으로 고친 문장과 이유를 써라. 고칠 게 없으면 빈 배열로 둬라. motivation은 자소서 지원 동기에 쓸 포인트 1~2개다. point는 회사 사업(또는 공고 내용)과 지원자 자료에 실제로 있는 경험을 연결한 40자 안팎의 명사형 한 줄, example은 자소서에 바로 이어 붙일 1~2문장이다. 자료에 없는 경험은 지어내지 말고, 연결할 근거가 없으면 빈 배열로 둬라. resumeTips는 이력서가 있을 때만, 이 공고 기준으로 앞에 두거나 강조할 점을 이력서에 있는 사실로만 써라.
+${skipEdits ? "coverLetterEdits는 빈 배열로 둬라(이 공고는 지원자 자료와 기술이 거의 겹치지 않는다)." : "coverLetterEdits는 자소서가 있을 때만 쓴다: 이 공고의 요구사항과 연결이 약하거나 막연한 문장을 원문 그대로 인용하고(original), 그 자리에 그대로 바꿔 넣을 문장(suggestion)과 이유를 써라. suggestion은 고친 결과 문장 자체다 — '~경험을 강조했습니다', '~라고 명시했습니다'처럼 무엇을 고쳤는지 설명하지 마라. 원문의 말투와 길이를 살리고 바꿀 부분만 바꾸되, 막연한 표현 자리에 자소서·프로젝트에 실제로 있는 구체적인 일 하나를 넣어라. 지원자의 직무·목표·관심 분야(예: 프론트엔드 개발자를 백엔드 지망으로)를 바꾸는 첨삭은 하지 마라 — 공고 직무가 지원자 자료의 직무와 다르면 그 차이를 메우려고 문장을 고치지 않는다. 고칠 게 없으면 빈 배열로 둬라."} motivation은 자소서 지원 동기에 쓸 포인트 1~2개다. point는 회사 사업(또는 공고 내용)과 지원자 자료에 실제로 있는 경험을 연결한 40자 안팎의 명사형 한 줄, example은 자소서에 바로 이어 붙일 1~2문장이다. 자료에 없는 경험은 지어내지 말고, 연결할 근거가 없으면 빈 배열로 둬라. resumeTips는 이력서가 있을 때만, 이 공고 기준으로 앞에 두거나 강조할 점을 이력서에 있는 사실로만 써라.
+
+${
+  openerKind === "gap"
+    ? `opener: 이 공고는 지원자 자료와 기술이 거의 겹치지 않는다. 억지로 맞는 척하지 말고 공고가 요구하는 핵심 중 없는 것을 먼저 솔직히 인정한 뒤, 자료에 실제로 있는 가장 가까운 경험 하나로 어떻게 메울지 1~2문장으로 써라. 자료에 없는 학습 이력("현재 공부 중", "강의를 수강")은 지어내지 마라.
+좋은 예: "Recoil은 아직 써보지 않았습니다. 다만 드림카드에서 여러 단계에 걸친 폼 상태를 Zustand로 한곳에 모아본 적이 있어, 상태를 어디에 두고 어떻게 나눌지는 같은 기준으로 판단할 수 있습니다."`
+    : `opener: 이 공고와 지원자 자료가 어느 정도 맞는다. 부족한 점은 쓰지 말고, 공고의 핵심 업무와 가장 맞닿은 실제 경험을 프로젝트를 가로질러 묶어 자소서 첫 문단·자기소개에 쓸 1~2문장으로 써라(프로젝트별 pitch를 반복하지 말고 공고 기준으로 묶는다).`
+}
+
+모든 출력(summary, evidence, gaps, pitch, opener 등)에서 프로젝트 이름은 다음 표기만 쓴다(괄호 부제는 빼고): ${projects.map((p) => `"${splitNameSubtitle(p.name).main}"`).join(", ") || "(없음)"}.
 
 ${WRITING_RULES}`;
 
@@ -257,10 +288,33 @@ ${WRITING_RULES}`;
       // AI가 존재하지 않는 projectId를 지어내는 경우를 대비해, 실제 등록된
       // 프로젝트 id만 신뢰한다.
       const validIds = new Set(projects.map((p) => p.id));
+      // "런픽 (Run-Pick)"처럼 괄호 부제까지 붙은 등록 이름을 문장에 그대로 쓰면 읽기 어려워서 앞 이름만 남긴다.
+      const shortenNames = (text: string) =>
+        projects.reduce((acc, p) => {
+          const { main } = splitNameSubtitle(p.name);
+          return main === p.name ? acc : acc.split(p.name).join(main);
+        }, text);
+      for (const m of result.matches) {
+        m.summary = shortenNames(m.summary);
+        m.pitch = shortenNames(stripBannedClosing(m.pitch));
+        for (const e of m.evidence) e.experience = shortenNames(e.experience);
+      }
+      for (const item of result.motivation) {
+        item.point = shortenNames(item.point);
+        item.example = shortenNames(item.example);
+      }
+      for (const edit of result.coverLetterEdits) edit.suggestion = shortenNames(edit.suggestion);
+      // AI가 프로젝트 기술스택으로 이미 채워지는 기술(Next.js 프로젝트에 "React")을 부족하다고 할 때가 있어서,
+      // 별칭·포함 관계로 채워지는 건 뺀다.
+      const techById = new Map(projects.map((p) => [p.id, p.tech_stack as string[]]));
+      for (const m of result.matches) {
+        const owned = techById.get(m.projectId) ?? [];
+        m.gaps = m.gaps.filter((gap) => !owned.some((tech) => techSatisfies(gap, tech)));
+      }
       // 규칙을 줘도 틀에 박힌 맺음말이 섞일 때가 있어서 서버에서 한 번 더 뗀다.
-      for (const m of result.matches) m.pitch = stripBannedClosing(m.pitch);
       for (const item of result.motivation) item.example = stripBannedClosing(item.example);
       for (const edit of result.coverLetterEdits) edit.suggestion = stripBannedClosing(edit.suggestion);
+      const opener = shortenNames(stripBannedClosing(result.opener ?? ""));
 
       const sortedMatches = result.matches
         .filter((m) => validIds.has(m.projectId))
@@ -269,10 +323,19 @@ ${WRITING_RULES}`;
       // 자료가 없는 쪽은 AI가 뭘 돌려줘도 비운다(없는 자소서를 첨삭하지 않게).
       const review: ApplicationReview = {
         coverLetter: coverLetter
-          ? { documentId: coverLetter.id, title: coverLetter.title, edits: result.coverLetterEdits.slice(0, 3) }
+          ? {
+              documentId: coverLetter.id,
+              title: coverLetter.title,
+              // 고친 문장 대신 "~를 강조했습니다"처럼 고친 내용을 설명한 첨삭은 붙여 쓸 수 없어서 버린다.
+              edits: skipEdits
+                ? []
+                : result.coverLetterEdits.filter((e) => e.suggestion && !isMetaRewrite(e.suggestion)).slice(0, 3),
+              ...(skipEdits && { editsSkipped: "low_fit" as const }),
+            }
           : null,
         resumeTips: resume ? result.resumeTips.slice(0, 3) : [],
-        motivation: result.motivation.slice(0, 2),
+        motivation: result.motivation.filter((m) => m.example).slice(0, 2),
+        ...(opener && { opener: { kind: openerKind, text: opener } }),
       };
 
       const { data, error } = await supabase
@@ -281,7 +344,8 @@ ${WRITING_RULES}`;
           {
             application_id: applicationId,
             matches: sortedMatches,
-            recommendation: result.recommendation,
+            // 적합도 한 줄(기술 겹침 계산)과 같은 말을 반복해서 더 이상 만들지 않는다.
+            recommendation: null,
             review,
             updated_at: new Date().toISOString(),
           },

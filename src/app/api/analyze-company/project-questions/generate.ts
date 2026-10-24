@@ -8,6 +8,7 @@ import {
   shouldGenerateProjectQuestions,
 } from "@/features/analyze-company/model/project-questions-payload";
 import { buildSubmissionContext } from "@/features/analyze-company/model/submission-context";
+import { computeFitVerdict } from "@/features/match-projects/model/fit-verdict";
 import { computeSkillGap } from "@/widgets/my-materials";
 import { env } from "@/shared/config/env";
 import { describeGroqError, GROQ_TEXT_MODEL, isRetryable } from "@/shared/lib/groq";
@@ -101,6 +102,12 @@ export async function generateProjectQuestions(
   );
 
   const { company, position, description, tech_stack: techStack } = application;
+  // "대비 필요" 질문은 이 공고가 요구하는데 내 프로젝트에 없는 기술을 먼저 쓴다 — 여러 공고에서 센
+  // 기술 격차(skillGap)는 이 공고와 무관한 기술(예: 프론트 공고에 AWS)이 섞여서 보조로만.
+  const postingMissing = computeFitVerdict(
+    techStack,
+    myProjects.flatMap((p) => p.tech_stack)
+  ).missing;
   const nameById = new Map(myProjects.map((p) => [p.id, p.name]));
   // 제출 자료에 고른 자소서의 본문 — 지워졌거나 고르지 않았으면 없음.
   const { data: submittedCoverLetter } = application.submitted_cover_letter_id
@@ -124,7 +131,7 @@ export async function generateProjectQuestions(
     )
     .join("\n");
 
-  const prompt = `다음은 한 채용 지원자가 지원한 공고와, 지원자가 등록한 프로젝트, 그리고 지원자가 자주 지원하는 공고에서 요구하지만 아직 프로젝트로 못 채운 기술 목록이다.
+  const prompt = `다음은 한 채용 지원자가 지원한 공고와, 지원자가 등록한 프로젝트, 그리고 이 공고(와 지원자가 자주 지원하는 공고)에서 요구하지만 아직 프로젝트로 못 채운 기술 목록이다.
 
 회사명: ${company}
 직무: ${position ?? "(정보 없음)"}
@@ -135,11 +142,12 @@ export async function generateProjectQuestions(
 등록된 프로젝트 (각 줄 맨 앞 id를 relatedProjectId에 그대로 사용해라):
 ${projectsText}
 
-지원자가 자주 지원하는 공고에서 요구하지만 등록된 프로젝트로는 아직 못 채운 기술: ${skillGap.map((s) => s.name).join(", ") || "없음"}
+이 공고에서 요구하지만 등록된 프로젝트로는 못 채운 기술: ${postingMissing.join(", ") || "없음"}
+(참고) 지원자가 자주 지원하는 공고에서 요구하지만 프로젝트로 못 채운 기술: ${skillGap.map((s) => s.name).join(", ") || "없음"}
 ${submissionContext ? `\n이 공고에 지원하면서 낸 제출 자료 (면접 질문은 대부분 여기서 나온다):\n${submissionContext}\n` : ""}
 다음 두 종류의 면접 질문을 정확히 5개 만들어줘.
 1. "내 경험" 질문 3개: relatedProjectId를 반드시 채워라(등록된 프로젝트 중 가장 관련 있는 것). 제출 자료가 있으면 자소서에 쓴 내용과 어필한 프로젝트를 우선 근거로 삼아, 면접관이 자소서를 보고 파고들 만한 질문으로 만들어라. hint는 그 프로젝트의 설명/핵심 포인트에 실제로 있는 사실만으로 2~3문장짜리 답변 초안을 써라. 없는 경험을 지어내지 마라. noExperience는 false로 둬라.
-2. "대비 필요" 질문 2개: noExperience를 true로 하고, 공고에는 있지만 등록된 프로젝트로는 못 채우는 요구사항(위 기술 목록 참고)에 대해 물어라. hint는 그 경험이 없다는 걸 인정하고 가까운 경험으로 연결해서 답하는 법을 써라. relatedProjectId는 null로 둬라.
+2. "대비 필요" 질문 2개: noExperience를 true로 하고, 이 공고에서 요구하지만 등록된 프로젝트로는 못 채우는 기술·요구사항을 먼저 골라 물어라("이 공고에서 요구하지만 못 채운 기술" 목록 우선, 그게 비었을 때만 공고 요약의 다른 요구사항이나 "(참고)" 목록에서 이 공고와 관련 있는 것). 공고와 관계없는 기술은 묻지 마라. hint는 그 경험이 없다는 걸 인정하고 가까운 경험으로 연결해서 답하는 법을 써라. relatedProjectId는 null로 둬라.
 
 category는 각 질문 성격에 맞게 기술/프로젝트 경험/회사·도메인/협업 중 하나로 골라라.`;
 

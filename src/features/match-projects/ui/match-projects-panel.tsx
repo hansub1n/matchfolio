@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Check, ChevronDown } from "lucide-react";
 import { cn } from "cn";
 
 import type { Application } from "@/entities/application";
@@ -12,16 +12,17 @@ import {
   type ProjectMatches,
 } from "@/entities/project-match";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
+import { splitNameSubtitle } from "@/shared/lib/split-name-subtitle";
 import { requestTab } from "@/shared/lib/tab-store";
 import { AiSection, AiSectionButton, AiSectionSkeleton } from "@/shared/ui/ai-section";
 import { CopyButton } from "@/shared/ui/copy-button";
 import { HelpButton } from "@/shared/ui/help-button";
 
 import { matchProjects } from "../api/matchProjects";
+import { computeFitVerdict, FIT_LABEL, type FitVerdict } from "../model/fit-verdict";
 
 const TITLE = "공고 매칭";
 const HELP = <HelpButton chapterId="early-ai" label="공고 매칭" />;
-const SUB_LABEL = "text-[11px] text-muted-foreground";
 
 function LinkButton({ onClick, children }: { onClick: () => void; children: string }) {
   return (
@@ -32,6 +33,58 @@ function LinkButton({ onClick, children }: { onClick: () => void; children: stri
     >
       {children}
     </button>
+  );
+}
+
+// 결과의 각 묶음 — 제목(굵게) + 선택적 한 줄 설명. 묶음 사이는 구분선으로 나눈다.
+function Block({ title, hint, children }: { title?: string; hint?: string; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2 py-3.5 first:pt-0 last:pb-0">
+      {title && (
+        <div className="flex items-baseline gap-2">
+          <h3 className="text-xs font-medium">{title}</h3>
+          {hint && <span className="text-[11px] text-muted-foreground">{hint}</span>}
+        </div>
+      )}
+      {children}
+    </section>
+  );
+}
+
+// 자소서에 그대로 붙여 쓸 문장 — 어디서 나오든 같은 모양(흰 상자 + 복사).
+function CopyableSentence({ text }: { text: string }) {
+  return (
+    <div className="flex items-start justify-between gap-3 rounded-md bg-card p-2.5">
+      <p className="text-xs leading-relaxed">{text}</p>
+      <CopyButton text={text} />
+    </div>
+  );
+}
+
+// 적합도 — AI가 아니라 공고 기술스택과 내 프로젝트 기술스택의 겹침. 있는 기술/없는 기술은 여기서만 보여준다
+// (프로젝트마다 반복하지 않는다).
+function FitSummary({ verdict }: { verdict: FitVerdict }) {
+  const total = verdict.covered.length + verdict.missing.length;
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-sm">
+        <span className="font-medium">{FIT_LABEL[verdict.level]}</span>
+        {verdict.level !== "unknown" && (
+          <span className="text-xs text-muted-foreground">
+            {" "}
+            · 공고 기술 {total}개 중 {verdict.covered.length}개
+          </span>
+        )}
+      </p>
+      {verdict.level !== "unknown" && (
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+          <dt className="text-muted-foreground">있음</dt>
+          <dd>{verdict.covered.join(" · ") || "—"}</dd>
+          <dt className="text-muted-foreground">없음</dt>
+          <dd>{verdict.missing.join(" · ") || "—"}</dd>
+        </dl>
+      )}
+    </div>
   );
 }
 
@@ -46,31 +99,22 @@ function MatchRow({
   isOpen: boolean;
   onToggle: () => void;
 }) {
-  const [copied, setCopied] = useState(false);
   const detailed = isDetailedProjectMatch(match) ? match : null;
-  const summaryLine = isDetailedProjectMatch(match) ? match.summary : match.reason;
-
-  async function handleCopy() {
-    if (!detailed) return;
-    try {
-      await navigator.clipboard.writeText(detailed.pitch);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch (err) {
-      console.warn("클립보드 복사 실패:", err);
-    }
-  }
+  const { main, subtitle } = splitNameSubtitle(match.projectName);
+  // 접혀 있을 땐 이 프로젝트로 채워지는 요구를 한 줄로 — AI 요약은 위 적합도와 같은 말이라 쓰지 않는다.
+  const preview = isDetailedProjectMatch(match)
+    ? match.evidence.map((e) => e.requirement).join(" · ") || "이 공고 요구와 겹치는 경험이 없어요"
+    : match.reason;
 
   return (
-    <div className="flex flex-col gap-1">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex items-start gap-2 text-left"
-      >
+    <div className="flex flex-col gap-2">
+      <button type="button" onClick={onToggle} className="flex items-start gap-2 text-left">
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="truncate text-sm font-medium">{match.projectName}</h3>
+            <p className="truncate text-sm font-medium">
+              {main}
+              {subtitle && <span className="ml-1 font-normal text-muted-foreground">{subtitle}</span>}
+            </p>
             <span className="num shrink-0 text-sm">
               <span
                 className={
@@ -82,10 +126,7 @@ function MatchRow({
               <span className="text-muted-foreground">점</span>
             </span>
           </div>
-          {summaryLine && (
-            // 접혀 있을 땐 한 줄로 줄이고, 펼치면 전체를 보여준다.
-            <p className={cn("text-[11.5px] text-muted-foreground", !isOpen && "truncate")}>{summaryLine}</p>
-          )}
+          <p className="truncate text-[11.5px] text-muted-foreground">{preview}</p>
         </div>
         <ChevronDown
           className={cn(
@@ -95,66 +136,41 @@ function MatchRow({
         />
       </button>
 
-      {isOpen && (
-        <div className="flex flex-col gap-3 py-1 pl-0.5">
-          {detailed ? (
-            <>
-              {detailed.evidence.length > 0 && (
-                <div>
-                  <p className="mb-1 text-[11px] text-muted-foreground">근거</p>
-                  <div className="flex flex-col gap-1.5">
-                    {detailed.evidence.map((e, i) => (
-                      <div key={i} className="flex flex-col gap-0.5">
-                        <p className="text-xs text-muted-foreground">{e.requirement}</p>
-                        <p className="text-xs text-foreground">{e.experience}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {detailed.gaps.length > 0 && (
-                <div>
-                  <p className="mb-1 text-[11px] text-muted-foreground">부족한 부분</p>
-                  <ul className="list-inside list-disc text-xs text-muted-foreground">
-                    {detailed.gaps.map((gap, i) => (
-                      <li key={i}>{gap}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              <div>
-                <div className="mb-1 flex items-center justify-between">
-                  <p className="text-[11px] text-muted-foreground">어필 문장</p>
-                  <button
-                    type="button"
-                    onClick={handleCopy}
-                    className="w-9 text-right text-[11px] text-muted-foreground hover:text-foreground"
-                  >
-                    {copied ? "복사됨" : "복사"}
-                  </button>
-                </div>
-                <p className="rounded-md bg-card p-2.5 text-xs leading-relaxed">{detailed.pitch}</p>
-              </div>
-            </>
-          ) : (
-            <p className="text-[11px] text-muted-foreground">
-              다시 매칭하면 자세한 근거를 볼 수 있어요
-            </p>
-          )}
-        </div>
-      )}
+      {isOpen &&
+        (detailed ? (
+          <div className="flex flex-col gap-2.5 pl-0.5">
+            {detailed.evidence.length > 0 && (
+              <ul className="flex flex-col gap-1.5">
+                {detailed.evidence.map((e, i) => (
+                  <li key={i} className="flex gap-2 text-xs">
+                    <Check className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                    <p>
+                      <span className="font-medium">{e.requirement}</span>
+                      <span className="text-muted-foreground"> — {e.experience}</span>
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {detailed.pitch && <CopyableSentence text={detailed.pitch} />}
+          </div>
+        ) : (
+          <p className="text-[11px] text-muted-foreground">다시 매칭하면 자세한 근거를 볼 수 있어요</p>
+        ))}
     </div>
   );
 }
 
 export interface MatchMaterialsSummary {
   projectCount: number;
+  // 내 프로젝트 기술스택 전체 — 적합도 계산용.
+  projectTechStack: string[];
   hasResume: boolean;
   coverLetterCount: number;
 }
 
-// 내 자료(프로젝트·자소서·이력서)를 이 공고에 맞춰본다 — 자소서 첨삭, 이력서 강조점,
-// 어필할 프로젝트. 자료가 하나도 없으면 돌릴 수 없고 "내 자료"로 안내한다.
+// 내 자료(프로젝트·자소서·이력서)를 이 공고에 맞춰본다 — 적합도, 부족한 점을 말하는 문장, 지원 동기,
+// 자소서 첨삭, 이력서 강조점, 어필할 프로젝트. 자료가 하나도 없으면 돌릴 수 없고 "내 자료"로 안내한다.
 export function MatchProjectsPanel({
   company,
   materials,
@@ -163,6 +179,7 @@ export function MatchProjectsPanel({
   materials: MatchMaterialsSummary;
 }) {
   const hasMaterials = materials.projectCount > 0 || materials.hasResume || materials.coverLetterCount > 0;
+  const verdict = computeFitVerdict(company.techStack, materials.projectTechStack);
   const [result, setResult] = useState<ProjectMatches | null>(null);
   const [loading, setLoading] = useState(true);
   const [matching, setMatching] = useState(false);
@@ -246,74 +263,99 @@ export function MatchProjectsPanel({
     }
     return (
       <AiSection title={TITLE} help={HELP}>
-        <p className="mb-3 text-xs text-muted-foreground">{describeMaterials(materials)}를 이 공고에 맞춰봐요</p>
+        <div className="mt-3 mb-3 flex flex-col gap-3">
+          <FitSummary verdict={verdict} />
+          <p className="text-xs text-muted-foreground">{describeMaterials(materials)}를 이 공고에 맞춰봐요</p>
+        </div>
         <AiSectionButton onClick={handleMatch}>매칭하기</AiSectionButton>
       </AiSection>
     );
   }
 
-  const { matches, recommendation, review } = result;
+  const { matches, review } = result;
   const topScore = matches.reduce((max, m) => Math.max(max, m.fitScore), 0);
+  const coverLetter = review?.coverLetter ?? null;
+  // 구버전 캐시는 적합도와 상관없이 부족한 점만 만들었다 — 거의 안 맞는 공고일 때만 보여준다.
+  const opener =
+    review?.opener ??
+    (review?.gapStatement && verdict.level === "low" ? { kind: "gap" as const, text: review.gapStatement } : null);
 
   return (
     <AiSection title={TITLE} help={HELP} headerAction={<LinkButton onClick={handleMatch}>다시 매칭</LinkButton>}>
-      <div className="mt-2 flex flex-col gap-3">
-        {recommendation && <p className="text-xs text-foreground">{recommendation}</p>}
-        {review?.coverLetter && review.coverLetter.edits.length > 0 && (
-          <div className="flex flex-col gap-1">
-            <p className={SUB_LABEL}>자소서 첨삭 · {review.coverLetter.title}</p>
-            {review.coverLetter.edits.map((edit, i) => (
-              <div key={i} className="flex flex-col gap-1 border-t py-2.5">
-                <p className="text-xs text-muted-foreground">{edit.original}</p>
-                <div className="flex items-start justify-between gap-3 rounded-md bg-card p-2.5">
-                  <p className="text-xs leading-relaxed">{edit.suggestion}</p>
-                  <CopyButton text={edit.suggestion} />
-                </div>
-                <p className="text-[11px] text-muted-foreground">{edit.reason}</p>
-              </div>
-            ))}
-          </div>
+      <div className="mt-3 flex flex-col divide-y">
+        <Block>
+          <FitSummary verdict={verdict} />
+        </Block>
+
+        {opener && (
+          <Block
+            title={opener.kind === "gap" ? "부족한 점을 말할 때" : "이 공고에 내세울 점"}
+            hint={opener.kind === "gap" ? "없는 경험을 묻는 질문·자소서에" : "자소서 첫 문단·자기소개에"}
+          >
+            <CopyableSentence text={opener.text} />
+          </Block>
         )}
-        {review?.motivation && review.motivation.length > 0 && (
-          <div className="flex flex-col gap-1">
-            <div className="flex items-baseline gap-2">
-              <p className={SUB_LABEL}>지원 동기에 쓸 포인트</p>
-              <span className="text-[11px] text-muted-foreground">자소서 지원 동기에 이어 붙여 쓸 수 있어요</span>
+
+        {matches.length > 0 && (
+          <Block title="어필할 프로젝트">
+            <div className="flex flex-col gap-3">
+              {matches.map((match, i) => (
+                <MatchRow
+                  key={match.projectName + i}
+                  match={match}
+                  isTop={match.fitScore === topScore}
+                  isOpen={openIndices.has(i)}
+                  onToggle={() => toggleOpen(i)}
+                />
+              ))}
             </div>
+          </Block>
+        )}
+
+        {review?.motivation && review.motivation.length > 0 && (
+          <Block title="지원 동기" hint="자소서 지원 동기에 이어 붙여 쓸 수 있어요">
             {review.motivation.map((item, i) => (
-              <div key={i} className="flex flex-col gap-1.5 border-t py-2.5">
-                <p className="text-[13px]">{item.point}</p>
-                <div className="flex items-start justify-between gap-3 rounded-md bg-card p-2.5">
-                  <p className="text-xs leading-relaxed text-muted-foreground">{item.example}</p>
-                  <CopyButton text={item.example} />
-                </div>
+              <div key={i} className="flex flex-col gap-1.5">
+                <p className="text-xs text-muted-foreground">{item.point}</p>
+                <CopyableSentence text={item.example} />
               </div>
             ))}
-          </div>
+          </Block>
         )}
+
+        {coverLetter && (coverLetter.edits.length > 0 || coverLetter.editsSkipped) && (
+          <Block title="자소서 첨삭" hint={coverLetter.title}>
+            {coverLetter.editsSkipped === "low_fit" ? (
+              <p className="text-[11.5px] text-muted-foreground">
+                공고와 겹치는 기술이 적어서 첨삭은 만들지 않았어요
+              </p>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {coverLetter.edits.map((edit, i) => (
+                  // 원문과 고친 문장을 같은 들여쓰기로 위아래에 — 어디가 바뀌었는지 눈으로 비교하기 쉽게.
+                  <dl key={i} className="grid grid-cols-[2rem_1fr] gap-x-2 gap-y-1.5 text-xs leading-relaxed">
+                    <dt className="pt-px text-[11px] text-muted-foreground">원문</dt>
+                    <dd className="text-muted-foreground">{edit.original}</dd>
+                    <dt className="pt-2.5 text-[11px] text-muted-foreground">수정</dt>
+                    <dd className="flex flex-col gap-1">
+                      <CopyableSentence text={edit.suggestion} />
+                      <span className="text-[11px] text-muted-foreground">{edit.reason}</span>
+                    </dd>
+                  </dl>
+                ))}
+              </div>
+            )}
+          </Block>
+        )}
+
         {review && review.resumeTips.length > 0 && (
-          <div className="flex flex-col gap-1">
-            <p className={SUB_LABEL}>이력서에서 강조할 점</p>
+          <Block title="이력서에서 강조할 점">
             <ul className="list-inside list-disc text-xs leading-relaxed">
               {review.resumeTips.map((tip, i) => (
                 <li key={i}>{tip}</li>
               ))}
             </ul>
-          </div>
-        )}
-        {matches.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <p className={SUB_LABEL}>어필할 프로젝트</p>
-            {matches.map((match, i) => (
-              <MatchRow
-                key={match.projectName + i}
-                match={match}
-                isTop={match.fitScore === topScore}
-                isOpen={openIndices.has(i)}
-                onToggle={() => toggleOpen(i)}
-              />
-            ))}
-          </div>
+          </Block>
         )}
       </div>
     </AiSection>

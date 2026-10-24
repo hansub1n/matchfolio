@@ -8,18 +8,33 @@ export const BANNED_CLOSINGS = [
   "역량을 갖추고 있습니다",
   "높은 연관성",
   "시너지",
+  // 지원자가 쓰는 문장이 아니라 코치가 조언하는 말투 — 문장 자체가 근거 없는 주장이 된다.
+  "강조할 수 있습니다",
+  "어필할 수 있습니다",
+  "보여줄 수 있습니다",
 ];
 
-export const WRITING_RULES = `자소서에 그대로 붙여 쓸 문장(pitch, motivation의 example, coverLetterEdits의 suggestion) 작성 규칙:
+export const WRITING_RULES = `자소서에 그대로 붙여 쓸 문장(pitch, opener, motivation의 example, coverLetterEdits의 suggestion) 작성 규칙 — 지원자가 직접 쓴 것처럼 읽혀야 한다:
 - 1인칭 자소서 문체("~했습니다")로, 내가 실제로 한 일을 구체적으로 쓴다: 어떤 문제/요구가 있었고 → 무엇을 어떻게 했고 → 결과가 어땠는지. 자료에 수치나 결과가 있으면 그대로 쓴다.
 - 기술 이름을 나열하지 말고, 그 기술로 해결한 일 하나에 집중한다.
+- "빠른 개발 능력", "풀스택 역량"처럼 능력을 주장하지 말고 한 일을 쓴다. 지원자 본인이 쓰는 문장이라 "~를 강조할 수 있습니다" 같은 조언 말투는 쓰지 않는다.
 - 회사명이나 "○○ 개발에 기여" 같은 맺음말을 붙이지 않는다. 다음 표현은 쓰지 마라: ${BANNED_CLOSINGS.join(", ")}.
 - 프로젝트 이름은 등록된 이름을 그대로 쓴다(영문으로 바꾸지 않는다).
+- "~할 수 있을 것 같습니다"처럼 흐리지 말고 "~하겠습니다"·"~했습니다"로 끝맺는다.
+- AI 문장처럼 보이는 상투어를 쓰지 않는다: "~경험을 바탕으로", "또한", "이를 통해", "빠르게 습득", "최적화한 경험", "능동적으로", "적극적으로", "역량", "다양한". 접속사로 문장을 잇지 말고 짧게 끊는다.
+- 한 문장에 기술 이름은 두 개까지. 어떤 화면·기능에서 무슨 일이 있었는지 장면이 보이게 쓴다.
 - 자료에 없는 경험·수치는 지어내지 않는다.
 나쁜 예: "A 프로젝트에서 Next.js와 Supabase로 전체 스택을 구현한 경험은 귀사 프론트엔드 개발에 기여할 수 있습니다."
 좋은 예: "A에서 러닝 기록이 많아지면 목록이 느려지는 문제를 무한 스크롤과 낙관적 업데이트로 풀어, 기록 저장 후 화면이 바로 바뀌도록 만들었습니다."`;
 
+// 첨삭의 고친 문장이 문장 자체가 아니라 "~경험을 강조했습니다"처럼 고친 내용을 설명한 것인지.
+// 이런 문장은 자소서에 붙여 쓸 수 없어서 첨삭에서 뺀다.
+export function isMetaRewrite(text: string): boolean {
+  return /(강조|명시|부각|어필|드러내|언급)(했|하였|냈)습니다\.?$/.test(text.trim());
+}
+
 // 응답에 금지 표현이 섞였는지 — 섞였으면 서버에서 문장 끝의 해당 절을 떼어낸다.
+// 금지 표현이 든 문장 하나뿐이면 빈 문자열 — 근거 없는 문장을 보여주느니 비워두고 화면에서 숨긴다.
 export function stripBannedClosing(text: string): string {
   const trimmed = text.trim();
   for (const phrase of BANNED_CLOSINGS) {
@@ -30,7 +45,7 @@ export function stripBannedClosing(text: string): string {
     const boundaries = [...trimmed.slice(0, index).matchAll(/[.!?](?=\s)/g)];
     const last = boundaries.at(-1);
     const kept = last?.index === undefined ? "" : trimmed.slice(0, last.index + 1).trim();
-    return kept || trimmed;
+    return kept;
   }
   return trimmed;
 }

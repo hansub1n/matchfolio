@@ -408,6 +408,7 @@ export function ApplicationDetailDialog(props: Props) {
                 company={entity}
                 materials={{
                   projectCount: myProjects.length,
+                  projectTechStack: myProjectTechStack,
                   hasResume: documents.some((d) => d.kind === "resume"),
                   coverLetterCount: documents.filter((d) => d.kind === "cover_letter").length,
                 }}
