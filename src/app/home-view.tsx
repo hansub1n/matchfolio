@@ -8,6 +8,7 @@ import type { UserDocument } from "@/entities/document";
 import type { MyProject } from "@/entities/my-project";
 import type { ProjectMatchWithCompany } from "@/entities/project-match";
 import type { Schedule } from "@/entities/schedule";
+import { AnonymousSignIn } from "@/features/anonymous-sign-in";
 import { TutorialDialog } from "@/features/onboarding";
 import { ApplicationStats } from "@/widgets/application-stats";
 import { BoardHeader } from "@/widgets/board-header";
@@ -33,12 +34,15 @@ export function HomeView({
   documents,
   schedules,
   allProjectMatches,
+  signedIn,
 }: {
   applications: Application[];
   myProjects: MyProject[];
   documents: UserDocument[];
   schedules: Schedule[];
   allProjectMatches: ProjectMatchWithCompany[];
+  // 세션 쿠키가 없는 첫 방문 — 브라우저에서 익명 계정을 만든다.
+  signedIn: boolean;
 }) {
   const [tab, setTab] = useState<string>("board");
   // 상세 모달 안의 "내 자료 →"처럼 깊은 곳에서 탭을 바꾸는 요청을 받는다.
@@ -125,6 +129,7 @@ export function HomeView({
         </TabsContent>
       </Tabs>
       <Toaster />
+      {!signedIn && <AnonymousSignIn />}
       <TutorialDialog />
     </main>
   );

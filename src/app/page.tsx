@@ -13,6 +13,8 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   // 요청 쿠키의 익명 세션으로 읽는다 — RLS 덕분에 이 사용자 데이터만 온다.
   const supabase = await createServerSupabase();
+  // 첫 방문자는 아직 계정이 없다 — 빈 화면을 먼저 그리고, 브라우저에서 Turnstile을 통과하면 계정을 만든다.
+  const { data: auth } = await supabase.auth.getClaims();
   const [applications, myProjects, schedules, allProjectMatches, documents] = await Promise.all([
     getApplications(supabase),
     getMyProjects(supabase),
@@ -28,6 +30,7 @@ export default async function Home() {
       documents={documents}
       schedules={schedules}
       allProjectMatches={allProjectMatches}
+      signedIn={Boolean(auth?.claims)}
     />
   );
 }

@@ -18,4 +18,8 @@ export const env = {
   tavily: {
     apiKey: process.env.TAVILY_API_KEY ?? "",
   },
+  // 공개용 사이트 키(브라우저 위젯에 그대로 들어감). 비밀 키는 Supabase Auth의 CAPTCHA 설정에만 있다.
+  turnstile: {
+    siteKey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "",
+  },
 } as const;

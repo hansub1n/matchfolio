@@ -3,8 +3,9 @@ import { createServerClient } from "@supabase/ssr";
 
 import { env } from "@/shared/config/env";
 
-// 매 요청마다 세션 쿠키를 갱신하고, 페이지 요청인데 세션이 없으면 익명 계정을
-// 바로 만든다 — 로그인 화면 없이 첫 화면부터 본인 데이터로 렌더링되게.
+// 매 요청마다 세션 쿠키를 갱신한다. 세션이 없는 첫 방문자의 익명 계정은 여기서 만들지 않는다 — 봇이 계정을
+// 무한히 만들지 못하게 Turnstile을 통과해야 만들어지는데, 그 확인은 브라우저에서만 할 수 있어서
+// features/anonymous-sign-in이 맡는다.
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -22,13 +23,7 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  const { data } = await supabase.auth.getClaims();
-
-  // API 라우트는 익명 계정을 새로 만들지 않는다 — 세션 없는 호출은 라우트가 401로 거절.
-  if (!data?.claims && !request.nextUrl.pathname.startsWith("/api")) {
-    const { error } = await supabase.auth.signInAnonymously();
-    if (error) console.error("익명 로그인 실패:", error.message);
-  }
+  await supabase.auth.getClaims();
 
   return response;
 }
