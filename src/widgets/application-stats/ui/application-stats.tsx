@@ -14,6 +14,7 @@ import {
 import type { MyProject } from "@/entities/my-project";
 import { recordedInterviewRounds, useScheduleRequests, type Schedule } from "@/entities/schedule";
 import { todayKST } from "@/shared/lib/kst-date";
+import { PageLayout } from "@/shared/ui/page-layout";
 import { EmptyHint, PlaceholderBar } from "@/shared/ui/placeholder";
 import { ApplicationDetailDialog } from "@/widgets/kanban-board";
 import { cn } from "cn";
@@ -21,7 +22,7 @@ import { cn } from "cn";
 import { computeApplicationStats } from "../model/compute-stats";
 import { ActivityHeatmap } from "./activity-heatmap";
 import { StageFunnel } from "./stage-funnel";
-import { SummaryHeader } from "./summary-header";
+import { StatsHeadline, SummaryMetrics } from "./summary-header";
 import { TechStackBars } from "./tech-stack-bars";
 import { TechStackChips } from "./tech-stack-chips";
 import { WaitingList } from "./waiting-list";
@@ -76,9 +77,14 @@ export function ApplicationStats({
       .catch(console.error);
   }
 
+  const now = new Date();
+
   return (
-    <div className="mx-auto flex max-w-[720px] flex-col px-6 pt-10 pb-8">
-      <SummaryHeader stats={stats} />
+    <PageLayout
+      title={<StatsHeadline headline={stats.headline} />}
+      subtitle={`전체 기간 · ${now.getMonth() + 1}.${now.getDate()} 기준`}
+    >
+      <SummaryMetrics stats={stats} />
 
       <div className={`${SECTION} flex flex-col gap-3`}>
         <div className="flex items-baseline justify-between gap-4">
@@ -160,6 +166,6 @@ export function ApplicationStats({
         onSaveInterviewRound={handleSetInterviewRound}
         onSaveCodingTestSchedule={handleSetCodingTestSchedule}
       />
-    </div>
+    </PageLayout>
   );
 }

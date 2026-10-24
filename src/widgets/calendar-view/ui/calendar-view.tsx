@@ -18,6 +18,7 @@ import { getDdayTier, type DdayTier } from "@/shared/lib/dday";
 import { formatDateTime } from "@/shared/lib/format-date-time";
 import { todayKST } from "@/shared/lib/kst-date";
 import { Button } from "@/shared/ui/button";
+import { PageLayout } from "@/shared/ui/page-layout";
 import {
   ApplicationDetailDialog,
   CodingTestScheduleDialog,
@@ -191,180 +192,181 @@ export function CalendarView({
   }
 
   return (
-    <div className="mx-auto flex max-w-[1040px] flex-col gap-4 px-6 pt-10 pb-8 md:flex-row md:gap-8">
-      <div className="hidden min-w-0 flex-1 flex-col gap-4 md:flex">
-        <div className="flex items-center justify-between">
-          <h2 className="text-[17px] font-medium tracking-tight">
-            {year}년 {month}월
-          </h2>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon-sm" onClick={() => goTo(-1)}>
-              <ChevronLeft />
-            </Button>
-            <Button variant="outline" size="sm" onClick={goToday}>
-              오늘
-            </Button>
-            <Button variant="ghost" size="icon-sm" onClick={() => goTo(1)}>
-              <ChevronRight />
-            </Button>
+    <PageLayout
+      title={`${year}년 ${month}월`}
+      action={
+        <>
+          <Button variant="ghost" size="icon-sm" onClick={() => goTo(-1)}>
+            <ChevronLeft />
+          </Button>
+          <Button variant="outline" size="sm" onClick={goToday}>
+            오늘
+          </Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => goTo(1)}>
+            <ChevronRight />
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-4 md:flex-row md:gap-8">
+        <div className="hidden min-w-0 flex-1 flex-col gap-4 md:flex">
+          <div className="grid grid-cols-7 text-center text-[11px] text-muted-foreground">
+            {WEEKDAY_LABELS.map((label, i) => (
+              <span key={label} className={i >= 5 ? "text-destructive" : undefined}>
+                {label}
+              </span>
+            ))}
+          </div>
+
+          <div className="flex flex-col">
+            {calendar.weeks.map((week, weekIndex) => (
+              <div key={weekIndex} className="grid grid-cols-7 border-t border-border">
+                {week.map((day) => {
+                  const tier = getDdayTier(day.date, today);
+                  return (
+                    <div key={day.date} className="flex min-h-[76px] flex-col gap-1 p-1.5">
+                      <div className="flex items-center gap-1">
+                        <span
+                          className={cn(
+                            "text-xs tabular-nums",
+                            day.isToday
+                              ? "rounded bg-foreground px-1.5 text-background"
+                              : day.isCurrentMonth
+                                ? "text-muted-foreground"
+                                : "text-muted-foreground/50"
+                          )}
+                        >
+                          {Number(day.date.slice(8, 10))}
+                        </span>
+                        {day.appliedCount > 0 && day.date < today && (
+                          <span
+                            title={`${day.appliedCount}곳 지원`}
+                            className="size-1.5 rounded-full"
+                            style={{ backgroundColor: "var(--heat-3)" }}
+                          />
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        {day.events.slice(0, MAX_VISIBLE_CHIPS).map((event) => (
+                          <button
+                            key={event.id}
+                            type="button"
+                            onClick={() => openEvent(event)}
+                            className={cn(
+                              "truncate rounded px-1.5 py-0.5 text-left text-[10.5px] hover:opacity-80",
+                              tierClasses(tier)
+                            )}
+                          >
+                            {event.company} {event.label}
+                          </button>
+                        ))}
+                        {day.events.length > MAX_VISIBLE_CHIPS && (
+                          <span className="px-1.5 text-[10.5px] text-muted-foreground">
+                            +{day.events.length - MAX_VISIBLE_CHIPS}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-7 text-center text-[11px] text-muted-foreground">
-          {WEEKDAY_LABELS.map((label, i) => (
-            <span key={label} className={i >= 5 ? "text-destructive" : undefined}>
-              {label}
-            </span>
-          ))}
-        </div>
+        <div className="flex w-full flex-col gap-3 md:w-[220px] md:shrink-0">
+          <p className="text-xs text-muted-foreground">다가오는 일정</p>
 
-        <div className="flex flex-col">
-          {calendar.weeks.map((week, weekIndex) => (
-            <div key={weekIndex} className="grid grid-cols-7 border-t border-border">
-              {week.map((day) => {
-                const tier = getDdayTier(day.date, today);
-                return (
-                  <div key={day.date} className="flex min-h-[76px] flex-col gap-1 p-1.5">
-                    <div className="flex items-center gap-1">
-                      <span
-                        className={cn(
-                          "text-xs tabular-nums",
-                          day.isToday
-                            ? "rounded bg-foreground px-1.5 text-background"
-                            : day.isCurrentMonth
-                              ? "text-muted-foreground"
-                              : "text-muted-foreground/50"
-                        )}
-                      >
-                        {Number(day.date.slice(8, 10))}
-                      </span>
-                      {day.appliedCount > 0 && day.date < today && (
-                        <span
-                          title={`${day.appliedCount}곳 지원`}
-                          className="size-1.5 rounded-full"
-                          style={{ backgroundColor: "var(--heat-3)" }}
-                        />
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-0.5">
-                      {day.events.slice(0, MAX_VISIBLE_CHIPS).map((event) => (
-                        <button
-                          key={event.id}
-                          type="button"
-                          onClick={() => openEvent(event)}
-                          className={cn(
-                            "truncate rounded px-1.5 py-0.5 text-left text-[10.5px] hover:opacity-80",
-                            tierClasses(tier)
-                          )}
-                        >
-                          {event.company} {event.label}
-                        </button>
-                      ))}
-                      {day.events.length > MAX_VISIBLE_CHIPS && (
-                        <span className="px-1.5 text-[10.5px] text-muted-foreground">
-                          +{day.events.length - MAX_VISIBLE_CHIPS}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex w-full flex-col gap-3 md:w-[240px] md:shrink-0">
-        <p className="text-xs text-muted-foreground">다가오는 일정</p>
-
-        {upcoming.length === 0 && unscheduled.length === 0 ? (
-          <p className="text-xs text-muted-foreground">다가오는 일정이 없어요</p>
-        ) : (
-          <>
-            <div className="flex flex-col gap-3">
-              {upcoming.map((event) => (
-                <button
-                  key={event.id}
-                  type="button"
-                  onClick={() => openEvent(event)}
-                  className="flex flex-col gap-0.5 text-left"
-                >
-                  <span
-                    className={cn(
-                      "text-[11px] tabular-nums",
-                      event.date === today ? "text-urgent" : "text-muted-foreground"
-                    )}
+          {upcoming.length === 0 && unscheduled.length === 0 ? (
+            <p className="text-xs text-muted-foreground">다가오는 일정이 없어요</p>
+          ) : (
+            <>
+              <div className="flex flex-col gap-3">
+                {upcoming.map((event) => (
+                  <button
+                    key={event.id}
+                    type="button"
+                    onClick={() => openEvent(event)}
+                    className="flex flex-col gap-0.5 text-left"
                   >
-                    {formatUpcomingDate(event.date, event.time, today)}
-                  </span>
-                  <span className="text-sm">
-                    <span className="font-medium">{event.company}</span>{" "}
-                    <span className="text-muted-foreground">{event.label}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            {unscheduled.length > 0 && (
-              <div className="flex flex-col gap-3 border-t border-border pt-3">
-                <p className="text-[11px] text-muted-foreground">일정 미정</p>
-                {unscheduled.map((item) => (
-                  <UnscheduledRow
-                    key={item.applicationId}
-                    item={item}
-                    application={applications.find((a) => a.id === item.applicationId) ?? null}
-                    schedule={
-                      scheduleItems.find(
-                        (s) => s.applicationId === item.applicationId && s.stage === "interview"
-                      ) ?? null
-                    }
-                    recordedRounds={recordedInterviewRounds(scheduleItems, item.applicationId)}
-                    onSaveInterviewRound={handleSetInterviewRound}
-                    onRequestCodingTest={setPendingCodingTestId}
-                  />
+                    <span
+                      className={cn(
+                        "text-[11px] tabular-nums",
+                        event.date === today ? "text-urgent" : "text-muted-foreground"
+                      )}
+                    >
+                      {formatUpcomingDate(event.date, event.time, today)}
+                    </span>
+                    <span className="text-sm">
+                      <span className="font-medium">{event.company}</span>{" "}
+                      <span className="text-muted-foreground">{event.label}</span>
+                    </span>
+                  </button>
                 ))}
               </div>
-            )}
-          </>
-        )}
+
+              {unscheduled.length > 0 && (
+                <div className="flex flex-col gap-3 border-t border-border pt-3">
+                  <p className="text-[11px] text-muted-foreground">일정 미정</p>
+                  {unscheduled.map((item) => (
+                    <UnscheduledRow
+                      key={item.applicationId}
+                      item={item}
+                      application={applications.find((a) => a.id === item.applicationId) ?? null}
+                      schedule={
+                        scheduleItems.find(
+                          (s) => s.applicationId === item.applicationId && s.stage === "interview"
+                        ) ?? null
+                      }
+                      recordedRounds={recordedInterviewRounds(scheduleItems, item.applicationId)}
+                      onSaveInterviewRound={handleSetInterviewRound}
+                      onRequestCodingTest={setPendingCodingTestId}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
       </div>
 
-      <CodingTestScheduleDialog
-        key={`coding-test-${pendingCodingTestApplication?.id ?? "none"}`}
-        application={pendingCodingTestApplication}
-        schedule={pendingCodingTestSchedule}
-        onSelect={handleSetCodingTestSchedule}
-        onOpenChange={(open) => {
-          if (!open) setPendingCodingTestId(null);
-        }}
-      />
-      <ApplicationDetailDialog
-        key={`detail-${detailApplication?.id ?? "none"}`}
-        application={detailApplication}
-        schedule={detailId ? (latestSchedules.get(detailId) ?? null) : null}
-        interviewRounds={detailId ? recordedInterviewRounds(scheduleItems, detailId) : []}
-        myProjectTechStack={myProjectTechStack}
-        myProjects={myProjects}
-        onOpenChange={(open) => {
-          if (!open) setDetailId(null);
-        }}
-        onUpdate={handleUpdateApplication}
-        onDelete={handleDeleteApplication}
-        onSaveInterviewRound={handleSetInterviewRound}
-        onSaveCodingTestSchedule={handleSetCodingTestSchedule}
-      />
-      <ApplicationDetailDialog
-        key={`detail-company-${detailCompany?.id ?? "none"}`}
-        variant="interested"
-        company={detailCompany}
-        myProjectTechStack={myProjectTechStack}
-        myProjects={myProjects}
-        onOpenChange={(open: boolean) => {
-          if (!open) setDetailCompanyId(null);
-        }}
-        onUpdate={handleUpdateApplication}
-        onApply={handleApply}
-      />
-    </div>
+        <CodingTestScheduleDialog
+          key={`coding-test-${pendingCodingTestApplication?.id ?? "none"}`}
+          application={pendingCodingTestApplication}
+          schedule={pendingCodingTestSchedule}
+          onSelect={handleSetCodingTestSchedule}
+          onOpenChange={(open) => {
+            if (!open) setPendingCodingTestId(null);
+          }}
+        />
+        <ApplicationDetailDialog
+          key={`detail-${detailApplication?.id ?? "none"}`}
+          application={detailApplication}
+          schedule={detailId ? (latestSchedules.get(detailId) ?? null) : null}
+          interviewRounds={detailId ? recordedInterviewRounds(scheduleItems, detailId) : []}
+          myProjectTechStack={myProjectTechStack}
+          myProjects={myProjects}
+          onOpenChange={(open) => {
+            if (!open) setDetailId(null);
+          }}
+          onUpdate={handleUpdateApplication}
+          onDelete={handleDeleteApplication}
+          onSaveInterviewRound={handleSetInterviewRound}
+          onSaveCodingTestSchedule={handleSetCodingTestSchedule}
+        />
+        <ApplicationDetailDialog
+          key={`detail-company-${detailCompany?.id ?? "none"}`}
+          variant="interested"
+          company={detailCompany}
+          myProjectTechStack={myProjectTechStack}
+          myProjects={myProjects}
+          onOpenChange={(open: boolean) => {
+            if (!open) setDetailCompanyId(null);
+          }}
+          onUpdate={handleUpdateApplication}
+          onApply={handleApply}
+        />
+    </PageLayout>
   );
 }

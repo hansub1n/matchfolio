@@ -13,6 +13,7 @@ import type { ProjectMatchWithCompany } from "@/entities/project-match";
 import { CreateMyProjectDialog } from "@/features/create-my-project";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
 import { Button } from "@/shared/ui/button";
+import { PageLayout } from "@/shared/ui/page-layout";
 import { EmptyHint, PlaceholderBar, PlaceholderBox } from "@/shared/ui/placeholder";
 
 import { computeBestMatch } from "../model/compute-best-match";
@@ -78,11 +79,10 @@ export function MyProjects({
   }
 
   return (
-    <div className="mx-auto flex max-w-[880px] flex-col gap-4 px-6 pt-10 pb-8">
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-[22px] font-medium tracking-tight">
-          {isEmpty ? "등록된 프로젝트가 없어요" : `프로젝트 ${items.length}개로 공고와 매칭하고 있어요`}
-        </p>
+    <PageLayout
+      title={isEmpty ? "등록된 프로젝트가 없어요" : `프로젝트 ${items.length}개로 공고와 매칭하고 있어요`}
+      subtitle={`가장 많이 쓴 기술 · ${topTechStack.length > 0 ? topTechStack.join(", ") : "—"}`}
+      action={
         <CreateMyProjectDialog
           trigger={
             <button
@@ -93,13 +93,13 @@ export function MyProjects({
             </button>
           }
         />
-      </div>
-
-      <p className="text-xs text-muted-foreground">
-        가장 많이 쓴 기술 · {topTechStack.length > 0 ? topTechStack.join(", ") : "—"}
-      </p>
-
-      {!isEmpty && <SkillGapBox items={skillGap} />}
+      }
+    >
+      {!isEmpty && skillGap.length > 0 && (
+        <div className="mb-4">
+          <SkillGapBox items={skillGap} />
+        </div>
+      )}
 
       {isEmpty && <EmptyProjectList />}
 
@@ -128,7 +128,7 @@ export function MyProjects({
         onDelete={handleDelete}
         onNavigateToCompany={onNavigateToCompany}
       />
-    </div>
+    </PageLayout>
   );
 }
 
