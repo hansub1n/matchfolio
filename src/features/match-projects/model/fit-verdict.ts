@@ -12,13 +12,17 @@ export interface FitVerdict {
 // 공고 매칭 맨 위의 적합도 한 줄. AI 점수는 매번 흔들리고 근거를 확인하기 어려워서,
 // 공고 기술스택과 내 프로젝트 기술스택이 얼마나 겹치는지로만 정한다(별칭·포함 관계는 techSatisfies 기준).
 // 공고에 기술스택이 없으면 판단하지 않는다(unknown).
+// Git·GitHub·Jira처럼 개발자라면 누구나 쓰는 협업 도구는 프로젝트 기술스택에 잘 안 적어서, 세면 "없음"으로
+// 잡혀 적합도만 깎는다(그리고 AI가 "Git 경험이 부족합니다" 같은 문장을 만든다) — 계산에서 뺀다.
+const COMMON_TOOLS = new Set(["git", "github", "gitlab", "bitbucket", "jira", "slack", "notion", "confluence"]);
+
 export function computeFitVerdict(postingTech: string[], ownedTech: string[]): FitVerdict {
   const seen = new Set<string>();
   const covered: string[] = [];
   const missing: string[] = [];
   for (const tech of postingTech) {
     const key = tech.trim().toLowerCase();
-    if (!key || seen.has(key)) continue;
+    if (!key || seen.has(key) || COMMON_TOOLS.has(key.replace(/[\s.]/g, ""))) continue;
     seen.add(key);
     if (ownedTech.some((owned) => techSatisfies(tech, owned))) covered.push(tech);
     else missing.push(tech);

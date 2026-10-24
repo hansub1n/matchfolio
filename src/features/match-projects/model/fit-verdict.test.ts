@@ -26,6 +26,11 @@ describe("computeFitVerdict", () => {
     expect(v.level).toBe("mid");
   });
 
+  it("Git·GitHub 같은 공통 협업 도구는 세지 않는다", () => {
+    const v = computeFitVerdict(["React", "Git", "GitHub", "Jira"], ["React"]);
+    expect(v).toEqual({ level: "high", covered: ["React"], missing: [] });
+  });
+
   it("프롬프트용 한 줄에 있는 것/없는 것을 그대로 적는다", () => {
     expect(describeFitForPrompt(computeFitVerdict(["React", "Java"], ["React"]))).toBe(
       "공고 기술 2개 중 내 프로젝트에 있는 것: React / 없는 것: Java"
