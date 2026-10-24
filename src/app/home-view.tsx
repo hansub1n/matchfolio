@@ -55,16 +55,16 @@ export function HomeView({
                 <LayoutGrid data-icon="inline-start" />
                 보드
               </TabsTrigger>
-              <TabsTrigger value="materials">
-                <FolderGit2 data-icon="inline-start" />내 자료
+              <TabsTrigger value="calendar">
+                <CalendarDays data-icon="inline-start" />
+                캘린더
               </TabsTrigger>
               <TabsTrigger value="stats">
                 <BarChart3 data-icon="inline-start" />
                 통계
               </TabsTrigger>
-              <TabsTrigger value="calendar">
-                <CalendarDays data-icon="inline-start" />
-                캘린더
+              <TabsTrigger value="materials">
+                <FolderGit2 data-icon="inline-start" />내 자료
               </TabsTrigger>
             </TabsList>
             <button
