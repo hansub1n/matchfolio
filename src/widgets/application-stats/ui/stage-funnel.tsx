@@ -40,7 +40,16 @@ function FinalColumnBar({ step, total }: { step: FunnelStep; total: number }) {
   );
 }
 
-export function StageFunnel({ steps, total }: { steps: FunnelStep[]; total: number }) {
+export function StageFunnel({
+  steps,
+  total,
+  celebrate = false,
+}: {
+  steps: FunnelStep[];
+  total: number;
+  // 첫 기록 애니메이션 — "지원" 막대가 0에서 값까지 차오른다.
+  celebrate?: boolean;
+}) {
   return (
     <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-4">
       {steps.map((step, i) => {
@@ -61,7 +70,7 @@ export function StageFunnel({ steps, total }: { steps: FunnelStep[]; total: numb
             ) : (
               <div className="h-1 w-full rounded-full bg-muted">
                 <div
-                  className="h-full rounded-full bg-foreground"
+                  className={cn("h-full rounded-full bg-foreground", celebrate && i === 0 && "animate-first-record-fill")}
                   style={{ width: `${step.percent}%` }}
                 />
               </div>

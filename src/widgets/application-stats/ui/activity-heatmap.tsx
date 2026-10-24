@@ -1,5 +1,7 @@
 "use client";
 
+import { cn } from "cn";
+
 import { buildMonthLabels, type YearHeatmapData } from "@/entities/application";
 
 const WEEKDAY_ROW_LABELS = ["월", "", "수", "", "금", "", ""];
@@ -28,7 +30,14 @@ function cellTooltip(date: string, count: number) {
 // 한 그리드 안에(요일 라벨 1열 + 월 라벨 1행 + 실제 칸) 전부 넣어서, 셀마다
 // aspect-ratio:1을 줘 폭이 줄어들면 높이도 같이 줄어들게 한다 — 그래서 컨테이너
 // 폭에 맞춰 늘어나거나 줄어도 항상 정사각 칸을 유지하면서 스크롤 없이 꽉 찬다.
-export function ActivityHeatmap({ heatmap }: { heatmap: YearHeatmapData }) {
+export function ActivityHeatmap({
+  heatmap,
+  celebrateDate,
+}: {
+  heatmap: YearHeatmapData;
+  // 첫 기록 애니메이션 대상 칸(오늘). 없으면 애니메이션 없음.
+  celebrateDate?: string | null;
+}) {
   const weekCount = heatmap.weeks.length;
   const monthLabels = buildMonthLabels(heatmap.weeks);
 
@@ -64,7 +73,7 @@ export function ActivityHeatmap({ heatmap }: { heatmap: YearHeatmapData }) {
               <div
                 key={cell.date}
                 title={cellTooltip(cell.date, cell.count)}
-                className="rounded-[2px]"
+                className={cn("rounded-[2px]", cell.date === celebrateDate && "animate-first-record-pop")}
                 style={{
                   gridColumn: weekIndex + 2,
                   gridRow: dayIndex + 2,

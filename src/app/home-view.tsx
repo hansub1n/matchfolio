@@ -84,6 +84,7 @@ export function HomeView({
             applications={applications}
             schedules={schedules}
             myProjects={myProjects}
+            onNavigateToBoard={() => setTab("board")}
           />
         </TabsContent>
       </Tabs>

@@ -216,3 +216,41 @@
     @apply font-sans;
   }
 }
+/* 첫 지원 기록 후 처음 통계에 들어왔을 때 한 번만: 오늘 칸이 튀어오르고, 퍼널 "지원" 막대가 0에서 차오른다.
+   transform만 써서 주변 레이아웃은 움직이지 않는다. */
+@keyframes first-record-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.8);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes first-record-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.animate-first-record-pop {
+  animation: first-record-pop 600ms ease-out;
+}
+
+.animate-first-record-fill {
+  transform-origin: left;
+  animation: first-record-fill 600ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-first-record-pop,
+  .animate-first-record-fill {
+    animation: none;
+  }
+}

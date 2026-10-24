@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarClock, ChevronLeft, ChevronRight, Code2, Users } from "lucide-react";
 import { cn } from "cn";
 
 import {
@@ -17,6 +17,7 @@ import { recordedInterviewRounds, useScheduleRequests, type Schedule } from "@/e
 import { getDdayTier, type DdayTier } from "@/shared/lib/dday";
 import { formatDateTime } from "@/shared/lib/format-date-time";
 import { todayKST } from "@/shared/lib/kst-date";
+import { CreateApplicationDialog } from "@/features/create-application";
 import { Button } from "@/shared/ui/button";
 import { PageLayout } from "@/shared/ui/page-layout";
 import {
@@ -112,14 +113,47 @@ function UnscheduledRow({
   );
 }
 
+const SCHEDULE_PLACES = [
+  { icon: CalendarClock, title: "관심 공고 마감일", hint: "공고를 추가하면 마감일이 들어와요" },
+  { icon: Code2, title: "코딩테스트", hint: "카드를 코딩테스트로 옮기고 날짜를 넣어요" },
+  { icon: Users, title: "면접", hint: "면접 차수와 날짜를 넣어요" },
+] as const;
+
+// 일정이 하나도 없을 때 "어디서 일정이 생기는지"를 보여준다. 첫 항목은 공고 추가 모달을
+// 바로 열고, 나머지는 보드로 옮겨준다.
+function EmptySchedulePlaces({ onNavigateToBoard }: { onNavigateToBoard?: () => void }) {
+  return (
+    <div className="flex flex-col gap-1">
+      {SCHEDULE_PLACES.map(({ icon: Icon, title, hint }, i) => {
+        const row = (
+          <button
+            type="button"
+            onClick={i === 0 ? undefined : onNavigateToBoard}
+            className="flex items-start gap-2.5 rounded-md px-1.5 py-2 text-left hover:bg-accent"
+          >
+            <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            <span className="flex flex-col gap-0.5">
+              <span className="text-sm">{title}</span>
+              <span className="text-[11.5px] text-muted-foreground">{hint}</span>
+            </span>
+          </button>
+        );
+        return i === 0 ? <CreateApplicationDialog key={title} trigger={row} /> : <div key={title}>{row}</div>;
+      })}
+    </div>
+  );
+}
+
 export function CalendarView({
   applications,
   schedules,
   myProjects,
+  onNavigateToBoard,
 }: {
   applications: Application[];
   schedules: Schedule[];
   myProjects: MyProject[];
+  onNavigateToBoard?: () => void;
 }) {
   const router = useRouter();
   const myProjectTechStack = [...new Set(myProjects.flatMap((p) => p.techStack))];
@@ -278,7 +312,7 @@ export function CalendarView({
           <p className="text-xs text-muted-foreground">다가오는 일정</p>
 
           {upcoming.length === 0 && unscheduled.length === 0 ? (
-            <p className="text-xs text-muted-foreground">다가오는 일정이 없어요</p>
+            <EmptySchedulePlaces onNavigateToBoard={onNavigateToBoard} />
           ) : (
             <>
               <div className="flex flex-col gap-3">

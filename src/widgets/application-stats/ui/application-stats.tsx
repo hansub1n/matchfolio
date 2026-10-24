@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -14,6 +14,8 @@ import {
 import type { MyProject } from "@/entities/my-project";
 import { recordedInterviewRounds, useScheduleRequests, type Schedule } from "@/entities/schedule";
 import { todayKST } from "@/shared/lib/kst-date";
+import { CreateApplicationDialog } from "@/features/create-application";
+import { Button } from "@/shared/ui/button";
 import { PageLayout } from "@/shared/ui/page-layout";
 import { EmptyHint, PlaceholderBar } from "@/shared/ui/placeholder";
 import { ApplicationDetailDialog } from "@/widgets/kanban-board";
@@ -61,6 +63,7 @@ export function ApplicationStats({
     useScheduleRequests(applications, scheduleItems, setScheduleItems);
 
   const [detailId, setDetailId] = useState<string | null>(null);
+  const celebrate = useFirstRecordCelebration(stats.total);
   const detailApplication = applications.find((app) => app.id === detailId) ?? null;
 
   function handleUpdate(id: string, input: UpdateApplicationInput) {
@@ -111,13 +114,23 @@ export function ApplicationStats({
                 </button>
               ))}
             <span>최장 연속 {longestStreak}일</span>
+            {stats.total === 0 && (
+              <CreateApplicationDialog
+                initialStatus="applied"
+                trigger={
+                  <Button variant="outline" size="sm" className="ml-1 rounded-full">
+                    공고 추가
+                  </Button>
+                }
+              />
+            )}
           </span>
         </div>
-        <ActivityHeatmap heatmap={yearHeatmap} />
+        <ActivityHeatmap heatmap={yearHeatmap} celebrateDate={celebrate ? today : null} />
       </div>
 
       <div className={SECTION}>
-        <StageFunnel steps={stats.funnel} total={stats.total} />
+        <StageFunnel steps={stats.funnel} total={stats.total} celebrate={celebrate} />
       </div>
 
       <div className={SECTION}>
@@ -168,4 +181,28 @@ export function ApplicationStats({
       />
     </PageLayout>
   );
+}
+
+const FIRST_RECORD_SEEN_KEY = "matchfolio:stats-first-record-seen";
+
+// 첫 지원 기록이 생긴 뒤 처음 통계에 들어오면 한 번만 축하 애니메이션을 켠다. 표시 여부는
+// 이 브라우저에만 기억한다(못 읽으면 그냥 생략). 개발 모드에서 effect가 두 번 돌아도
+// 한 번은 보이게, "봤음" 기록은 실제로 켜는 순간에 남긴다.
+function useFirstRecordCelebration(total: number): boolean {
+  const [celebrate, setCelebrate] = useState(false);
+  useEffect(() => {
+    if (total === 0) return;
+    const frame = requestAnimationFrame(() => {
+      try {
+        if (localStorage.getItem(FIRST_RECORD_SEEN_KEY) === "1") return;
+        localStorage.setItem(FIRST_RECORD_SEEN_KEY, "1");
+      } catch {
+        return;
+      }
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      setCelebrate(true);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [total]);
+  return celebrate;
 }
