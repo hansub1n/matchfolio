@@ -24,6 +24,7 @@ interface TurnstileApi {
     }
   ) => string;
   reset: (widgetId: string) => void;
+  remove: (widgetId: string) => void;
 }
 
 declare global {
@@ -100,8 +101,10 @@ export function AnonymousSignIn() {
         if (!cancelled) setError("사람인지 확인하는 도구를 불러오지 못했어요. 새로고침해서 다시 시도해주세요");
       });
 
+    // 로그인이 끝나 이 컴포넌트가 사라질 때 위젯도 지운다 — 안 지우면 Turnstile이 없어진 위젯을 찾다 경고를 낸다.
     return () => {
       cancelled = true;
+      if (widgetId) window.turnstile?.remove(widgetId);
     };
   }, [router]);
 
