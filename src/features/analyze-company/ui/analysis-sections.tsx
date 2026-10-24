@@ -12,9 +12,9 @@ import {
   type InterviewPrepSection,
   type InterviewPrepSource,
 } from "@/entities/interview-prep";
-import { CreateMyProjectDialog } from "@/features/create-my-project";
 import { buildCompanySearchLinks } from "@/shared/lib/company-search-links";
 import { KST_TIME_ZONE } from "@/shared/lib/kst-date";
+import { requestTab } from "@/shared/lib/tab-store";
 import { useExpandable } from "@/shared/lib/use-expandable";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
 import { AiSectionButton, AiSectionSkeleton } from "@/shared/ui/ai-section";
@@ -307,18 +307,36 @@ function QuestionGroupBlock({
   );
 }
 
-function EmptyProjectQuestionsGroup() {
+// 프로젝트 기반 질문이 아직 없을 때 — 다른 그룹과 같은 제목 줄("내 프로젝트 기반 질문")을 두고, 할 일은 제목
+// 오른쪽 끝 링크 하나로(기본 질문 그룹의 "다시 만들기"와 같은 자리·모양). 프로젝트가 없으면 내 자료로 보내고,
+// 있는데 질문을 만들기 전이면(예상 질문을 프로젝트 등록 전에 만든 경우) 그 자리에서 만든다.
+function EmptyProjectQuestionsGroup({
+  hasProjects,
+  busy,
+  onGenerate,
+}: {
+  hasProjects: boolean;
+  busy: boolean;
+  onGenerate: () => void;
+}) {
+  const action = !hasProjects ? (
+    <LinkButton onClick={() => requestTab("materials")}>내 자료 →</LinkButton>
+  ) : busy ? (
+    <span className="text-[11px] text-muted-foreground">만드는 중</span>
+  ) : (
+    <LinkButton onClick={onGenerate}>만들기</LinkButton>
+  );
+
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-[11px] text-muted-foreground">
-        내 자료에 프로젝트를 등록하면 내 경험 기준 질문 3개와 약점 대비 질문 2개가 추가돼요{" "}
-        <CreateMyProjectDialog
-          trigger={
-            <button type="button" className="underline underline-offset-2 hover:text-foreground">
-              프로젝트 추가
-            </button>
-          }
-        />
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center justify-between gap-2">
+        <SectionLabel>내 프로젝트 기반 질문</SectionLabel>
+        {action}
+      </div>
+      <p className="pb-1 text-[11.5px] text-muted-foreground">
+        {hasProjects
+          ? "등록한 프로젝트로 내 경험 질문 3개와 약점 대비 질문 2개를 만들 수 있어요"
+          : "내 자료에 프로젝트를 등록하면 내 경험 질문 3개와 약점 대비 질문 2개가 추가돼요"}
       </p>
       <div className="pointer-events-none flex flex-col opacity-50">
         {EXAMPLE_PROJECT_QUESTIONS.map((q) => (
@@ -387,8 +405,6 @@ function QuestionsArea({
 
   const projectHeaderExtra = regenerating ? (
     <span className="text-[11px] text-muted-foreground">다시 만드는 중</span>
-  ) : !projectQuestions ? (
-    <LinkButton onClick={handleRegenerate}>만들기</LinkButton>
   ) : submissionChanged ? (
     <LinkButton onClick={handleRegenerate}>제출 자료 반영 안 됨 · 다시 만들기</LinkButton>
   ) : isOutdated ? (
@@ -432,16 +448,16 @@ function QuestionsArea({
       )}
 
       {showProject &&
-        (hasProjects ? (
+        (hasProjects && projectQuestions ? (
           <QuestionGroupBlock
-            title={tab === "all" ? `내 프로젝트 기반 질문 ${(projectQuestions ?? []).length}` : undefined}
+            title={tab === "all" ? `내 프로젝트 기반 질문 ${projectQuestions.length}` : undefined}
             group="project"
-            questions={projectQuestions ?? []}
+            questions={projectQuestions}
             projectNameById={projectNameById}
             headerExtra={projectHeaderExtra}
           />
         ) : (
-          <EmptyProjectQuestionsGroup />
+          <EmptyProjectQuestionsGroup hasProjects={hasProjects} busy={regenerating} onGenerate={handleRegenerate} />
         ))}
 
       {regenerateError && <p className="text-xs text-destructive">{regenerateError}</p>}
@@ -468,7 +484,7 @@ function AnalysisStatus({
       {state.status === "error" ? (
         <>
           <p className="mb-3 text-xs text-destructive">{state.error}</p>
-          <AiSectionButton onClick={onAnalyze}>다시 시도</AiSectionButton>
+          <AiSectionButton onClick={onAnalyze}>다시 시도하기</AiSectionButton>
         </>
       ) : state.status === "empty" ? (
         <>
@@ -536,7 +552,7 @@ export function CompanyAnalysisSection({
         <span className="shrink-0 text-[11px] whitespace-nowrap text-muted-foreground">
           {analyzedDate} 분석 ·{" "}
           <button type="button" onClick={onAnalyze} className="hover:text-foreground">
-            다시 분석
+            다시 분석하기
           </button>
         </span>
       </div>

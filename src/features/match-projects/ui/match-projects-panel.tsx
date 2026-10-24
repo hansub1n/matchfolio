@@ -234,7 +234,7 @@ export function MatchProjectsPanel({
     return (
       <AiSection title={TITLE} help={HELP}>
         <p className="mb-3 text-xs text-destructive">{error}</p>
-        <AiSectionButton onClick={handleMatch}>다시 시도</AiSectionButton>
+        <AiSectionButton onClick={handleMatch}>다시 시도하기</AiSectionButton>
       </AiSection>
     );
   }
@@ -253,10 +253,11 @@ export function MatchProjectsPanel({
       return (
         <AiSection title={TITLE} help={HELP}>
           <p className="mb-3 text-xs text-muted-foreground">
-            내 자료에 프로젝트·자소서·이력서를 등록하면 이 공고에 맞춰 볼 수 있어요
+            프로젝트·자소서·이력서 중 하나만 있어도 이 공고에 맞춰볼 수 있어요
           </p>
+          {/* AI 영역 버튼은 전부 "~하기"(매칭하기·분석하기·예상 질문 만들기·다시 시도하기)로 맞춘다. */}
           <AiSectionButton icon={false} onClick={() => requestTab("materials")}>
-            내 자료로 가기
+            내 자료 등록하기
           </AiSectionButton>
         </AiSection>
       );
@@ -275,13 +276,15 @@ export function MatchProjectsPanel({
   const { matches, review } = result;
   const topScore = matches.reduce((max, m) => Math.max(max, m.fitScore), 0);
   const coverLetter = review?.coverLetter ?? null;
+  // 프로젝트만 넣어둔 경우 — 자소서·이력서를 넣으면 무엇을 더 볼 수 있는지 맨 아래 한 줄로.
+  const missingDocsHint = describeMissingDocs(materials);
   // 구버전 캐시는 적합도와 상관없이 부족한 점만 만들었다 — 거의 안 맞는 공고일 때만 보여준다.
   const opener =
     review?.opener ??
     (review?.gapStatement && verdict.level === "low" ? { kind: "gap" as const, text: review.gapStatement } : null);
 
   return (
-    <AiSection title={TITLE} help={HELP} headerAction={<LinkButton onClick={handleMatch}>다시 매칭</LinkButton>}>
+    <AiSection title={TITLE} help={HELP} headerAction={<LinkButton onClick={handleMatch}>다시 매칭하기</LinkButton>}>
       <div className="mt-3 flex flex-col divide-y">
         <Block>
           <FitSummary verdict={verdict} />
@@ -357,6 +360,12 @@ export function MatchProjectsPanel({
             </ul>
           </Block>
         )}
+        {missingDocsHint && (
+          <Block>
+            {/* 내 자료로 가는 길은 지원 준비 맨 위 "내 자료 →" 하나로 둔다. */}
+            <p className="text-[11.5px] text-muted-foreground">{missingDocsHint}</p>
+          </Block>
+        )}
       </div>
     </AiSection>
   );
@@ -368,4 +377,12 @@ function describeMaterials({ projectCount, hasResume, coverLetterCount }: MatchM
   if (coverLetterCount > 0) parts.push("자소서");
   if (projectCount > 0) parts.push(`프로젝트 ${projectCount}개`);
   return parts.join("·");
+}
+
+function describeMissingDocs({ hasResume, coverLetterCount }: MatchMaterialsSummary): string | null {
+  const noCoverLetter = coverLetterCount === 0;
+  if (noCoverLetter && !hasResume) return "자소서·이력서를 넣고 다시 매칭하면 자소서 첨삭과 이력서에서 강조할 점도 볼 수 있어요";
+  if (noCoverLetter) return "자소서를 넣고 다시 매칭하면 자소서 첨삭도 볼 수 있어요";
+  if (!hasResume) return "이력서를 넣고 다시 매칭하면 이력서에서 강조할 점도 볼 수 있어요";
+  return null;
 }

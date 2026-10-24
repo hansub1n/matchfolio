@@ -427,16 +427,20 @@ export function ApplicationDetailDialog(props: Props) {
               open={openGroups.has("application")}
               onToggle={() => toggleGroup("application")}
             >
-              <p className="text-[11.5px] text-muted-foreground">
-                내 자료(프로젝트·자소서·이력서)를 기준으로 이 공고에 맞춰봐요.{" "}
-                <button
-                  type="button"
-                  onClick={() => requestTab("materials")}
-                  className="underline underline-offset-2 hover:text-foreground"
-                >
-                  내 자료에서 등록·수정
-                </button>
-              </p>
+              {/* "내 자료 →"는 안내 문구와 떨어뜨려 오른쪽 끝에. 자료가 하나도 없을 땐 아래 공고 매칭의
+                  "내 자료 등록하기" 버튼이 같은 일을 해서 숨긴다. */}
+              <div className="flex items-baseline justify-between gap-3 text-[11.5px]">
+                <p className="text-muted-foreground">내 프로젝트·자소서·이력서를 이 공고에 맞춰봐요</p>
+                {(myProjects.length > 0 || documents.length > 0) && (
+                  <button
+                    type="button"
+                    onClick={() => requestTab("materials")}
+                    className="shrink-0 text-foreground hover:underline"
+                  >
+                    내 자료 →
+                  </button>
+                )}
+              </div>
               <MatchProjectsPanel
                 key={entity.id}
                 company={entity}

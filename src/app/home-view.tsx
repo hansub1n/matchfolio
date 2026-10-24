@@ -41,7 +41,7 @@ export function HomeView({
   allProjectMatches: ProjectMatchWithCompany[];
 }) {
   const [tab, setTab] = useState<string>("board");
-  // 상세 모달 안의 "내 자료로 가기"처럼 깊은 곳에서 탭을 바꾸는 요청을 받는다.
+  // 상세 모달 안의 "내 자료 →"처럼 깊은 곳에서 탭을 바꾸는 요청을 받는다.
   useEffect(() => registerTabHandler(setTab), []);
   // 내 프로젝트의 "지원 공고 대비 없는 기술"은 실제로 지원한 공고 기준으로 센다.
   const submitted = applications.filter(isSubmitted);
