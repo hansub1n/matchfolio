@@ -7,11 +7,13 @@ import { isSubmitted, type Application } from "@/entities/application";
 import type { MyProject } from "@/entities/my-project";
 import type { ProjectMatchWithCompany } from "@/entities/project-match";
 import type { Schedule } from "@/entities/schedule";
+import { TutorialDialog } from "@/features/onboarding";
 import { ApplicationStats } from "@/widgets/application-stats";
 import { BoardHeader } from "@/widgets/board-header";
 import { CalendarView } from "@/widgets/calendar-view";
 import { KanbanBoard } from "@/widgets/kanban-board";
 import { MyProjects } from "@/widgets/my-projects";
+import { openTutorial } from "@/shared/lib/tutorial-store";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { Toaster } from "@/shared/ui/toast";
 
@@ -41,23 +43,32 @@ export function HomeView({
       <Tabs value={tab} onValueChange={setTab} className="flex-1">
         <div className="flex shrink-0 items-center justify-between border-b border-border px-6 pb-6">
           <h1 className="text-xl font-bold tracking-tight">matchfolio</h1>
-          <TabsList>
-            <TabsTrigger value="board">
-              <LayoutGrid data-icon="inline-start" />
-              보드
-            </TabsTrigger>
-            <TabsTrigger value="my-projects">
-              <FolderGit2 data-icon="inline-start" />내 프로젝트
-            </TabsTrigger>
-            <TabsTrigger value="stats">
-              <BarChart3 data-icon="inline-start" />
-              통계
-            </TabsTrigger>
-            <TabsTrigger value="calendar">
-              <CalendarDays data-icon="inline-start" />
-              캘린더
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center gap-3">
+            <TabsList>
+              <TabsTrigger value="board">
+                <LayoutGrid data-icon="inline-start" />
+                보드
+              </TabsTrigger>
+              <TabsTrigger value="my-projects">
+                <FolderGit2 data-icon="inline-start" />내 프로젝트
+              </TabsTrigger>
+              <TabsTrigger value="stats">
+                <BarChart3 data-icon="inline-start" />
+                통계
+              </TabsTrigger>
+              <TabsTrigger value="calendar">
+                <CalendarDays data-icon="inline-start" />
+                캘린더
+              </TabsTrigger>
+            </TabsList>
+            <button
+              type="button"
+              onClick={() => openTutorial({ mode: "guide" })}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              사용법
+            </button>
+          </div>
         </div>
         <TabsContent value="board" className="flex flex-col gap-4">
           <BoardHeader applications={applications} schedules={schedules} />
@@ -89,6 +100,7 @@ export function HomeView({
         </TabsContent>
       </Tabs>
       <Toaster />
+      <TutorialDialog />
     </main>
   );
 }
