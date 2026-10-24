@@ -11,11 +11,11 @@ import {
 } from "@/entities/my-project";
 import type { UserDocument } from "@/entities/document";
 import type { ProjectMatchWithCompany } from "@/entities/project-match";
-import { CreateMyProjectDialog, InlineProjectImport } from "@/features/create-my-project";
+import { CreateMyProjectDialog } from "@/features/create-my-project";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
 import { HelpButton } from "@/shared/ui/help-button";
 import { PageLayout } from "@/shared/ui/page-layout";
-import { PlaceholderBar, PlaceholderBox } from "@/shared/ui/placeholder";
+import { EmptyHint } from "@/shared/ui/placeholder";
 
 import { computeBestMatch } from "../model/compute-best-match";
 import { computeSkillGap } from "../model/compute-skill-gap";
@@ -111,9 +111,9 @@ export function MyMaterials({
               />
             }
           />
-          <p className="text-xs text-muted-foreground">
-            가장 많이 쓴 기술 · {topTechStack.join(", ") || "—"}
-          </p>
+          {!isEmpty && (
+            <p className="text-xs text-muted-foreground">가장 많이 쓴 기술 · {topTechStack.join(", ")}</p>
+          )}
           {!isEmpty && skillGap.length > 0 && <SkillGapBox items={skillGap} />}
           {isEmpty && <EmptyProjectList />}
 
@@ -152,20 +152,11 @@ export function MyMaterials({
   );
 }
 
-// 실제 행(ProjectRow)과 같은 구조로 두 줄을 깐다 — 첫 줄은 그 자리에서 바로 등록하는
-// 입력 행, 둘째 줄은 흐린 예시 행.
+// 자소서·이력서 빈 상태와 같은 모양 — 구분선 아래 안내 한 줄. 등록은 위의 "프로젝트 추가" 하나로만.
 function EmptyProjectList() {
   return (
-    <div className="flex flex-col [&>*:last-child]:border-b">
-      <InlineProjectImport />
-      <div aria-hidden className="grid min-h-[104px] grid-cols-[28px_1fr] items-start gap-3 border-t px-2 py-4 opacity-40">
-        <PlaceholderBox className="size-7" />
-        <div className="flex flex-col gap-2 pt-1">
-          <PlaceholderBar className="w-24" />
-          <PlaceholderBar className="w-56" />
-          <PlaceholderBar className="w-40" />
-        </div>
-      </div>
+    <div className="border-t pt-3">
+      <EmptyHint>GitHub 저장소 주소나 README를 넣으면 기술스택과 핵심 포인트를 채워드려요</EmptyHint>
     </div>
   );
 }
