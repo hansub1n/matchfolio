@@ -87,7 +87,7 @@ export function KanbanColumn({
         <span className="num text-xs text-muted-foreground">{applications.length}</span>
         {headerExtra}
       </div>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-1 flex-col gap-1.5">
         {applications.length === 0 && emptyPlaceholder}
         {applications.map((application) => (
           <ApplicationCard

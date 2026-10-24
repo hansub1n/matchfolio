@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { cn } from "cn";
 import {
   DndContext,
   PointerSensor,
@@ -176,6 +177,26 @@ export function KanbanBoard({
       .catch(console.error);
   }
 
+  // 보드 화면 어디서든 캡처를 붙여넣으면 관심 단계로 공고 추가를 시작한다. 입력칸이나 열려
+  // 있는 모달 안에서의 붙여넣기는 그쪽이 처리하도록 건드리지 않는다(모달은 자체 onPaste가 있음).
+  const handleDocumentPaste = useEffectEvent((e: ClipboardEvent) => {
+    const target = e.target instanceof Element ? e.target : null;
+    if (fileDrop || target?.closest("input, textarea, [contenteditable], [role='dialog']")) return;
+    const files = Array.from(e.clipboardData?.items ?? [])
+      .filter((item) => item.type.startsWith("image/"))
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => file !== null);
+    if (files.length === 0) return;
+    e.preventDefault();
+    handleFilesDrop(files, "interested");
+  });
+
+  useEffect(() => {
+    const listener = (e: ClipboardEvent) => handleDocumentPaste(e);
+    document.addEventListener("paste", listener);
+    return () => document.removeEventListener("paste", listener);
+  }, []);
+
   function handleFilesDrop(files: File[], status: CreateApplicationStatus) {
     if (blockInSampleMode()) return;
     setFileDrop({ id: Date.now(), files, status });
@@ -195,11 +216,20 @@ export function KanbanBoard({
   const detailApplication = items.find((app) => app.id === detailId) ?? null;
   const detailSchedule = detailApplication ? latestSchedules.get(detailApplication.id) : null;
   const isInterestedDetail = detailApplication?.stage === "interested";
+  const isBoardEmpty = items.length === 0;
   const today = todayKST();
 
   return (
     <DndContext id="kanban-board" sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="grid flex-1 grid-cols-[repeat(5,minmax(240px,1fr))] items-stretch gap-3 overflow-x-auto px-6 pb-4">
+      <div
+        className={cn(
+          "grid flex-1 items-stretch gap-3 overflow-x-auto px-6 pb-4",
+          // 카드가 하나도 없을 때는 첫 공고를 올릴 관심 컬럼을 넓혀 드롭 영역으로 쓴다.
+          isBoardEmpty
+            ? "grid-cols-[minmax(480px,2fr)_repeat(4,minmax(240px,1fr))]"
+            : "grid-cols-[repeat(5,minmax(240px,1fr))]"
+        )}
+      >
         {APPLICATION_STAGES.map((stage) => {
           const inColumn = items.filter(
             (app) => app.stage === stage.value && app.outcome === "in_progress"
@@ -221,8 +251,14 @@ export function KanbanBoard({
               onAutoOpenHandled={() => setAutoOpenRoundId(null)}
               emptyPlaceholder={
                 stage.value === "interested" ? (
-                  <div className="rounded-lg border border-dashed border-border p-4 text-center text-[11px] text-muted-foreground">
-                    공고 스크린샷을 끌어다 놓으세요
+                  <div
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border p-4 text-center text-[11px] text-muted-foreground",
+                      isBoardEmpty && "flex-1 text-xs"
+                    )}
+                  >
+                    <p>스크린샷을 여기로 끌어오거나</p>
+                    <p>캡처 후 ⌘V / Ctrl+V</p>
                   </div>
                 ) : undefined
               }
