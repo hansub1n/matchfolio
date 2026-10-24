@@ -339,6 +339,7 @@ function QuestionsArea({
   submissionUpdatedAt,
   myProjects,
   onProjectLayerUpdated,
+  onRegenerateAll,
 }: {
   applicationId: string;
   basicQuestions: InterviewPrepQuestion[];
@@ -347,6 +348,8 @@ function QuestionsArea({
   submissionUpdatedAt: string | null;
   myProjects: MyProjectRef[];
   onProjectLayerUpdated: (result: ProjectLayerUpdate) => void;
+  // 기본 질문·역질문·프로젝트 기반 질문을 전부 다시 만든다.
+  onRegenerateAll: () => void;
 }) {
   const [tab, setTab] = useState<QuestionGroupTab>("all");
   const [regenerating, setRegenerating] = useState(false);
@@ -398,6 +401,7 @@ function QuestionsArea({
         <div className="flex items-center gap-1">
           <p className="text-[13px] font-medium">예상 질문 {counts.all}</p>
           <HelpButton chapterId="interview" label="예상 질문" />
+          <LinkButton onClick={onRegenerateAll}>다시 만들기</LinkButton>
         </div>
         <div className="flex gap-1">
           {tabs.map((t) => (
@@ -445,15 +449,18 @@ function QuestionsArea({
   );
 }
 
-// 분석 전/중/실패 상태 — 세 영역이 같은 결과를 쓰므로 어느 영역에서 "분석하기"를
-// 눌러도 같은 분석이 한 번 돈다.
+// 만들기 전/중/실패 상태. 회사 분석과 예상 질문은 버튼과 AI 호출이 따로다.
 function AnalysisStatus({
   state,
   idleText,
+  actionLabel,
+  busyText,
   onAnalyze,
 }: {
   state: Exclude<InterviewPrepState, { status: "ready" }>;
   idleText: string;
+  actionLabel: string;
+  busyText: string;
   onAnalyze: () => void;
 }) {
   return (
@@ -466,12 +473,12 @@ function AnalysisStatus({
       ) : state.status === "empty" ? (
         <>
           <p className="mb-3 text-xs text-muted-foreground">{idleText}</p>
-          <AiSectionButton onClick={onAnalyze}>분석하기</AiSectionButton>
+          <AiSectionButton onClick={onAnalyze}>{actionLabel}</AiSectionButton>
         </>
       ) : (
         <>
           <p className="text-xs text-muted-foreground">
-            {state.status === "analyzing" ? "회사 정보를 찾는 중" : "불러오는 중"}
+            {state.status === "analyzing" ? busyText : "불러오는 중"}
           </p>
           <AiSectionSkeleton />
         </>
@@ -508,7 +515,9 @@ export function CompanyAnalysisSection({
     return (
       <AnalysisStatus
         state={state}
-        idleText="회사 정보를 찾아서 정리하고, 예상 면접 질문도 같이 만들어요"
+        idleText="회사가 하는 일과 최근 소식을 찾아 출처와 함께 정리해요"
+        actionLabel="분석하기"
+        busyText="회사 정보를 찾는 중"
         onAnalyze={onAnalyze}
       />
     );
@@ -570,28 +579,30 @@ export function InterviewPrepSection({
   state,
   submissionUpdatedAt,
   myProjects,
-  onAnalyze,
+  onGenerate,
   onProjectLayerUpdated,
 }: {
   state: InterviewPrepState;
   submissionUpdatedAt: string | null;
   myProjects: MyProjectRef[];
-  onAnalyze: () => void;
+  onGenerate: () => void;
   onProjectLayerUpdated: (result: ProjectLayerUpdate) => void;
 }) {
   if (state.status !== "ready") {
     return (
       <AnalysisStatus
         state={state}
-        idleText="회사 분석을 실행하면 예상 질문과 역질문이 만들어져요"
-        onAnalyze={onAnalyze}
+        idleText="공고와 회사 분석 결과로 예상 질문과 역질문을 만들어요. 제출 자료를 골라두면 내 프로젝트 기반 질문에 반영돼요"
+        actionLabel="예상 질문 만들기"
+        busyText="예상 질문을 만드는 중"
+        onAnalyze={onGenerate}
       />
     );
   }
 
   const { prep } = state;
 
-  if (isLegacyInterviewPrep(prep)) {
+  if (prep.questions === null) {
     return (
       <div className="flex flex-col gap-2">
         <ul className="list-inside list-disc text-sm leading-relaxed">
@@ -601,7 +612,7 @@ export function InterviewPrepSection({
         </ul>
         <p className="text-[11px] text-muted-foreground">
           예전 형식으로 만든 질문이에요.{" "}
-          <LinkButton onClick={onAnalyze}>다시 분석</LinkButton>하면 질문별 의도와 답변 힌트가 붙어요
+          <LinkButton onClick={onGenerate}>다시 만들면</LinkButton> 질문별 의도와 답변 힌트가 붙어요
         </p>
       </div>
     );
@@ -617,8 +628,11 @@ export function InterviewPrepSection({
         submissionUpdatedAt={submissionUpdatedAt}
         myProjects={myProjects}
         onProjectLayerUpdated={onProjectLayerUpdated}
+        onRegenerateAll={onGenerate}
       />
-      {prep.briefing && <ReverseQuestionRows items={prep.briefing.reverseQuestions} />}
+      {prep.reverseQuestions && prep.reverseQuestions.length > 0 && (
+        <ReverseQuestionRows items={prep.reverseQuestions} />
+      )}
     </div>
   );
 }

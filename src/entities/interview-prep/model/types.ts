@@ -37,7 +37,8 @@ export interface InterviewPrepReverseQuestion {
 export interface InterviewPrepBriefing {
   business: string[];
   recent: string[];
-  reverseQuestions: InterviewPrepReverseQuestion[];
+  // 015 이전 결과에만 있다 — 지금은 역질문을 예상 질문과 같이 만들어 reverseQuestions에 둔다.
+  reverseQuestions?: InterviewPrepReverseQuestion[];
 }
 
 export interface InterviewPrepSource {
@@ -60,6 +61,8 @@ export interface InterviewPrep {
   confidence: "high" | "low" | null;
   // "내 프로젝트 기반 질문" — 프로젝트가 있을 때만 별도로 생성/갱신된다.
   projectQuestions: InterviewPrepQuestion[] | null;
+  // 역질문 추천 — 예상 질문과 같이 만든다.
+  reverseQuestions: InterviewPrepReverseQuestion[] | null;
   projectQuestionsUpdatedAt: string | null;
   // 구조화 이전에 저장된 레코드 — 새 분석부터는 채워지지 않는다. 화면에서 이
   // 필드가 있으면(= briefing/sections가 둘 다 null이면) 구버전 레이아웃으로 보여준다.
@@ -70,6 +73,17 @@ export interface InterviewPrep {
   updatedAt: string;
 }
 
+// 구조화 이전(텍스트 한 덩어리)에 만든 결과. 지금은 회사 정보만 있거나 질문만 있는 행도 있어서
+// "구조화 필드가 비었다"만으로는 판단하지 않고 옛 텍스트가 실제로 있는지 본다.
 export function isLegacyInterviewPrep(prep: InterviewPrep): boolean {
-  return prep.briefing === null && prep.sections === null;
+  return prep.briefing === null && prep.sections === null && prep.companyAnalysis !== null;
+}
+
+// 회사 분석(회사 정보)과 예상 질문은 따로 만들어서, 한 행에 한쪽만 있을 수 있다.
+export function hasCompanyAnalysis(prep: InterviewPrep): boolean {
+  return prep.summary !== null || prep.companyAnalysis !== null;
+}
+
+export function hasInterviewQuestions(prep: InterviewPrep): boolean {
+  return prep.questions !== null || prep.interviewQuestions !== null;
 }

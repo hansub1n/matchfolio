@@ -83,6 +83,8 @@ create table interview_prep (
   -- 그룹 자체의 "다시 만들기"로만 갱신된다. updated_at을 따로 둬서 새
   -- 프로젝트가 반영 안 됐는지(project의 created_at과 비교) 판단한다.
   project_questions jsonb,
+  -- 역질문 추천 — 예상 질문과 같이 만든다(015). 그 전엔 briefing 안에 있었다.
+  reverse_questions jsonb,
   -- 지금은 쓰지 않음(지원 동기 포인트는 공고 매칭 project_matches.review로 옮김).
   motivation jsonb,
   project_questions_updated_at timestamptz,

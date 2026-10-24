@@ -144,7 +144,9 @@ export function ApplicationDetailDialog(props: Props) {
   const [openGroups, setOpenGroups] = useState<Set<DetailGroupId>>(
     () => new Set(entity ? defaultOpenGroups(entity) : [])
   );
-  const { state: prepState, analyze, updateProjectLayer } = useInterviewPrep(entity?.id ?? null);
+  const { companyState, questionsState, analyzeCompany, generateQuestions, updateProjectLayer } = useInterviewPrep(
+    entity?.id ?? null
+  );
 
   function toggleGroup(id: DetailGroupId) {
     setOpenGroups((prev) => {
@@ -383,7 +385,7 @@ export function ApplicationDetailDialog(props: Props) {
                 </>
               }
             >
-              <CompanyAnalysisSection state={prepState} company={entity.company} onAnalyze={analyze} />
+              <CompanyAnalysisSection state={companyState} company={entity.company} onAnalyze={analyzeCompany} />
             </DetailGroup>
 
             <DetailGroup
@@ -424,10 +426,10 @@ export function ApplicationDetailDialog(props: Props) {
               onToggle={() => toggleGroup("interview")}
             >
               <InterviewPrepSection
-                state={prepState}
+                state={questionsState}
                 submissionUpdatedAt={entity.submissionUpdatedAt}
                 myProjects={myProjects}
-                onAnalyze={analyze}
+                onGenerate={generateQuestions}
                 onProjectLayerUpdated={updateProjectLayer}
               />
             </DetailGroup>
