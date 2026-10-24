@@ -30,6 +30,15 @@ function stopClick(e: React.MouseEvent) {
   e.stopPropagation();
 }
 
+function DetailBlock({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2.5">
+      <h3 className="text-xs font-medium text-muted-foreground">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
 export function MyProjectDetailDialog({
   project,
   allProjectMatches = [],
@@ -112,57 +121,63 @@ export function MyProjectDetailDialog({
         </div>
 
         {!editing ? (
-          <div className="flex flex-col gap-5 overflow-y-auto px-5 py-4 text-sm">
-            {project.description && (
-              <p className="text-sm text-muted-foreground">{project.description}</p>
-            )}
-
-            {project.techStack.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {project.techStack.map((tech) => (
-                  <span key={tech} className="rounded-full border px-2.5 py-1 text-xs">
-                    {tech}
-                  </span>
-                ))}
+          <div className="flex flex-col gap-6 overflow-y-auto px-5 py-5 text-sm">
+            {(project.description || project.techStack.length > 0) && (
+              <div className="flex flex-col gap-3">
+                {project.description && <p className="text-justify leading-relaxed">{project.description}</p>}
+                {project.techStack.length > 0 && (
+                  // 칩은 작게, 테두리 없이 — 본문보다 눈에 띄지 않게.
+                  <div className="flex flex-wrap gap-1">
+                    {project.techStack.map((tech) => (
+                      <span key={tech} className="rounded bg-muted px-1.5 py-0.5 text-[11.5px] text-muted-foreground">
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
             {project.highlights.length > 0 && (
-              <div>
-                <p className="mb-1.5 text-[11px] text-muted-foreground">핵심 포인트</p>
-                <ul className="list-inside list-disc text-sm leading-relaxed">
+              <DetailBlock title="핵심 포인트">
+                {/* 줄이 넘어가도 글머리표 뒤에 맞춰 들여쓰이게 list-outside. */}
+                <ul className="flex list-outside list-disc flex-col gap-2 pl-4 text-[13px] leading-relaxed marker:text-muted-foreground">
                   {project.highlights.map((highlight) => (
                     <li key={highlight}>{highlight}</li>
                   ))}
                 </ul>
-              </div>
+              </DetailBlock>
             )}
 
-            <div>
-              <p className="mb-1.5 text-[11px] text-muted-foreground">잘 맞는 공고</p>
+            <DetailBlock title="잘 맞는 공고">
               {matches.length > 0 ? (
-                <div className="flex flex-col gap-2.5">
+                <div className="flex flex-col">
                   {matches.map((match) => (
                     <button
                       key={match.company}
                       type="button"
                       onClick={() => onNavigateToCompany?.(match.company)}
-                      className="flex flex-col gap-0.5 text-left hover:text-foreground"
+                      className="-mx-2 flex items-start gap-2.5 rounded-md px-2 py-2 text-left hover:bg-accent"
                     >
-                      <span className="flex items-center justify-between gap-2">
-                        <span className="font-medium">{match.company}</span>
-                        <span className="num text-muted-foreground">{match.fitScore}점</span>
+                      <CompanyMonogram company={match.company} />
+                      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="truncate font-medium">{match.company}</span>
+                          <span className="num shrink-0 text-xs text-muted-foreground">{match.fitScore}점</span>
+                        </span>
+                        {match.summary && (
+                          <span className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                            {match.summary}
+                          </span>
+                        )}
                       </span>
-                      {match.summary && (
-                        <span className="text-[11.5px] text-muted-foreground">{match.summary}</span>
-                      )}
                     </button>
                   ))}
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground">아직 매칭한 공고가 없어요</p>
               )}
-            </div>
+            </DetailBlock>
           </div>
         ) : (
           <div className="flex flex-col gap-3 overflow-y-auto px-5 py-4">
