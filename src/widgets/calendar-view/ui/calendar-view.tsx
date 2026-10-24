@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarClock, ChevronLeft, ChevronRight, Code2, Users } from "lucide-react";
 import { cn } from "cn";
@@ -53,6 +53,20 @@ function tierClasses(tier: DdayTier): string {
       return "text-muted-foreground";
     default:
       return "bg-muted text-foreground";
+  }
+}
+
+// 휴대폰 달력 칸의 일정 점 색 — 칩(tierClasses)과 같은 기준.
+function dotClass(tier: DdayTier): string {
+  switch (tier) {
+    case "urgent":
+      return "bg-urgent";
+    case "soon":
+      return "bg-highlight";
+    case "past":
+      return "bg-muted-foreground/40";
+    default:
+      return "bg-foreground/60";
   }
 }
 
@@ -237,6 +251,7 @@ export function CalendarView({
   const [detailId, setDetailId] = useState<string | null>(null);
   // 달력에서 고른 날짜 — 고르면 오른쪽 패널이 "다가오는 일정" 대신 그날 일정을 보여준다(지난 날짜 포함).
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [detailCompanyId, setDetailCompanyId] = useState<string | null>(null);
 
   const [scheduleItems, setScheduleItems] = useState(schedules);
@@ -281,6 +296,13 @@ export function CalendarView({
   // 일정이 오늘부터 보여주므로 오늘 칸은 따로 고르지 않는다.
   function selectDate(date: string) {
     setSelectedDate(date === today ? null : date);
+    // 휴대폰은 패널이 달력 아래라 눌러도 화면 밖에 있다 — 보일 만큼 부드럽게 내려간다. 데스크톱은 옆이라 그대로.
+    requestAnimationFrame(() => {
+      const panel = panelRef.current;
+      if (!panel || panel.getBoundingClientRect().top < window.innerHeight - 120) return;
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      panel.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    });
   }
 
   function openEvent(event: CalendarEvent) {
@@ -330,12 +352,14 @@ export function CalendarView({
       }
     >
       <div className="flex flex-col gap-4 md:flex-row md:gap-8">
-        <div className="hidden min-w-0 flex-1 flex-col gap-4 md:flex">
-          <div className="grid grid-cols-7 text-center text-[11px] text-muted-foreground">
-            {WEEKDAY_LABELS.map((label, i) => (
-              <span key={label} className={i >= 5 ? "text-destructive" : undefined}>
-                {label}
-              </span>
+        {/* 휴대폰에서도 달력을 보여준다 — 칸이 좁아 일정 이름 대신 점으로, 날짜를 누르면 아래 패널에 그날 일정. */}
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
+          {/* 요일도 날짜 숫자와 같은 정렬 — 휴대폰 가운데, 데스크톱 왼쪽(칸 안쪽 여백만큼 들여서). */}
+          <div className="grid grid-cols-7 text-center text-[11px] text-muted-foreground md:text-left [&>span]:md:px-1.5">
+            {WEEKDAY_LABELS.map((label) => (
+              // 주말 색은 쓰지 않는다 — 이 달력의 색은 마감 임박(주황·연두)과 지원한 날(연두 밑줄)을 뜻해서,
+              // 빨강·파랑이 섞이면 그 색들이 덜 보인다.
+              <span key={label}>{label}</span>
             ))}
           </div>
 
@@ -345,6 +369,7 @@ export function CalendarView({
                 {week.map((day) => {
                   const tier = getDdayTier(day.date, today);
                   const isSelected = day.date === selectedDate;
+                  const hasApplied = day.appliedCount > 0 && day.date < today;
                   return (
                     <div
                       key={day.date}
@@ -359,32 +384,39 @@ export function CalendarView({
                         }
                       }}
                       className={cn(
-                        "flex min-h-[76px] cursor-pointer flex-col gap-1 p-1.5 outline-none hover:bg-accent/60 focus-visible:bg-accent",
-                        isSelected && "bg-accent"
+                        // 선택은 칸을 칠하지 않고 숫자 동그라미로만 — 좁고 긴 칸이 통째로 칠해지면 무거웠다.
+                        // hover 배경은 데스크톱만(휴대폰은 누른 뒤에도 hover가 남아 칠해진 것처럼 보임).
+                        "flex min-h-12 cursor-pointer flex-col gap-1 p-1 outline-none focus-visible:bg-accent md:min-h-[76px] md:p-1.5 md:hover:bg-accent/60"
                       )}
                     >
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center justify-center gap-1 md:justify-start">
+                        {/* 날짜 상태는 전부 숫자 동그라미 하나로: 오늘 = 검은 채움, 선택 = 검은 테두리, 지원한 날 = 연한
+                            연두 채움(통계 잔디와 같은 색). 일정은 그 아래 점. */}
                         <span
+                          title={hasApplied ? `${day.appliedCount}곳 지원` : undefined}
                           className={cn(
-                            "text-xs tabular-nums",
+                            "inline-flex size-7 items-center justify-center rounded-full text-sm tabular-nums md:size-6 md:text-xs",
                             day.isToday
-                              ? "rounded bg-foreground px-1.5 text-background"
+                              ? "bg-foreground font-medium text-background"
                               : day.isCurrentMonth
-                                ? "text-muted-foreground"
-                                : "text-muted-foreground/50"
+                                ? "text-foreground"
+                                : "text-muted-foreground/50",
+                            isSelected && !day.isToday && "ring-1 ring-foreground"
                           )}
+                          style={hasApplied && !day.isToday ? { backgroundColor: "var(--heat-1)" } : undefined}
                         >
                           {Number(day.date.slice(8, 10))}
                         </span>
-                        {day.appliedCount > 0 && day.date < today && (
-                          <span
-                            title={`${day.appliedCount}곳 지원`}
-                            className="size-1.5 rounded-full"
-                            style={{ backgroundColor: "var(--heat-3)" }}
-                          />
-                        )}
                       </div>
-                      <div className="flex flex-col gap-0.5">
+                      {/* 휴대폰: 일정 수만큼 점(최대 3개, 마감 임박 색 그대로, 지난 일정은 회색). 날짜를 누르면 아래 패널. */}
+                      {day.events.length > 0 && (
+                        <div aria-hidden className="flex justify-center gap-0.5 md:hidden">
+                          {day.events.slice(0, 3).map((event) => (
+                            <span key={event.id} className={cn("size-1.5 rounded-full", dotClass(tier))} />
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-0.5 max-md:hidden">
                         {day.events.slice(0, MAX_VISIBLE_CHIPS).map((event) => (
                           <button
                             key={event.id}
@@ -416,7 +448,7 @@ export function CalendarView({
           </div>
         </div>
 
-        <div className="flex w-full flex-col gap-3 md:w-[220px] md:shrink-0">
+        <div ref={panelRef} className="flex w-full scroll-mt-4 flex-col gap-3 md:w-[220px] md:shrink-0">
           {selectedDay ? (
             <SelectedDayPanel
               day={selectedDay}

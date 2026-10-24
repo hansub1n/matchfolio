@@ -232,7 +232,7 @@ export function ApplicationDetailDialog(props: Props) {
   return (
     <Dialog open={entity !== null} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="flex max-h-[85dvh] w-full max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-lg"
+        className="flex max-h-[85dvh] w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-lg"
         onClick={stopClick}
       >
         <div className="flex shrink-0 items-center gap-2 border-b px-5 py-4 pr-12">

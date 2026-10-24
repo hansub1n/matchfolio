@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { cn } from "cn";
 
 import { buildMonthLabels, type YearHeatmapData } from "@/entities/application";
+import { todayKST } from "@/shared/lib/kst-date";
 
 const WEEKDAY_ROW_LABELS = ["월", "", "수", "", "금", "", ""];
 const WEEKDAY_NAMES_KO = ["일", "월", "화", "수", "목", "금", "토"];
@@ -40,11 +42,26 @@ export function ActivityHeatmap({
 }) {
   const weekCount = heatmap.weeks.length;
   const monthLabels = buildMonthLabels(heatmap.weeks);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // 오늘이 든 주(올해가 아니면 마지막 주). 휴대폰에서 1월부터 보이면 이번 달까지 한참 넘겨야 해서 처음부터 그쪽을 보여준다.
+  const today = todayKST();
+  const todayWeek = heatmap.weeks.findIndex((week) => week.some((cell) => cell.date === today));
+  const focusWeek = todayWeek === -1 ? weekCount - 1 : todayWeek;
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || el.scrollWidth <= el.clientWidth) return;
+    // 이번 주가 화면 오른쪽 끝 근처(오른쪽에 2주 정도 여유)에 오도록.
+    const columnWidth = el.scrollWidth / (weekCount + 1);
+    el.scrollLeft = Math.max(0, (focusWeek + 4) * columnWidth - el.clientWidth);
+  }, [focusWeek, weekCount]);
 
   return (
     <div className="flex flex-col gap-2">
+      {/* 53주가 휴대폰 폭에 다 들어가면 칸이 점처럼 작아져서, 최소 폭을 두고 가로로 넘겨 본다. */}
+      <div ref={scrollRef} className="overflow-x-auto">
       <div
-        className="grid gap-[3px]"
+        className="grid min-w-[560px] gap-[3px]"
         style={{ gridTemplateColumns: `auto repeat(${weekCount}, minmax(0, 1fr))` }}
       >
         {monthLabels.map((m) => (
@@ -57,10 +74,13 @@ export function ActivityHeatmap({
           </span>
         ))}
 
+        {/* 요일 열 맨 위(월 라벨 줄)도 가려서, 넘길 때 월 이름이 요일 열 위로 지나가지 않게. */}
+        <span aria-hidden className="sticky left-0 z-10 bg-background" style={{ gridColumn: 1, gridRow: 1 }} />
         {WEEKDAY_ROW_LABELS.map((label, dayIndex) => (
           <span
             key={dayIndex}
-            className="self-center pr-1 text-right text-[9.5px] leading-none text-muted-foreground"
+            // 잔디를 옆으로 넘겨도 요일(월·수·금)이 왼쪽에 남게 붙여둔다. 지나가는 칸을 가리도록 배경색을 깐다.
+            className="sticky left-0 z-10 flex h-full items-center justify-end bg-background pr-1 text-[9.5px] leading-none text-muted-foreground"
             style={{ gridColumn: 1, gridRow: dayIndex + 2 }}
           >
             {label}
@@ -85,8 +105,10 @@ export function ActivityHeatmap({
           )
         )}
       </div>
+      </div>
 
-      <div className="flex justify-end gap-1 text-[9.5px] text-muted-foreground">
+      {/* 범례는 넘김 밖 오른쪽 아래에 고정 — 잔디를 넘겨도 항상 보인다. */}
+      <div className="flex items-center justify-end gap-1 text-[9.5px] text-muted-foreground">
         <span>적음</span>
         {([0, 1, 2, 3, 4] as const).map((level) => (
           <span

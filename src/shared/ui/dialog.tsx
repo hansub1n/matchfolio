@@ -107,7 +107,8 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-5 -mb-5 flex flex-col-reverse gap-2 rounded-b-2xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+        // 휴대폰에서도 가로 한 줄(취소 · 확인)로 둔다 — 세로로 쌓으면 확인이 꽉 찬 폭이 되고 취소가 맨 밑으로 떨어졌다.
+        "-mx-5 -mb-5 flex flex-row justify-end gap-2 rounded-b-2xl border-t bg-muted/50 p-4",
         className
       )}
       {...props}

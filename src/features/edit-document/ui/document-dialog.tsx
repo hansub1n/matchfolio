@@ -146,7 +146,7 @@ export function DocumentDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       {document ? (
-        <DialogContent className="flex max-h-[85dvh] w-full max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <DialogContent className="flex max-h-[85dvh] w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
           {/* 다른 상세 모달과 같은 헤더 — 한 줄 제목 + 수정, 닫기 버튼 자리(pr-12)는 비워둔다. */}
           <div className="flex shrink-0 items-center gap-2 border-b px-5 py-4 pr-12">
             <DialogTitle className="min-w-0 flex-1 truncate text-base font-medium">{document.title}</DialogTitle>

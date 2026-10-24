@@ -147,7 +147,8 @@ function TutorialContent({
     // 장면이 바뀌어도 모달 크기와 버튼 위치가 그대로이도록 높이를 고정한다.
     <div className="flex h-[440px] outline-none" onKeyDown={handleKeyDown} tabIndex={-1}>
       {mode === "guide" && (
-        <nav className="flex w-48 shrink-0 flex-col gap-0.5 overflow-y-auto border-r bg-muted/40 p-3">
+        // 휴대폰은 폭이 좁아 챕터 목록을 숨긴다 — 챕터는 "다음"으로 이어서 넘어간다.
+        <nav className="flex w-48 shrink-0 flex-col gap-0.5 overflow-y-auto border-r bg-muted/40 p-3 max-sm:hidden">
           {TUTORIAL_CHAPTERS.map((c, i) => (
             <button
               key={c.id}
@@ -170,7 +171,7 @@ function TutorialContent({
         </nav>
       )}
 
-      <section className="flex min-w-0 flex-1 flex-col p-6">
+      <section className="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span className="tabular-nums">
             {chapter.title} · {position.sceneIndex + 1} / {chapter.scenes.length}

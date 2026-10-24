@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { cn } from "cn";
 import {
   DndContext,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -113,7 +114,10 @@ export function KanbanBoard({
     status: CreateApplicationStatus;
   } | null>(null);
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    // 마우스는 8px 움직이면 드래그. 터치는 0.25초 길게 눌러야 드래그 — 바로 드래그되면 손가락으로 보드를
+    // 옆으로 넘기거나 화면을 내리려다 카드가 끌려간다.
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } })
   );
 
   function openDetail(id: string, mode: "view" | "edit") {
@@ -122,7 +126,11 @@ export function KanbanBoard({
     setDetailId(id);
   }
 
+  // 드래그 중에는 컬럼 단위 멈춤(snap)을 끈다 — 화면 끝에서 자동으로 넘어갈 때 snap이 겹쳐 한 번에 휙 넘어갔다.
+  const [isDragging, setIsDragging] = useState(false);
+
   function handleDragEnd({ active, over }: DragEndEvent) {
+    setIsDragging(false);
     if (over && blockInSampleMode()) return;
     if (!over) return;
     const target = over.id as BoardColumnId;
@@ -237,9 +245,26 @@ export function KanbanBoard({
   const today = todayKST();
 
   return (
-    <DndContext id="kanban-board" sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext
+      id="kanban-board"
+      sensors={sensors}
+      onDragStart={() => {
+        setIsDragging(true);
+        // 휴대폰에서 길게 눌러 드래그가 시작된 순간을 손끝으로 알 수 있게 짧게 진동(지원하는 기기만).
+        navigator.vibrate?.(10);
+      }}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setIsDragging(false)}
+      // 카드를 끌고 화면 끝에 가면 옆 컬럼으로 넘어가는데, 기본 속도는 휴대폰에서 너무 빨라 원하는 컬럼을
+      // 지나쳤다. 끝에 더 가까이 가야 넘어가고(threshold), 천천히 넘어가게(acceleration) 줄인다.
+      autoScroll={{ threshold: { x: 0.12, y: 0.12 }, acceleration: 4 }}
+    >
       <div
-        className="grid flex-1 grid-cols-[repeat(5,minmax(240px,1fr))] items-stretch gap-3 overflow-x-auto px-6 pb-4"
+        // 휴대폰은 컬럼이 화면 폭의 80%라 다음 컬럼이 살짝 보이고, 넘기면 컬럼 단위로 멈춘다.
+        className={cn(
+          "grid flex-1 snap-x snap-mandatory scroll-px-4 grid-cols-[repeat(5,minmax(80vw,1fr))] items-stretch gap-3 overflow-x-auto px-4 pb-4 sm:snap-none sm:grid-cols-[repeat(5,minmax(240px,1fr))] sm:px-6",
+          isDragging && "snap-none"
+        )}
       >
         {APPLICATION_STAGES.map((stage) => {
           const inColumn = items.filter(

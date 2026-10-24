@@ -183,9 +183,13 @@ export function ApplicationCard({
         transform: transform
           ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
           : undefined,
-        touchAction: "none",
+        // "none"이면 카드 위에서 손가락으로 보드를 넘기거나 화면을 내릴 수 없다(휴대폰에선 카드가 컬럼을 거의
+        // 다 덮음). manipulation은 스크롤은 그대로 두고, 길게 눌러 드래그가 시작되면 dnd-kit이 스크롤을 막는다.
+        touchAction: "manipulation",
+        // 길게 누르는 동안 iOS의 글자 선택·미리보기 메뉴가 끼어들지 않게.
+        WebkitTouchCallout: "none",
       }}
-      className={isDragging ? "cursor-grabbing opacity-50" : "cursor-pointer"}
+      className={cn("select-none", isDragging ? "cursor-grabbing opacity-50" : "cursor-pointer")}
     >
       <div
         className={cn(

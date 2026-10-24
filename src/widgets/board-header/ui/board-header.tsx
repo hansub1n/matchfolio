@@ -20,8 +20,8 @@ export function BoardHeader({
   const thisWeek = heatmap.weeks.at(-1) ?? [];
 
   return (
-    <div className="flex shrink-0 items-center justify-between gap-4 border-b px-6 py-3">
-      <p className="text-[17px] font-medium tracking-tight">
+    <div className="flex shrink-0 items-center justify-between gap-4 border-b px-4 py-3 sm:px-6">
+      <p className="text-[15px] font-medium tracking-tight sm:text-[17px]">
         {headline.prefix}
         {headline.highlight && (
           <span className="bg-[linear-gradient(transparent_58%,var(--highlight)_58%)] px-0.5">
@@ -31,8 +31,11 @@ export function BoardHeader({
         {headline.suffix}
       </p>
 
-      <div className="flex items-center gap-4">
-        <BoardHeatmap week={thisWeek} today={today} todayCount={todayCount} />
+      <div className="flex shrink-0 items-center gap-4">
+        {/* 휴대폰은 폭이 좁아 이번 주 잔디는 빼고 "공고 추가"만 — 잔디는 통계 탭에 있다. */}
+        <div className="max-sm:hidden">
+            <BoardHeatmap week={thisWeek} today={today} todayCount={todayCount} />
+        </div>
         <CreateApplicationDialog
           trigger={
             <button

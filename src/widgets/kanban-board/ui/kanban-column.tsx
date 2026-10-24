@@ -77,7 +77,8 @@ export function KanbanColumn({
       className={cn(
         // 높이는 고정값 없이 그리드의 stretch에 맡긴다 — 부모(칸반 영역)가
         // flex-1로 남은 화면 높이를 갖고, 카드가 그보다 많아지면 자연히 더 늘어난다.
-        "flex flex-col gap-3 rounded-xl p-2 transition-colors",
+        // snap-always: 휙 넘겨도 한 번에 한 컬럼씩만 넘어간다(관성으로 여러 컬럼을 지나치지 않게).
+        "flex snap-start snap-always flex-col gap-3 rounded-xl p-2 transition-colors",
         variant === "outline" ? "border border-border" : "bg-lane",
         (isOver || fileOver) && "bg-accent"
       )}

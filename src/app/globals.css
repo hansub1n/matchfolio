@@ -267,3 +267,30 @@ html {
 html body[data-scroll-locked] {
   margin-right: 0 !important;
 }
+
+/* iOS Safari는 글자가 16px보다 작은 입력칸에 포커스하면 화면을 확대해버린다(입력할 때마다 확대·축소).
+   입력칸은 대부분 text-sm(14px)이라, 휴대폰 폭에서만 16px로 올린다. */
+@media (max-width: 639px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  /* iOS Safari의 날짜·시간 입력칸은 비어 있으면 높이가 줄어들어 다른 입력칸과 키가 안 맞는다. */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    min-height: 38px;
+  }
+}
+
+/* iOS Safari는 날짜·시간 값을 가운데 정렬해서 다른 입력칸(왼쪽 정렬)과 어긋난다. */
+input::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+/* iOS Safari가 누를 때마다 깔던 회색 번쩍임을 끈다 — 눌린 상태는 각 버튼의 hover·active 색으로 충분하다. */
+html {
+  -webkit-tap-highlight-color: transparent;
+}

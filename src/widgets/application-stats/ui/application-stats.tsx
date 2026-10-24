@@ -93,7 +93,7 @@ export function ApplicationStats({
       <SummaryMetrics stats={stats} />
 
       <div className={`${SECTION} flex flex-col gap-3`}>
-        <div className="flex items-baseline justify-between gap-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
           <p className="text-sm font-medium">
             {selectedYear}년에{" "}
             <span className="bg-[linear-gradient(transparent_58%,var(--highlight)_58%)] px-0.5">

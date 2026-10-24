@@ -35,7 +35,7 @@ export function ScreenshotGallery({ paths }: { paths: string[] }) {
       </div>
 
       <Dialog open={openPath !== null} onOpenChange={(open) => !open && setOpenPath(null)}>
-        <DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto p-2">
+        <DialogContent className="max-h-[90dvh] overflow-y-auto p-2 sm:max-w-2xl">
           {openPath && (
             // eslint-disable-next-line @next/next/no-img-element
             <img

@@ -14,13 +14,13 @@ export function PageLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="mx-auto w-full max-w-[960px] px-6 pt-10 pb-16">
+    <div className="mx-auto w-full max-w-[960px] px-4 pt-6 pb-16 sm:px-6 sm:pt-10">
       <div className="flex min-h-9 items-center justify-between gap-4">
-        <h1 className="text-[22px] font-medium tracking-tight">{title}</h1>
+        <h1 className="min-w-0 text-[19px] font-medium tracking-tight sm:text-[22px]">{title}</h1>
         {action && <div className="flex shrink-0 items-center gap-1">{action}</div>}
       </div>
       {subtitle && <div className="mt-2 text-xs text-muted-foreground">{subtitle}</div>}
-      <div className="mt-8">{children}</div>
+      <div className="mt-6 sm:mt-8">{children}</div>
     </div>
   );
 }

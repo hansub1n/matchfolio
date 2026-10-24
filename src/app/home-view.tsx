@@ -59,38 +59,42 @@ export function HomeView({
   return (
     <main className="flex flex-1 flex-col py-8">
       <Tabs value={tab} onValueChange={setTab} className="flex-1">
-        <div className="flex shrink-0 items-center justify-between border-b border-border px-6 pb-6">
+        {/* 휴대폰: 1줄 로고 · 사용법, 2줄 탭(꽉 차게, 아이콘 숨김). sm부터는 한 줄에 로고 … 탭 · 사용법. */}
+        <div className="grid shrink-0 grid-cols-[1fr_auto] items-center gap-x-3 gap-y-4 border-b border-border px-4 pb-4 sm:flex sm:px-6 sm:pb-6">
           <h1 className="text-xl font-bold tracking-tight">matchfolio</h1>
-          <div className="flex items-center gap-3">
-            <TabsList>
-              <TabsTrigger value="board">
-                <LayoutGrid data-icon="inline-start" />
+          <div className="col-span-2 row-start-2 sm:ml-auto">
+            <TabsList className="w-full sm:w-fit">
+              <TabsTrigger value="board" className="flex-1 sm:flex-none">
+                <LayoutGrid data-icon="inline-start" className="max-sm:hidden" />
                 보드
               </TabsTrigger>
-              <TabsTrigger value="calendar">
-                <CalendarDays data-icon="inline-start" />
+              <TabsTrigger value="calendar" className="flex-1 sm:flex-none">
+                <CalendarDays data-icon="inline-start" className="max-sm:hidden" />
                 캘린더
               </TabsTrigger>
-              <TabsTrigger value="stats">
-                <BarChart3 data-icon="inline-start" />
+              <TabsTrigger value="stats" className="flex-1 sm:flex-none">
+                <BarChart3 data-icon="inline-start" className="max-sm:hidden" />
                 통계
               </TabsTrigger>
-              <TabsTrigger value="materials">
-                <FolderGit2 data-icon="inline-start" />내 자료
+              <TabsTrigger value="materials" className="flex-1 sm:flex-none">
+                <FolderGit2 data-icon="inline-start" className="max-sm:hidden" />내 자료
               </TabsTrigger>
             </TabsList>
-            {/* 지금 보고 있는 탭에 맞는 챕터부터 연다. 탭처럼 보이지 않게 아이콘만 둔 둥근 버튼 —
-                기능 옆 "?"(HelpButton)와 같은 아이콘이라 "도움말"로 읽힌다. */}
-            <button
-              type="button"
-              onClick={() => openTutorial({ mode: "guide", chapterId: TUTORIAL_CHAPTER_BY_TAB[tab] })}
-              aria-label="사용법"
-              title="사용법"
-              className="inline-flex size-8 items-center justify-center rounded-full border bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
-            >
-              <CircleHelp className="size-4" />
-            </button>
           </div>
+            {/* 사용법(?) 자리 — 휴대폰에선 1줄 오른쪽, sm부터는 탭 오른쪽. */}
+            <div className="col-start-2 row-start-1 flex items-center gap-2">
+              {/* 지금 보고 있는 탭에 맞는 챕터부터 연다. 탭처럼 보이지 않게 아이콘만 둔 둥근 버튼 —
+                  기능 옆 "?"(HelpButton)와 같은 아이콘이라 "도움말"로 읽힌다. */}
+              <button
+                type="button"
+                onClick={() => openTutorial({ mode: "guide", chapterId: TUTORIAL_CHAPTER_BY_TAB[tab] })}
+                aria-label="사용법"
+                title="사용법"
+                className="inline-flex size-8 items-center justify-center rounded-full border bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <CircleHelp className="size-4" />
+              </button>
+            </div>
         </div>
         <TabsContent value="board" className="flex flex-col gap-4">
           <BoardHeader applications={applications} schedules={schedules} />
