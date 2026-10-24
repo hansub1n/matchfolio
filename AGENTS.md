@@ -104,7 +104,7 @@ matchfolio 프로젝트 작업 시 참고할 컨텍스트 문서.
 - 카피 톤: 사실만 담담하게, 권유/재촉 금지
 - 빈 상태: 별도 큰 화면을 만들지 않고 실제 레이아웃을 같은 위치·크기로 그대로 그리고 값만 비운다 — 숫자는 0 또는 "—", 막대는 빈 트랙(bg-muted), 잔디는 회색 칸, 목록은 흐린 예시 행(opacity-40, `shared/ui/placeholder.tsx`의 회색 막대). 섹션별 안내는 한 줄(text-[11.5px] muted)만. 버튼은 가로로 늘리지 않는다(rounded-full text-xs px-3 py-1.5)
 - AI 결과 안내: 공고 추가 폼(AI가 채웠을 때만) 맨 위 "AI가 스크린샷에서 읽은 내용이에요. 저장 전에 한 번 확인해주세요", 회사 분석/프로젝트 매칭/예상 질문 결과 맨 아래 `AiDisclaimer`("AI가 만든 내용이라 사실과 다를 수 있어요")
-- 예시 데이터로 보기: 보드/통계/내 프로젝트 상단에 데이터 0건일 때만 텍스트 토글. 켜면 `src/app/sample-data.ts`(공고 5·프로젝트 2·일정 2, 날짜는 오늘 기준)를 같은 컴포넌트에 주입하고 "예시 데이터예요 · 끄기" 한 줄. DB에 저장하지 않고, 추가/수정/AI 버튼은 "예시를 끄고 직접 추가해보세요" 토스트 — 버튼 핸들러(`blockInSampleMode`)와 API 함수(`assertNotSampleMode`) 두 겹으로 막는다(`shared/lib/sample-mode.ts`)
+- 예시 데이터: "예시 데이터로 보기" 토글은 제거했다. 샘플(`src/app/sample-data.ts`)과 저장/AI 호출 차단 장치(`shared/lib/sample-mode.ts` — 버튼 `blockInSampleMode`, API `assertNotSampleMode`, 토스트)는 나중에 /demo 페이지에서 쓰려고 남겨둠
 - 강조는 테두리 대신 색/굵기로
 - **상태(hover/선택/클릭/데이터 유무)가 바뀌어도 요소의 크기와 위치는 바뀌지 않는다**
   - 탭은 굵기를 바꾸지 않는다(전부 font-medium, 선택은 bg-card + text-foreground). 포커스 테두리는 focus-visible일 때만

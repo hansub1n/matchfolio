@@ -4,7 +4,8 @@ import type { Application } from "@/entities/application";
 import type { MyProject } from "@/entities/my-project";
 import type { Schedule } from "@/entities/schedule";
 
-// "예시 데이터로 보기"용 샘플 — DB에 저장하지 않고 화면에만 주입한다. 날짜는 오늘
+// 샘플 데이터 — 지금은 화면에 쓰지 않고, 나중에 /demo 페이지에서 쓰려고 남겨둔다.
+// DB에 저장하지 않고 화면에만 주입하는 용도. 날짜는 오늘
 // 기준으로 계산해서 언제 봐도 "이번 주 마감", "지원 후 N일"처럼 자연스럽게 보이게 한다.
 // 회사명은 실제 회사와 헷갈리지 않게 가상의 이름을 쓴다. id는 uuid 형식이어야
 // 상세 모달이 기업분석/매칭을 조회할 때 형식 오류 없이 "결과 없음"으로 끝난다.
