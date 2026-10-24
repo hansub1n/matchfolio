@@ -172,11 +172,10 @@ export function InterviewSchedulePopover({
           </button>
         </div>
 
-        {revertWarningRounds.length > 0 && (
-          <p className="text-[11px] text-muted-foreground">
-            {revertWarningRounds.join("·")} 기록이 지워져요
-          </p>
-        )}
+        {/* 경고가 생겼다 없어져도 아래 입력칸이 오르내리지 않게 줄 자리를 항상 둔다. */}
+        <p className="min-h-4 text-[11px] text-muted-foreground">
+          {revertWarningRounds.length > 0 && `${revertWarningRounds.join("·")} 기록이 지워져요`}
+        </p>
 
         {selected === CUSTOM && (
           <input

@@ -89,8 +89,10 @@ export function SubmissionSection({
                     onClick={() => toggleProject(project.id)}
                     aria-pressed={selected}
                     className={cn(
-                      "rounded-full px-2.5 py-1 text-xs",
-                      selected ? "bg-foreground text-background" : "border text-muted-foreground hover:text-foreground"
+                      "rounded-full border px-2.5 py-1 text-xs",
+                      selected
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border text-muted-foreground hover:text-foreground"
                     )}
                   >
                     {project.name}
@@ -117,7 +119,7 @@ export function SubmissionSection({
           <Button variant="outline" size="sm" onClick={() => setEditing(false)} disabled={pending}>
             취소
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={pending}>
+          <Button size="sm" className="min-w-16" onClick={handleSave} disabled={pending}>
             {pending ? "저장 중..." : "저장"}
           </Button>
         </div>

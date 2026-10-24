@@ -65,7 +65,7 @@ export function CodingTestScheduleDialog({
           />
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={confirm}>
+          <Button variant="outline" className="min-w-20" onClick={confirm}>
             {scheduledAt ? "저장" : "건너뛰기"}
           </Button>
         </DialogFooter>

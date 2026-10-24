@@ -19,7 +19,8 @@ export function CopyButton({ text }: { text: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      className="shrink-0 text-[11px] text-muted-foreground hover:text-foreground"
+      // "복사"↔"복사됨"으로 글자가 바뀌어도 자리가 그대로이도록 폭을 고정한다.
+      className="w-9 shrink-0 text-right text-[11px] text-muted-foreground hover:text-foreground"
     >
       {copied ? "복사됨" : "복사"}
     </button>

@@ -258,7 +258,7 @@ export function ApplicationCard({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <div className="flex items-center group-hover:hidden group-focus-within:hidden">
+            <div className="flex items-center">
               {deadlineBadge && (
                 <span
                   className={cn(

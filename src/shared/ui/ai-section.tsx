@@ -22,7 +22,8 @@ export function AiSection({
     <div
       className={cn(
         "rounded-lg px-4 py-3.5",
-        variant === "card" ? "border bg-card" : "bg-muted"
+        // 로딩→결과로 바뀌어도 박스 크기가 그대로이도록 테두리 두께는 항상 같게 두고 색만 바꾼다.
+        variant === "card" ? "border bg-card" : "border border-transparent bg-muted"
       )}
     >
       <div className="flex items-center justify-between gap-2">

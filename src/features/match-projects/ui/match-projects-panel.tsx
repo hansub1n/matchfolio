@@ -121,7 +121,7 @@ function MatchRow({
                   <button
                     type="button"
                     onClick={handleCopy}
-                    className="text-[11px] text-muted-foreground hover:text-foreground"
+                    className="w-9 text-right text-[11px] text-muted-foreground hover:text-foreground"
                   >
                     {copied ? "복사됨" : "복사"}
                   </button>

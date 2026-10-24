@@ -415,7 +415,7 @@ export function CreateApplicationDialog({
               <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)}>
                 취소
               </Button>
-              <Button type="submit" disabled={pending || !canSubmit}>
+              <Button type="submit" className="min-w-16" disabled={pending || !canSubmit}>
                 {pending ? "추가 중..." : "추가"}
               </Button>
             </DialogFooter>
