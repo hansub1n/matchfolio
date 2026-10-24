@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
-import Groq from "groq-sdk";
 
 import { getRequestUser } from "@/shared/api/supabase-server";
 import { env } from "@/shared/config/env";
 import { consumeAiQuota, quotaExceededResponse } from "@/shared/lib/ai-quota";
-import { describeGroqError, GROQ_TEXT_MODEL, isRetryable } from "@/shared/lib/groq";
+import {
+  createGroqClient,
+  describeGroqError,
+  GROQ_TEXT_MODEL,
+  isRetryable,
+  retryDelayMs,
+} from "@/shared/lib/groq";
 import { isSameOrigin, unauthorizedResponse } from "@/shared/lib/request-guard";
 
 function sleep(ms: number) {
@@ -106,7 +111,7 @@ ${trimmedSource}
 
 위 내용을 바탕으로 프로젝트 이름, 한두 문장 소개, 기술스택 태그, 이력서/면접에서 어필할 만한 주요 기능이나 경험 3~5개를 뽑아줘.`;
 
-  const groq = new Groq({ apiKey: env.groq.apiKey });
+  const groq = createGroqClient(env.groq.apiKey);
   const maxAttempts = 3;
   const attemptTimeoutMs = 25000;
 
@@ -132,7 +137,7 @@ ${trimmedSource}
       console.error(`extract-project attempt ${attempt} failed:`, error);
 
       if (isRetryable(error) && attempt < maxAttempts) {
-        await sleep(1000 * attempt);
+        await sleep(retryDelayMs(error, attempt));
         continue;
       }
 

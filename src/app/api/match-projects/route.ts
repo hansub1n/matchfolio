@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import Groq from "groq-sdk";
 
 import { selectCoverLetter } from "@/entities/document";
 import type { ApplicationReview, CoverLetterEdit, MotivationPoint } from "@/entities/project-match";
@@ -17,7 +16,13 @@ import { getRequestUser } from "@/shared/api/supabase-server";
 import { splitNameSubtitle } from "@/shared/lib/split-name-subtitle";
 import { techSatisfies } from "@/shared/lib/tech-aliases";
 import { env } from "@/shared/config/env";
-import { describeGroqError, GROQ_TEXT_MODEL, isRetryable } from "@/shared/lib/groq";
+import {
+  createGroqClient,
+  describeGroqError,
+  GROQ_TEXT_MODEL,
+  isRetryable,
+  retryDelayMs,
+} from "@/shared/lib/groq";
 import { consumeAiQuota, quotaExceededResponse } from "@/shared/lib/ai-quota";
 import { isSameOrigin, unauthorizedResponse } from "@/shared/lib/request-guard";
 
@@ -260,7 +265,7 @@ ${WRITING_RULES}`;
   const quota = await consumeAiQuota(user.id, "match_projects");
   if (!quota) return quotaExceededResponse();
 
-  const groq = new Groq({ apiKey: env.groq.apiKey });
+  const groq = createGroqClient(env.groq.apiKey);
   const maxAttempts = 3;
   // 프로젝트마다 근거/부족한 점/어필 문구까지 다 만들어야 해서 다른 라우트보다 출력량이 많다.
   const attemptTimeoutMs = 60000;
@@ -376,7 +381,7 @@ ${WRITING_RULES}`;
       console.error(`match-projects attempt ${attempt} failed:`, error);
 
       if (isRetryable(error) && attempt < maxAttempts) {
-        await sleep(1000 * attempt);
+        await sleep(retryDelayMs(error, attempt));
         continue;
       }
 

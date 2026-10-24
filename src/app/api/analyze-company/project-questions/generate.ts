@@ -1,5 +1,4 @@
 import "server-only";
-import Groq from "groq-sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { InterviewPrepQuestion } from "@/entities/interview-prep";
@@ -11,7 +10,13 @@ import { buildSubmissionContext } from "@/features/analyze-company/model/submiss
 import { computeFitVerdict } from "@/features/match-projects/model/fit-verdict";
 import { computeSkillGap } from "@/widgets/my-materials";
 import { env } from "@/shared/config/env";
-import { describeGroqError, GROQ_TEXT_MODEL, isRetryable } from "@/shared/lib/groq";
+import {
+  createGroqClient,
+  describeGroqError,
+  GROQ_TEXT_MODEL,
+  isRetryable,
+  retryDelayMs,
+} from "@/shared/lib/groq";
 
 export { shouldGenerateProjectQuestions };
 
@@ -151,7 +156,7 @@ ${submissionContext ? `\n이 공고에 지원하면서 낸 제출 자료 (면접
 
 category는 각 질문 성격에 맞게 기술/프로젝트 경험/회사·도메인/협업 중 하나로 골라라.`;
 
-  const groq = new Groq({ apiKey: env.groq.apiKey });
+  const groq = createGroqClient(env.groq.apiKey);
   const maxAttempts = 3;
   const attemptTimeoutMs = 35000;
 
@@ -197,7 +202,7 @@ category는 각 질문 성격에 맞게 기술/프로젝트 경험/회사·도�
       console.error(`project-questions attempt ${attempt} failed:`, error);
 
       if (isRetryable(error) && attempt < maxAttempts) {
-        await sleep(1000 * attempt);
+        await sleep(retryDelayMs(error, attempt));
         continue;
       }
 

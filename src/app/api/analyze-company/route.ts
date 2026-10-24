@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import Groq from "groq-sdk";
 
 import { toInterviewPrep } from "@/entities/interview-prep";
 import {
@@ -16,7 +15,13 @@ import {
 import { supabaseAdmin } from "@/shared/api/supabase-admin";
 import { getRequestUser } from "@/shared/api/supabase-server";
 import { env } from "@/shared/config/env";
-import { describeGroqError, GROQ_TEXT_MODEL, isRetryable } from "@/shared/lib/groq";
+import {
+  createGroqClient,
+  describeGroqError,
+  GROQ_TEXT_MODEL,
+  isRetryable,
+  retryDelayMs,
+} from "@/shared/lib/groq";
 import { consumeAiQuota, quotaExceededResponse } from "@/shared/lib/ai-quota";
 import { isSameOrigin, unauthorizedResponse } from "@/shared/lib/request-guard";
 
@@ -258,7 +263,7 @@ ${newsContext}
 - facts(설립연도/업종/직원수/매출/투자단계)도 외부 자료에서 확인된 것만 최대 4개. 목록형 값(기술스택 등)은 facts에 쓰지 말고 sections에 써라. 숫자 단위는 원문 그대로 옮기고("백만원"을 "만원"으로 바꾸는 식으로 바꾸지 마라), source에는 확인한 사이트명을 써라. 확인된 게 없으면 빈 배열로 둬라.
 - 검색 결과로 확인되지 않은 내용은 지어내지 마라. 확실한 정보가 부족하면 confidence를 low로 표시해라.`;
 
-  const groq = new Groq({ apiKey: env.groq.apiKey });
+  const groq = createGroqClient(env.groq.apiKey);
   const maxAttempts = 3;
   const attemptTimeoutMs = 35000;
 
@@ -316,7 +321,7 @@ ${newsContext}
       console.error(`analyze-company attempt ${attempt} failed:`, error);
 
       if (isRetryable(error) && attempt < maxAttempts) {
-        await sleep(1000 * attempt);
+        await sleep(retryDelayMs(error, attempt));
         continue;
       }
 

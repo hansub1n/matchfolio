@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
-import Groq from "groq-sdk";
 
 import { toInterviewPrep } from "@/entities/interview-prep";
 import { matchRelatedProject } from "@/features/analyze-company/model/match-related-project";
 import { getRequestUser } from "@/shared/api/supabase-server";
 import { env } from "@/shared/config/env";
 import { consumeAiQuota, quotaExceededResponse } from "@/shared/lib/ai-quota";
-import { describeGroqError, GROQ_TEXT_MODEL, isRetryable } from "@/shared/lib/groq";
+import {
+  createGroqClient,
+  describeGroqError,
+  GROQ_TEXT_MODEL,
+  isRetryable,
+  retryDelayMs,
+} from "@/shared/lib/groq";
 import { isSameOrigin, unauthorizedResponse } from "@/shared/lib/request-guard";
 
 import { generateProjectQuestions, shouldGenerateProjectQuestions } from "../project-questions/generate";
@@ -131,7 +136,7 @@ export async function POST(request: Request) {
 - questions는 공고/회사 정보만으로 만드는 기본 질문이다. 지원자의 프로젝트 경험을 지어내지 마라 — 지원자가 어떤 프로젝트를 했는지 모른다고 가정하고 질문/hint를 써라. relatedProjectId는 모든 질문에서 항상 null, noExperience는 모든 질문에서 false로 둬라.
 - reverseQuestions는 지원자가 면접관에게 물어볼 질문과 그 질문이 좋은 이유 한 줄(why)이다. 위 회사 정보에 근거해서 쓰고, 정보가 없으면 공고 내용(업무·조직)에 근거해라. 복지·연봉 질문은 넣지 마라.`;
 
-  const groq = new Groq({ apiKey: env.groq.apiKey });
+  const groq = createGroqClient(env.groq.apiKey);
   const maxAttempts = 3;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -190,7 +195,7 @@ export async function POST(request: Request) {
     } catch (error) {
       console.error(`interview-questions attempt ${attempt} failed:`, error);
       if (isRetryable(error) && attempt < maxAttempts) {
-        await sleep(1000 * attempt);
+        await sleep(retryDelayMs(error, attempt));
         continue;
       }
       await quota.refund();
