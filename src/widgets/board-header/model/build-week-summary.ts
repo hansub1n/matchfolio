@@ -1,6 +1,6 @@
 import { format, startOfWeek } from "date-fns";
 
-import { hasActiveDeadline, type Application } from "@/entities/application";
+import { hasActiveDeadline, WEEK_STARTS_ON, type Application } from "@/entities/application";
 import { latestScheduleByApplication, type Schedule } from "@/entities/schedule";
 import { todayKST, toKSTDateString } from "@/shared/lib/kst-date";
 
@@ -16,11 +16,12 @@ export interface WeekSummary {
   headline: Headline;
 }
 
-function currentWeekRange(today: string): { monday: string; sunday: string } {
-  const monday = startOfWeek(new Date(`${today}T00:00:00`), { weekStartsOn: 1 });
-  const sunday = new Date(monday);
-  sunday.setDate(sunday.getDate() + 6);
-  return { monday: format(monday, "yyyy-MM-dd"), sunday: format(sunday, "yyyy-MM-dd") };
+// 이번 주 첫날~마지막 날(일~토, 잔디·캘린더와 같은 기준).
+function currentWeekRange(today: string): { start: string; end: string } {
+  const start = startOfWeek(new Date(`${today}T00:00:00`), { weekStartsOn: WEEK_STARTS_ON });
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  return { start: format(start, "yyyy-MM-dd"), end: format(end, "yyyy-MM-dd") };
 }
 
 function buildWeekHeadline(deadlineCount: number, interviewCount: number): Headline {
@@ -46,8 +47,8 @@ export function buildWeekSummary(
   schedules: Schedule[],
   today: string = todayKST()
 ): WeekSummary {
-  const { monday, sunday } = currentWeekRange(today);
-  const inRange = (date: string | null) => !!date && date >= monday && date <= sunday;
+  const { start, end } = currentWeekRange(today);
+  const inRange = (date: string | null) => !!date && date >= start && date <= end;
 
   // 마감은 아직 지원하지 않은 관심 단계에만 의미가 있다.
   const deadlineCount = applications.filter(

@@ -3,6 +3,9 @@ import { addDays, addWeeks, differenceInCalendarWeeks, format, startOfWeek, subW
 import { todayKST } from "@/shared/lib/kst-date";
 
 import { isSubmitted } from "./stage";
+
+// 한 주의 시작 — 캘린더(일 월 화 수 목 금 토)와 맞춰 일요일. 잔디·"이번 주" 요약이 모두 이 기준을 쓴다.
+export const WEEK_STARTS_ON = 0;
 import type { Application } from "./types";
 
 // appliedAt/오늘은 전부 'yyyy-MM-dd' KST 캘린더 날짜 문자열이라(todayKST, Postgres
@@ -36,12 +39,12 @@ export function buildHeatmap(
   }
 
   const todayDate = parseCalendarDate(today);
-  const currentWeekMonday = startOfWeek(todayDate, { weekStartsOn: 1 });
-  const gridStartMonday = subWeeks(currentWeekMonday, weekCount - 1);
+  const currentWeekStart = startOfWeek(todayDate, { weekStartsOn: WEEK_STARTS_ON });
+  const gridStart = subWeeks(currentWeekStart, weekCount - 1);
 
   const weeks: HeatmapCell[][] = [];
   for (let weekIndex = 0; weekIndex < weekCount; weekIndex++) {
-    const weekStart = addWeeks(gridStartMonday, weekIndex);
+    const weekStart = addWeeks(gridStart, weekIndex);
     const week: HeatmapCell[] = [];
     for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
       const cellDate = format(addDays(weekStart, dayIndex), "yyyy-MM-dd");
@@ -56,9 +59,9 @@ export function buildHeatmap(
 
   const cells = weeks.flat();
   const totalCount = cells.reduce((sum, c) => sum + c.count, 0);
-  const currentWeekMondayStr = format(currentWeekMonday, "yyyy-MM-dd");
+  const currentWeekStartStr = format(currentWeekStart, "yyyy-MM-dd");
   const thisWeekCount = cells
-    .filter((c) => c.date >= currentWeekMondayStr && c.date <= today)
+    .filter((c) => c.date >= currentWeekStartStr && c.date <= today)
     .reduce((sum, c) => sum + c.count, 0);
 
   return { weeks, totalCount, thisWeekCount };
@@ -68,7 +71,7 @@ export interface YearHeatmapCell {
   date: string;
   count: number;
   isFuture: boolean;
-  // 그 해(1/1~12/31) 바깥인데, 월요일 시작 주 단위로 칸을 채우다 보니 같은 열에
+  // 그 해(1/1~12/31) 바깥인데, 일요일 시작 주 단위로 칸을 채우다 보니 같은 열에
   // 끼어 들어온 전/다음 해 날짜. 화면에 그릴 땐 투명 처리한다.
   isOutOfYear: boolean;
 }
@@ -92,14 +95,14 @@ export function buildYearHeatmap(
 
   const jan1 = `${year}-01-01`;
   const dec31 = `${year}-12-31`;
-  const gridStartMonday = startOfWeek(parseCalendarDate(jan1), { weekStartsOn: 1 });
-  const lastWeekMonday = startOfWeek(parseCalendarDate(dec31), { weekStartsOn: 1 });
+  const gridStart = startOfWeek(parseCalendarDate(jan1), { weekStartsOn: WEEK_STARTS_ON });
+  const lastWeekStart = startOfWeek(parseCalendarDate(dec31), { weekStartsOn: WEEK_STARTS_ON });
   const weekCount =
-    differenceInCalendarWeeks(lastWeekMonday, gridStartMonday, { weekStartsOn: 1 }) + 1;
+    differenceInCalendarWeeks(lastWeekStart, gridStart, { weekStartsOn: WEEK_STARTS_ON }) + 1;
 
   const weeks: YearHeatmapCell[][] = [];
   for (let weekIndex = 0; weekIndex < weekCount; weekIndex++) {
-    const weekStart = addWeeks(gridStartMonday, weekIndex);
+    const weekStart = addWeeks(gridStart, weekIndex);
     const week: YearHeatmapCell[] = [];
     for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
       const cellDate = format(addDays(weekStart, dayIndex), "yyyy-MM-dd");

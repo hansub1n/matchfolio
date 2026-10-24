@@ -6,7 +6,7 @@ import { cn } from "cn";
 import { buildMonthLabels, type YearHeatmapData } from "@/entities/application";
 import { todayKST } from "@/shared/lib/kst-date";
 
-const WEEKDAY_ROW_LABELS = ["월", "", "수", "", "금", "", ""];
+const WEEKDAY_ROW_LABELS = ["", "월", "", "수", "", "금", ""];
 const WEEKDAY_NAMES_KO = ["일", "월", "화", "수", "목", "금", "토"];
 
 function heatLevel(count: number): 0 | 1 | 2 | 3 | 4 {

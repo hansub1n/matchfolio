@@ -5,7 +5,7 @@ import type { Schedule } from "@/entities/schedule";
 
 import { buildWeekSummary } from "./build-week-summary";
 
-const TODAY = "2026-10-21"; // 수요일, 이번주 월~일 = 10/19 ~ 10/25
+const TODAY = "2026-10-21"; // 수요일, 이번 주 일~토 = 10/18 ~ 10/24
 
 function buildApplication(overrides: Partial<Application> = {}): Application {
   return {

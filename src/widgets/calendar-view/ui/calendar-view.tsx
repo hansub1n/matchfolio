@@ -31,7 +31,7 @@ import {
 import { buildCalendarMonth, type CalendarDay, type CalendarEvent } from "../model/build-calendar-month";
 import { buildUpcomingSchedule, type UnscheduledItem } from "../model/build-upcoming-schedule";
 
-const WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
+const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 const MAX_VISIBLE_CHIPS = 2;
 
 function addMonthOffset(

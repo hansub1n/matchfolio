@@ -28,7 +28,7 @@ function cellTooltip(date: string, count: number) {
   return count > 0 ? `${label} · ${count}곳 지원` : `${label} · 지원 없음`;
 }
 
-// 이번 주(월~일) 고정 7칸 — buildHeatmap(applications, N, today).weeks.at(-1)로
+// 이번 주(일~토) 고정 7칸 — buildHeatmap(applications, N, today).weeks.at(-1)로
 // 얻은 마지막 주를 그대로 받는다. 색 외에 다른 방식(테두리 등)으로 "오늘"을
 // 강조하지 않는다 — 오늘 표시는 아래 요일 라벨 쪽에서만 한다.
 export function BoardHeatmap({

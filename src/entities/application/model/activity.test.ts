@@ -35,12 +35,12 @@ function buildApplication(overrides: Partial<Application> = {}): Application {
 describe("buildHeatmap", () => {
   const today = "2026-10-21"; // 수요일
 
-  it("returns the requested number of weeks, each starting on Monday", () => {
+  it("returns the requested number of weeks, each starting on Sunday", () => {
     const heatmap = buildHeatmap([], 52, today);
     expect(heatmap.weeks).toHaveLength(52);
     for (const week of heatmap.weeks) {
       expect(week).toHaveLength(7);
-      expect(new Date(`${week[0].date}T00:00:00`).getDay()).toBe(1); // 월요일
+      expect(new Date(`${week[0].date}T00:00:00`).getDay()).toBe(0); // 일요일
     }
   });
 
@@ -48,22 +48,22 @@ describe("buildHeatmap", () => {
     const heatmap = buildHeatmap([], 20, today);
     const lastWeek = heatmap.weeks.at(-1) as HeatmapCell[];
     expect(lastWeek.map((c) => [c.date, c.isFuture])).toEqual([
+      ["2026-10-18", false],
       ["2026-10-19", false],
       ["2026-10-20", false],
       ["2026-10-21", false], // 오늘
       ["2026-10-22", true],
       ["2026-10-23", true],
       ["2026-10-24", true],
-      ["2026-10-25", true],
     ]);
   });
 
   it("leaves only today-and-earlier cells non-future when today falls mid-week", () => {
-    // 오늘(수, dayIndex=2)까지만 과거/오늘이고 나머지 4칸(목~일)은 미래.
+    // 오늘(수, dayIndex=3)까지만 과거/오늘이고 나머지 3칸(목~토)은 미래.
     const heatmap = buildHeatmap([], 20, today);
     const lastWeek = heatmap.weeks.at(-1) as HeatmapCell[];
     const nonFutureCount = lastWeek.filter((c) => !c.isFuture).length;
-    expect(nonFutureCount).toBe(3);
+    expect(nonFutureCount).toBe(4);
   });
 
   it("handles the year boundary without gaps or errors", () => {
@@ -92,15 +92,15 @@ describe("buildHeatmap", () => {
       today
     );
     const lastWeek = heatmap.weeks.at(-1) as HeatmapCell[];
-    expect(lastWeek[1]).toMatchObject({ date: "2026-10-20", count: 2 });
-    expect(lastWeek[2]).toMatchObject({ date: "2026-10-21", count: 1 });
+    expect(lastWeek[2]).toMatchObject({ date: "2026-10-20", count: 2 });
+    expect(lastWeek[3]).toMatchObject({ date: "2026-10-21", count: 1 });
     expect(heatmap.totalCount).toBe(3);
   });
 
-  it("counts thisWeekCount only from this week's Monday through today", () => {
+  it("counts thisWeekCount only from this week's Sunday through today", () => {
     const heatmap = buildHeatmap(
       [
-        buildApplication({ id: "1", appliedAt: "2026-10-19" }), // 이번주 월
+        buildApplication({ id: "1", appliedAt: "2026-10-18" }), // 이번 주 일
         buildApplication({ id: "2", appliedAt: "2026-10-12" }), // 지난주
       ],
       20,
@@ -197,42 +197,42 @@ describe("관심 단계 제외", () => {
 });
 
 describe("buildYearHeatmap", () => {
-  it("starts the first week on the Monday before Jan 1, marking pre-Jan-1 days as out of year", () => {
-    // 2026-01-01은 목요일 -> 그 주 월~수(2025-12-29~31)는 작년 날짜.
+  it("starts the first week on the Sunday before Jan 1, marking pre-Jan-1 days as out of year", () => {
+    // 2026-01-01은 목요일 -> 그 주 일~수(2025-12-28~31)는 작년 날짜.
     const heatmap = buildYearHeatmap([], 2026, "2026-06-01");
     const firstWeek = heatmap.weeks[0];
     expect(firstWeek.map((c) => [c.date, c.isOutOfYear])).toEqual([
+      ["2025-12-28", true],
       ["2025-12-29", true],
       ["2025-12-30", true],
       ["2025-12-31", true],
       ["2026-01-01", false],
       ["2026-01-02", false],
       ["2026-01-03", false],
-      ["2026-01-04", false],
     ]);
   });
 
-  it("ends the last week on the Sunday after Dec 31, marking post-Dec-31 days as out of year", () => {
-    // 2026-12-31도 목요일 -> 그 주 금~일(2027-01-01~03)은 내년 날짜.
+  it("ends the last week on the Saturday after Dec 31, marking post-Dec-31 days as out of year", () => {
+    // 2026-12-31도 목요일 -> 그 주 금~토(2027-01-01~02)는 내년 날짜.
     const heatmap = buildYearHeatmap([], 2026, "2026-06-01");
     const lastWeek = heatmap.weeks.at(-1) as (typeof heatmap.weeks)[number];
     expect(lastWeek.map((c) => [c.date, c.isOutOfYear])).toEqual([
+      ["2026-12-27", false],
       ["2026-12-28", false],
       ["2026-12-29", false],
       ["2026-12-30", false],
       ["2026-12-31", false],
       ["2027-01-01", true],
       ["2027-01-02", true],
-      ["2027-01-03", true],
     ]);
   });
 
-  it("includes Feb 29 and all 366 days for a leap year, with no out-of-year padding when Dec 31 lands on Sunday", () => {
-    // 2028은 윤년이고 12/31이 일요일이라 마지막 주에 다음 해로 넘치는 날이 없다.
-    const heatmap = buildYearHeatmap([], 2028, "2028-06-01");
+  it("includes Feb 29 and all 366 days for a leap year, with no out-of-year padding when Dec 31 lands on Saturday", () => {
+    // 2016은 윤년이고 12/31이 토요일이라 마지막 주에 다음 해로 넘치는 날이 없다.
+    const heatmap = buildYearHeatmap([], 2016, "2016-06-01");
     const inYearDates = heatmap.weeks.flat().filter((c) => !c.isOutOfYear);
     expect(inYearDates).toHaveLength(366);
-    expect(inYearDates.map((c) => c.date)).toContain("2028-02-29");
+    expect(inYearDates.map((c) => c.date)).toContain("2016-02-29");
     expect(heatmap.weeks.at(-1)?.every((c) => !c.isOutOfYear)).toBe(true);
   });
 

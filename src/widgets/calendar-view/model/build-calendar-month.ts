@@ -43,10 +43,11 @@ export function buildCalendarMonth(
   const firstOfMonth = `${year}-${String(month).padStart(2, "0")}-01`;
   const lastOfMonth = lastDayOfMonth(year, month);
 
-  const gridStartMonday = startOfWeek(parseCalendarDate(firstOfMonth), { weekStartsOn: 1 });
-  const lastWeekMonday = startOfWeek(parseCalendarDate(lastOfMonth), { weekStartsOn: 1 });
+  // 한국 달력 관례대로 일요일 시작(일 월 화 수 목 금 토).
+  const gridStartSunday = startOfWeek(parseCalendarDate(firstOfMonth), { weekStartsOn: 0 });
+  const lastWeekSunday = startOfWeek(parseCalendarDate(lastOfMonth), { weekStartsOn: 0 });
   const weekCount =
-    differenceInCalendarWeeks(lastWeekMonday, gridStartMonday, { weekStartsOn: 1 }) + 1;
+    differenceInCalendarWeeks(lastWeekSunday, gridStartSunday, { weekStartsOn: 0 }) + 1;
 
   const eventsByDate = buildCalendarEvents(applications, schedules);
 
@@ -60,7 +61,7 @@ export function buildCalendarMonth(
 
   const weeks: CalendarDay[][] = [];
   for (let weekIndex = 0; weekIndex < weekCount; weekIndex++) {
-    const weekStart = addWeeks(gridStartMonday, weekIndex);
+    const weekStart = addWeeks(gridStartSunday, weekIndex);
     const week: CalendarDay[] = [];
     for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
       const date = format(addDays(weekStart, dayIndex), "yyyy-MM-dd");

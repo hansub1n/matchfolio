@@ -28,17 +28,17 @@ function buildApplication(overrides: Partial<Application> = {}): Application {
 }
 
 describe("buildCalendarMonth", () => {
-  it("starts the grid on the Monday before the 1st and ends on the Sunday after the last day", () => {
-    // 2026년 3월 1일은 일요일 -> 그 전 월요일(2/23)부터 시작.
-    // 2026년 3월 31일은 화요일 -> 그 주 일요일(4/5)까지 포함.
-    const calendar = buildCalendarMonth([], [], 2026, 3, "2026-03-01");
-    expect(calendar.weeks[0][0].date).toBe("2026-02-23");
-    expect(calendar.weeks.at(-1)?.at(-1)?.date).toBe("2026-04-05");
+  it("starts the grid on the Sunday before the 1st and ends on the Saturday after the last day", () => {
+    // 2026년 10월 1일은 목요일 -> 그 전 일요일(9/27)부터 시작(일 월 화 수 목 금 토).
+    // 2026년 10월 31일은 토요일 -> 그날로 끝.
+    const calendar = buildCalendarMonth([], [], 2026, 10, "2026-10-01");
+    expect(calendar.weeks[0][0].date).toBe("2026-09-27");
+    expect(calendar.weeks.at(-1)?.at(-1)?.date).toBe("2026-10-31");
   });
 
   it("flags days outside the target month as not isCurrentMonth", () => {
     const calendar = buildCalendarMonth([], [], 2026, 3, "2026-03-01");
-    expect(calendar.weeks[0][0].isCurrentMonth).toBe(false); // 2026-02-23
+    expect(calendar.weeks.at(-1)?.at(-1)?.isCurrentMonth).toBe(false); // 2026-04-04
     const march1 = calendar.weeks.flat().find((d) => d.date === "2026-03-01");
     expect(march1?.isCurrentMonth).toBe(true);
   });
