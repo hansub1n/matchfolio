@@ -41,14 +41,15 @@ export function ScheduleAddScene() {
   const T = [0, 0.25, 0.45, 0.55, 1];
   return (
     <SceneFrame>
-      <div className="relative">
+      {/* 팝오버를 레인 옆 같은 줄에 두고 전체를 가운데 정렬 — 바깥에 띄우면 좁은 가이드 모드에서 잘린다. */}
+      <div className="flex items-start gap-2">
         <MiniLanes titles={["서류", "코딩테스트"]}>
           <motion.div {...loop({ x: [0, 0, LANE_STEP, LANE_STEP, LANE_STEP] }, T)}>
             <MiniCard footer={<span className="text-[10px] text-muted-foreground">코딩테스트 · 일정 미정</span>} />
           </motion.div>
         </MiniLanes>
         <motion.div
-          className="absolute top-6 left-[calc(100%+8px)] flex w-[132px] flex-col gap-1.5 rounded-lg border bg-card p-2 text-[10.5px] shadow-md"
+          className="mt-6 flex w-[132px] shrink-0 flex-col gap-1.5 rounded-lg border bg-card p-2 text-[10.5px] shadow-md"
           {...loop({ opacity: [0, 0, 0, 1, 1], y: [6, 6, 6, 0, 0] }, T)}
         >
           <span className="font-medium">코딩테스트 일정</span>
@@ -133,7 +134,8 @@ export function ScheduleResultScene() {
   const T = [0, 0.25, 0.4, 0.55, 0.7, 1];
   return (
     <SceneFrame>
-      <div className="relative">
+      {/* 팝오버를 레인 옆 같은 줄에 두고 전체를 가운데 정렬 — 바깥에 띄우면 좁은 가이드 모드에서 잘린다. */}
+      <div className="flex items-start gap-2">
         <MiniLanes titles={["면접", "종료"]}>
           <motion.div {...loop({ x: [0, 0, LANE_STEP, LANE_STEP, LANE_STEP, LANE_STEP] }, T)}>
             <MiniCard
@@ -151,7 +153,7 @@ export function ScheduleResultScene() {
           </motion.div>
         </MiniLanes>
         <motion.div
-          className="absolute top-1/2 left-[calc(100%+8px)] flex w-[132px] -translate-y-1/2 flex-col gap-1.5 rounded-lg border bg-card p-2 text-[10.5px] shadow-md"
+          className="flex w-[132px] shrink-0 flex-col self-center gap-1.5 rounded-lg border bg-card p-2 text-[10.5px] shadow-md"
           {...loop({ opacity: [0, 0, 1, 1, 0, 0] }, T)}
         >
           <span className="font-medium">결과를 선택해주세요</span>

@@ -34,7 +34,9 @@ export function useLoop() {
 }
 
 export function SceneFrame({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("flex h-full items-center justify-center p-5", className)}>{children}</div>;
+  // 가이드 모드(챕터 목록이 있는 좁은 폭, 장면 영역 약 480px)에서도 가장 넓은 장면(약 420px)이
+  // 잘리지 않게 좌우 여백은 작게 둔다.
+  return <div className={cn("flex h-full items-center justify-center px-3 py-5", className)}>{children}</div>;
 }
 
 export function MiniLane({ title, children }: { title: string; children?: ReactNode }) {

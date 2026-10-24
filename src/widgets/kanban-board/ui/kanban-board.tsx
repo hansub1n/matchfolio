@@ -223,13 +223,7 @@ export function KanbanBoard({
   return (
     <DndContext id="kanban-board" sensors={sensors} onDragEnd={handleDragEnd}>
       <div
-        className={cn(
-          "grid flex-1 items-stretch gap-3 overflow-x-auto px-6 pb-4",
-          // 카드가 하나도 없을 때는 첫 공고를 올릴 관심 컬럼을 넓혀 드롭 영역으로 쓴다.
-          isBoardEmpty
-            ? "grid-cols-[minmax(480px,2fr)_repeat(4,minmax(240px,1fr))]"
-            : "grid-cols-[repeat(5,minmax(240px,1fr))]"
-        )}
+        className="grid flex-1 grid-cols-[repeat(5,minmax(240px,1fr))] items-stretch gap-3 overflow-x-auto px-6 pb-4"
       >
         {APPLICATION_STAGES.map((stage) => {
           const inColumn = items.filter(

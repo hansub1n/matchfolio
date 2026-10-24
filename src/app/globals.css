@@ -254,3 +254,16 @@
     animation: none;
   }
 }
+
+/* 탭마다 내용 길이가 달라 세로 스크롤바가 생겼다 사라지면 화면 폭이 바뀌어 가운데 정렬된 내용이
+   좌우로 흔들린다 — 스크롤바 자리를 항상 비워둔다. */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* 모달·팝오버가 열리면 스크롤 잠금(react-remove-scroll-bar)이 body에 스크롤바 폭만큼 margin-right를
+   넣는데, 위 scrollbar-gutter가 이미 그 자리를 비워두고 있어서 두 번 비우게 되어 화면이 밀린다.
+   라이브러리 규칙(body[data-scroll-locked])보다 구체적인 선택자로 보정을 끈다. */
+html body[data-scroll-locked] {
+  margin-right: 0 !important;
+}
