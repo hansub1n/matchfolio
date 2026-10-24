@@ -15,7 +15,7 @@ import type { UserDocument } from "@/entities/document";
 import type { MyProject } from "@/entities/my-project";
 import { recordedInterviewRounds, useScheduleRequests, type Schedule } from "@/entities/schedule";
 import { todayKST } from "@/shared/lib/kst-date";
-import { CreateApplicationDialog } from "@/features/create-application";
+import { requestTab } from "@/shared/lib/tab-store";
 import { Button } from "@/shared/ui/button";
 import { PageLayout } from "@/shared/ui/page-layout";
 import { EmptyHint, PlaceholderBar } from "@/shared/ui/placeholder";
@@ -118,14 +118,15 @@ export function ApplicationStats({
               ))}
             <span>최장 연속 {longestStreak}일</span>
             {stats.total === 0 && (
-              <CreateApplicationDialog
-                initialStatus="applied"
-                trigger={
-                  <Button variant="outline" size="sm" className="ml-1 rounded-full">
-                    공고 추가
-                  </Button>
-                }
-              />
+              // 공고는 보드에서 추가한다(스크린샷 끌어놓기·붙여넣기가 보드에 있어서) — 여기선 보드로 보내기만.
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-1 rounded-full"
+                onClick={() => requestTab("board")}
+              >
+                공고 추가 →
+              </Button>
             )}
           </span>
         </div>
