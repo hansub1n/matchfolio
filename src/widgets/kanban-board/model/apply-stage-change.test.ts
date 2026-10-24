@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import type { Application } from "@/entities/application";
 
-import { applyStageChange, buildStageChangeInput, canMoveToFinished } from "./apply-stage-change";
+import type { Schedule } from "@/entities/schedule";
+
+import {
+  applyStageChange,
+  buildStageChangeInput,
+  canMoveToFinished,
+  schedulesToDropOnStageChange,
+} from "./apply-stage-change";
 
 const TODAY = "2026-10-23";
 
@@ -92,5 +99,34 @@ describe("canMoveToFinished", () => {
 
   it("지원한 카드는 종료로 옮길 수 있다", () => {
     expect(canMoveToFinished(buildApplication({ stage: "document" }))).toBe(true);
+  });
+});
+
+// 되돌린 단계보다 뒤 단계 일정만 지운다 — 지난 단계 기록·다른 카드 일정은 건드리면 안 된다.
+describe("schedulesToDropOnStageChange", () => {
+  const schedule = (id: string, applicationId: string, stage: Schedule["stage"]): Schedule => ({
+    id,
+    applicationId,
+    stage,
+    roundLabel: stage === "interview" ? "1차" : null,
+    scheduledAt: "2026-10-20T04:10:00Z",
+    createdAt: "2026-10-01T00:00:00Z",
+  });
+  const schedules = [schedule("a", "1", "coding_test"), schedule("b", "1", "interview"), schedule("c", "2", "coding_test")];
+
+  it("앞으로 나아가면(코딩테스트 → 면접) 지난 단계 일정을 남긴다", () => {
+    expect(schedulesToDropOnStageChange(schedules, { id: "1", stage: "coding_test" }, "interview")).toEqual([]);
+  });
+
+  it("면접 → 코딩테스트로 되돌리면 면접 일정만 지우고 코딩테스트 일정은 남긴다", () => {
+    expect(schedulesToDropOnStageChange(schedules, { id: "1", stage: "interview" }, "coding_test")).toEqual(["b"]);
+  });
+
+  it("서류로 되돌리면 그 카드 일정을 전부 지운다", () => {
+    expect(schedulesToDropOnStageChange(schedules, { id: "1", stage: "interview" }, "document")).toEqual(["a", "b"]);
+  });
+
+  it("같은 컬럼에 다시 놓으면 아무것도 지우지 않는다", () => {
+    expect(schedulesToDropOnStageChange(schedules, { id: "1", stage: "interview" }, "interview")).toEqual([]);
   });
 });

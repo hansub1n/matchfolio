@@ -21,7 +21,12 @@ import {
 } from "@/entities/application";
 import type { UserDocument } from "@/entities/document";
 import type { MyProject } from "@/entities/my-project";
-import { recordedInterviewRounds, useScheduleRequests, type Schedule } from "@/entities/schedule";
+import {
+  deleteSchedules,
+  recordedInterviewRounds,
+  useScheduleRequests,
+  type Schedule,
+} from "@/entities/schedule";
 import {
   CreateApplicationDialog,
   type CreateApplicationStatus,
@@ -33,6 +38,7 @@ import { openTutorial } from "@/shared/lib/tutorial-store";
 import {
   applyStageChange,
   buildStageChangeInput,
+  schedulesToDropOnStageChange,
   canMoveToFinished,
   type BoardColumnId,
 } from "../model/apply-stage-change";
@@ -130,12 +136,19 @@ export function KanbanBoard({
     }
 
     const today = todayKST();
+    const droppedScheduleIds = schedulesToDropOnStageChange(scheduleItems, draggedApp, target);
     setItems((prev) => applyStageChange(prev, draggedId, target, today));
-    updateApplication(draggedId, buildStageChangeInput(draggedApp, target, today))
+    if (droppedScheduleIds.length > 0) {
+      setScheduleItems((prev) => prev.filter((s) => !droppedScheduleIds.includes(s.id)));
+    }
+    Promise.all([
+      updateApplication(draggedId, buildStageChangeInput(draggedApp, target, today)),
+      deleteSchedules(droppedScheduleIds),
+    ])
       .then(() => router.refresh())
       .catch(console.error);
 
-    if (target === "interview" && !latestSchedules.get(draggedId)) {
+    if (target === "interview" && !scheduleItems.some((s) => s.applicationId === draggedId && s.stage === "interview")) {
       setAutoOpenRoundId(draggedId);
     }
 
