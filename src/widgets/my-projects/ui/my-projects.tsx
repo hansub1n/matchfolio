@@ -12,6 +12,7 @@ import {
 import type { ProjectMatchWithCompany } from "@/entities/project-match";
 import { CreateMyProjectDialog, InlineProjectImport } from "@/features/create-my-project";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
+import { HelpButton } from "@/shared/ui/help-button";
 import { PageLayout } from "@/shared/ui/page-layout";
 import { PlaceholderBar, PlaceholderBox } from "@/shared/ui/placeholder";
 
@@ -82,7 +83,12 @@ export function MyProjects({
 
   return (
     <PageLayout
-      title={isEmpty ? "등록된 프로젝트가 없어요" : `프로젝트 ${items.length}개로 공고와 매칭하고 있어요`}
+      title={
+        <span className="inline-flex items-center gap-1.5">
+          {isEmpty ? "등록된 프로젝트가 없어요" : `프로젝트 ${items.length}개로 공고와 매칭하고 있어요`}
+          <HelpButton chapterId="projects" label="내 프로젝트" />
+        </span>
+      }
       subtitle={
         !isEmpty
           ? `가장 많이 쓴 기술 · ${topTechStack.join(", ") || "—"}`

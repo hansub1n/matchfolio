@@ -27,6 +27,7 @@ import {
 } from "@/features/create-application";
 import { todayKST } from "@/shared/lib/kst-date";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
+import { openTutorial } from "@/shared/lib/tutorial-store";
 
 import {
   applyStageChange,
@@ -259,6 +260,15 @@ export function KanbanBoard({
                   >
                     <p>스크린샷을 여기로 끌어오거나</p>
                     <p>캡처 후 ⌘V / Ctrl+V</p>
+                    {isBoardEmpty && (
+                      <button
+                        type="button"
+                        onClick={() => openTutorial({ mode: "basic" })}
+                        className="pointer-events-auto mt-1 text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                      >
+                        사용법 보기
+                      </button>
+                    )}
                   </div>
                 ) : undefined
               }

@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
+import { HelpButton } from "@/shared/ui/help-button";
 
 function toDatetimeLocalValue(iso: string | null | undefined): string {
   if (!iso) return "";
@@ -53,7 +54,10 @@ export function CodingTestScheduleDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{application?.company} 코딩테스트 일정</DialogTitle>
+          <div className="flex items-center gap-1">
+            <DialogTitle>{application?.company} 코딩테스트 일정</DialogTitle>
+            <HelpButton chapterId="schedule" label="일정" />
+          </div>
         </DialogHeader>
         <div className="flex flex-col gap-1">
           <label className="text-xs text-muted-foreground">일정 (선택)</label>

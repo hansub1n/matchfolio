@@ -6,6 +6,7 @@ import { cn } from "cn";
 import type { Application } from "@/entities/application";
 import { nextNumberedRound, ROUND_CHIPS, roundsAfter, type Schedule } from "@/entities/schedule";
 import { Button } from "@/shared/ui/button";
+import { HelpButton } from "@/shared/ui/help-button";
 import { Popover, PopoverAnchor, PopoverContent } from "@/shared/ui/popover";
 
 function splitDateTime(iso: string | null | undefined): { date: string; time: string } {
@@ -140,7 +141,10 @@ export function InterviewSchedulePopover({
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <p className="text-sm font-medium">{application.company} · 면접 일정</p>
+        <div className="flex items-center gap-1">
+          <p className="text-sm font-medium">{application.company} · 면접 일정</p>
+          <HelpButton chapterId="schedule" label="일정" />
+        </div>
 
         <div className="flex flex-wrap gap-1.5">
           {ROUND_CHIPS.map((chip) => (

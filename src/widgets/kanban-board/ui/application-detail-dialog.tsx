@@ -32,6 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
+import { HelpButton } from "@/shared/ui/help-button";
 import { ScreenshotGallery } from "@/shared/ui/screenshot-gallery";
 import { TagInput } from "@/shared/ui/tag-input";
 
@@ -359,7 +360,12 @@ export function ApplicationDetailDialog(props: Props) {
               </div>
             )}
 
-            <DetailGroup title="회사 분석" open={openGroups.has("company")} onToggle={() => toggleGroup("company")}>
+            <DetailGroup
+              title="회사 분석"
+              open={openGroups.has("company")}
+              onToggle={() => toggleGroup("company")}
+              help={<HelpButton chapterId="early-ai" label="회사 분석" />}
+            >
               <CompanyAnalysisSection state={prepState} company={entity.company} onAnalyze={analyze} />
             </DetailGroup>
 
@@ -377,6 +383,7 @@ export function ApplicationDetailDialog(props: Props) {
 
             <DetailGroup
               title="면접 준비"
+              help={<HelpButton chapterId="interview" label="예상 질문" />}
               open={openGroups.has("interview")}
               onToggle={() => toggleGroup("interview")}
             >

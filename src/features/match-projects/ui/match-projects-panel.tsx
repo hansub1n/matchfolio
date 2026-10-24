@@ -14,10 +14,12 @@ import {
 import { CreateMyProjectDialog } from "@/features/create-my-project";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
 import { AiDisclaimer, AiSection, AiSectionButton, AiSectionSkeleton } from "@/shared/ui/ai-section";
+import { HelpButton } from "@/shared/ui/help-button";
 
 import { matchProjects } from "../api/matchProjects";
 
 const TITLE = "프로젝트 매칭";
+const HELP = <HelpButton chapterId="early-ai" label="프로젝트 매칭" />;
 
 function LinkButton({ onClick, children }: { onClick: () => void; children: string }) {
   return (
@@ -199,7 +201,7 @@ export function MatchProjectsPanel({
 
   if (error) {
     return (
-      <AiSection title={TITLE}>
+      <AiSection title={TITLE} help={HELP}>
         <p className="mb-3 text-xs text-destructive">{error}</p>
         <AiSectionButton onClick={handleMatch}>다시 시도</AiSectionButton>
       </AiSection>
@@ -208,7 +210,7 @@ export function MatchProjectsPanel({
 
   if (loading || matching) {
     return (
-      <AiSection title={TITLE}>
+      <AiSection title={TITLE} help={HELP}>
         <p className="mb-3 text-xs text-muted-foreground">공고와 프로젝트를 비교하는 중</p>
         <AiSectionSkeleton />
       </AiSection>
@@ -218,7 +220,7 @@ export function MatchProjectsPanel({
   if (!result) {
     if (myProjectCount === 0) {
       return (
-        <AiSection title={TITLE}>
+        <AiSection title={TITLE} help={HELP}>
           <p className="mb-3 text-xs text-muted-foreground">
             먼저 내 프로젝트를 등록해야 매칭할 수 있어요
           </p>
@@ -233,7 +235,7 @@ export function MatchProjectsPanel({
       );
     }
     return (
-      <AiSection title={TITLE}>
+      <AiSection title={TITLE} help={HELP}>
         <p className="mb-3 text-xs text-muted-foreground">
           내 프로젝트 {myProjectCount}개를 이 공고와 비교해서 어필할 포인트를 찾아요
         </p>
@@ -246,7 +248,7 @@ export function MatchProjectsPanel({
   const topScore = matches.reduce((max, m) => Math.max(max, m.fitScore), 0);
 
   return (
-    <AiSection title={TITLE} headerAction={<LinkButton onClick={handleMatch}>다시 매칭</LinkButton>}>
+    <AiSection title={TITLE} help={HELP} headerAction={<LinkButton onClick={handleMatch}>다시 매칭</LinkButton>}>
       <div className="mt-2 flex flex-col gap-3">
         {recommendation && <p className="text-xs text-foreground">{recommendation}</p>}
         {matches.length > 0 ? (

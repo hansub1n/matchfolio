@@ -8,11 +8,14 @@ import { cn } from "cn";
 export function AiSection({
   title,
   headerAction,
+  help,
   variant = "muted",
   children,
 }: {
   title: string;
   headerAction?: ReactNode;
+  // 제목 옆 "?" 버튼 자리.
+  help?: ReactNode;
   // idle/loading/error는 회색(muted) 배경, 결과가 있으면 흰 배경+테두리(card)로
   // 구분한다 — 결과가 나왔다는 걸 배경만으로도 알아볼 수 있게.
   variant?: "muted" | "card";
@@ -30,6 +33,7 @@ export function AiSection({
         <div className="flex items-center gap-1.5">
           <Sparkles className="size-3.5" />
           <p className="text-sm font-medium">{title}</p>
+          {help}
         </div>
         {headerAction}
       </div>

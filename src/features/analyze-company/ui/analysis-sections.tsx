@@ -20,6 +20,7 @@ import { useExpandable } from "@/shared/lib/use-expandable";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
 import { AiDisclaimer, AiSectionButton, AiSectionSkeleton } from "@/shared/ui/ai-section";
 import { CopyButton } from "@/shared/ui/copy-button";
+import { HelpButton } from "@/shared/ui/help-button";
 import { ExpandToggle } from "@/shared/ui/expand-toggle";
 
 import {
@@ -417,7 +418,10 @@ function QuestionsArea({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[13px] font-medium">예상 질문 {counts.all}</p>
+        <div className="flex items-center gap-1">
+          <p className="text-[13px] font-medium">예상 질문 {counts.all}</p>
+          <HelpButton chapterId="interview" label="예상 질문" />
+        </div>
         <div className="flex gap-1">
           {tabs.map((t) => (
             <button
