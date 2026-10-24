@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, CalendarDays, FolderGit2, LayoutGrid } from "lucide-react";
+import { BarChart3, CalendarDays, CircleHelp, FolderGit2, LayoutGrid } from "lucide-react";
 
 import { isSubmitted, type Application } from "@/entities/application";
 import type { UserDocument } from "@/entities/document";
@@ -16,9 +16,17 @@ import { KanbanBoard } from "@/widgets/kanban-board";
 import { MyMaterials } from "@/widgets/my-materials";
 import { registerTabHandler } from "@/shared/lib/tab-store";
 import { openTutorial } from "@/shared/lib/tutorial-store";
+import type { TutorialChapterId } from "@/shared/config/tutorial";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { Toaster } from "@/shared/ui/toast";
 
+
+const TUTORIAL_CHAPTER_BY_TAB: Record<string, TutorialChapterId> = {
+  board: "basics",
+  calendar: "schedule",
+  stats: "records",
+  materials: "projects",
+};
 export function HomeView({
   applications,
   myProjects,
@@ -67,12 +75,16 @@ export function HomeView({
                 <FolderGit2 data-icon="inline-start" />내 자료
               </TabsTrigger>
             </TabsList>
+            {/* 지금 보고 있는 탭에 맞는 챕터부터 연다. 탭처럼 보이지 않게 아이콘만 둔 둥근 버튼 —
+                기능 옆 "?"(HelpButton)와 같은 아이콘이라 "도움말"로 읽힌다. */}
             <button
               type="button"
-              onClick={() => openTutorial({ mode: "guide" })}
-              className="text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => openTutorial({ mode: "guide", chapterId: TUTORIAL_CHAPTER_BY_TAB[tab] })}
+              aria-label="사용법"
+              title="사용법"
+              className="inline-flex size-8 items-center justify-center rounded-full border bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
             >
-              사용법
+              <CircleHelp className="size-4" />
             </button>
           </div>
         </div>
