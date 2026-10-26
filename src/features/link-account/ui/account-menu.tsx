@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import type { User } from "@supabase/supabase-js";
@@ -56,6 +57,16 @@ export function AccountMenu({
   const searchParams = useSearchParams();
   const [account, setAccount] = useState<GithubAccount | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
+  // 로그인·로그아웃은 몇 초 걸리는데(GitHub로 이동 / 로그아웃 뒤 새 익명 계정 만들기) 그동안 아무 표시가 없으면
+  // 안 눌린 줄 안다 — 화면을 덮고 무슨 중인지 띄운다.
+  const [pending, setPending] = useState<"github" | "signout" | null>(null);
+  // 로그인 상태 구독(onAuthStateChange) 안에서 지금 무슨 중인지 읽으려고 ref에도 둔다.
+  const pendingRef = useRef(pending);
+  useEffect(() => {
+    pendingRef.current = pending;
+  }, [pending]);
+  // 로그아웃이 끝나면 공용 컴퓨터 안내를 한 번 띄운다.
+  const [signedOutNotice, setSignedOutNotice] = useState(false);
   // 오류는 두 경로로 온다: 우리 /auth/callback을 거치면 ?auth_error=, 연결 단계에서 바로 실패하면 Supabase가 첫 화면
   // 주소에 ?error_code=를 붙여 보낸다(이미 다른 보드에 연결된 GitHub가 이쪽).
   const errorKind = classifyAuthError(searchParams.get("auth_error") ?? searchParams.get("error_code"));
@@ -71,8 +82,13 @@ export function AccountMenu({
     supabase.auth.getUser().then(({ data }) => {
       if (!cancelled) setAccount(toGithubAccount(data.user));
     });
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
       setAccount(toGithubAccount(session?.user ?? null));
+      // 로그아웃 뒤 새 익명 계정이 만들어지면 로그아웃이 끝난 것.
+      if (event === "SIGNED_IN" && session?.user?.is_anonymous && pendingRef.current === "signout") {
+        setPending(null);
+        setSignedOutNotice(true);
+      }
     });
     return () => {
       cancelled = true;
@@ -82,14 +98,20 @@ export function AccountMenu({
 
   const redirectTo = () => `${window.location.origin}${CALLBACK_PATH}`;
 
+  // 계정 선택 화면을 매번 띄운다 — 안 그러면 브라우저에 GitHub 로그인이 남아 있을 때(공용 컴퓨터 등) 다음 사람이
+  // "GitHub 연결"을 누르는 순간 묻지도 않고 앞사람 보드로 들어갔다.
+  const oauthOptions = () => ({ redirectTo: redirectTo(), queryParams: { prompt: "select_account" } });
+
   async function handleLink() {
     setBusy(true);
+    setPending("github");
     // 지금 익명 계정에 GitHub를 붙인다 — 같은 계정이라 넣어둔 기록이 그대로 이어진다.
     const { error } = await getBrowserSupabase().auth.linkIdentity({
       provider: "github",
-      options: { redirectTo: redirectTo() },
+      options: oauthOptions(),
     });
     if (error) {
+      setPending(null);
       console.error("GitHub 연결 시작 실패:", error.message);
       // 콘솔에만 남기면 버튼이 안 눌린 것처럼 보여서 화면에도 알린다.
       showToast("GitHub 연결을 시작하지 못했어요. 잠시 후 다시 시도해주세요");
@@ -101,7 +123,7 @@ export function AccountMenu({
   // 시작에 실패하면 토스트로 알리고 false를 돌려준다.
   function signInToSavedBoard(): Promise<boolean> {
     return getBrowserSupabase()
-      .auth.signInWithOAuth({ provider: "github", options: { redirectTo: redirectTo() } })
+      .auth.signInWithOAuth({ provider: "github", options: oauthOptions() })
       .then(({ error }) => {
         if (!error) return true;
         console.error("GitHub 로그인 시작 실패:", error.message);
@@ -112,8 +134,12 @@ export function AccountMenu({
 
   function handleSignInExisting() {
     setBusy(true);
+    setPending("github");
     void signInToSavedBoard().then((ok) => {
-      if (!ok) setBusy(false);
+      if (!ok) {
+        setBusy(false);
+        setPending(null);
+      }
     });
   }
 
@@ -123,7 +149,13 @@ export function AccountMenu({
   }, [autoSwitch]);
 
   async function handleSignOut() {
+    setPending("signout");
+    pendingRef.current = "signout";
     setAccount(null);
+    // 새 익명 계정이 안 만들어지는 경우(Turnstile 확인이 필요하거나 실패)에도 화면이 덮인 채 멈추지 않게.
+    setTimeout(() => {
+      if (pendingRef.current === "signout") setPending(null);
+    }, 20000);
     await getBrowserSupabase().auth.signOut();
     // 세션이 없어지면 첫 방문처럼 새 익명 계정이 만들어진다. GitHub로 다시 로그인하면 기록이 돌아온다.
     router.refresh();
@@ -209,6 +241,45 @@ export function AccountMenu({
               확인
             </button>
           )}
+        </DialogContent>
+      </Dialog>
+      {(pending ?? (autoSwitch ? "github" : null)) && (
+        // 로그인·로그아웃 중 — 화면을 흐리게 덮어 다른 걸 못 누르게 하고, 무슨 중인지 가운데에.
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/70 backdrop-blur-[2px]">
+          <p role="status" className="flex items-center gap-2 rounded-full bg-card px-4 py-2.5 text-sm shadow-sm ring-1 ring-border">
+            <Loader2 className="size-4 animate-spin text-muted-foreground" />
+            {(pending ?? "github") === "signout" ? "로그아웃하는 중이에요" : "GitHub로 이동하는 중이에요"}
+          </p>
+        </div>
+      )}
+
+      <Dialog open={signedOutNotice} onOpenChange={setSignedOutNotice}>
+        <DialogContent showCloseButton={false} className="flex flex-col gap-5 overflow-hidden rounded-xl p-5 sm:max-w-[340px]">
+          <div className="flex flex-col gap-1.5">
+            <DialogTitle className="text-[15px] font-medium">로그아웃했어요</DialogTitle>
+            <DialogDescription className="text-[13px] text-muted-foreground">
+              이 브라우저에 GitHub 로그인이 남아 있으면, 다른 사람이 “GitHub 연결”로 다시 들어올 수 있어요. 공용
+              컴퓨터라면 GitHub에서도 로그아웃해야 안전해요.
+            </DialogDescription>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setSignedOutNotice(false)}
+              className="h-9 rounded-lg bg-muted text-[13px] font-medium max-sm:h-10 hover:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_6%)]"
+            >
+              확인
+            </button>
+            <a
+              href="https://github.com/logout"
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => setSignedOutNotice(false)}
+              className="flex h-9 items-center justify-center rounded-lg bg-primary text-[13px] font-medium text-primary-foreground max-sm:h-10 hover:bg-primary/80"
+            >
+              GitHub 로그아웃 →
+            </a>
+          </div>
         </DialogContent>
       </Dialog>
     </>
