@@ -107,9 +107,16 @@ export function ApplicationCard({
       ? formatWaitingDays(application.appliedAt, todayKST())
       : null;
   const isInterviewing = application.stage === "interview" && !isFinished;
+  // 관심 카드도 다른 단계처럼 아래 줄을 둬서 카드 높이를 맞춘다 — 마감일(없으면 상시 채용) + D-day.
+  const isInterestedCard = application.stage === "interested" && !isFinished;
+  const interestedLabel = isInterestedCard
+    ? application.deadline
+      ? `마감 ${formatDateTime(application.deadline)}`
+      : "상시 채용"
+    : null;
   const isCodingTest = application.stage === "coding_test" && !isFinished;
   const showBottomRow =
-    isInterviewing || isCodingTest || isFailed || isPassed || waitingLabel !== null;
+    isInterestedCard || isInterviewing || isCodingTest || isFailed || isPassed || waitingLabel !== null;
 
   const failureLabel =
     application.stage === "interview" && schedule?.roundLabel
@@ -255,18 +262,6 @@ export function ApplicationCard({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <div className="flex items-center">
-              {deadlineBadge && (
-                <span
-                  className={cn(
-                    "num rounded px-1.5 py-0.5 text-[11px]",
-                    deadlineBadgeClasses(deadlineBadge.tier)
-                  )}
-                >
-                  {deadlineBadge.label}
-                </span>
-              )}
-            </div>
           </div>
         </div>
 
@@ -279,8 +274,23 @@ export function ApplicationCard({
         )}
 
         {showBottomRow && (
-          <div className="mt-2 flex items-center justify-between border-t border-border pt-2 text-[11px]">
-            {isFailed ? (
+          // 아래 줄 높이를 고정 — D-day 배지가 있는 관심 카드와 글자만 있는 다른 카드의 높이가 같게.
+          <div className="mt-2 flex h-7 items-center justify-between border-t border-border pt-2 text-[11px]">
+            {interestedLabel ? (
+              <>
+                <span className="text-muted-foreground">{interestedLabel}</span>
+                {deadlineBadge && (
+                  <span
+                    className={cn(
+                      "num rounded px-1.5 py-0.5 text-[11px]",
+                      deadlineBadgeClasses(deadlineBadge.tier)
+                    )}
+                  >
+                    {deadlineBadge.label}
+                  </span>
+                )}
+              </>
+            ) : isFailed ? (
               <span className="text-destructive">{failureLabel}</span>
             ) : waitingLabel ? (
               <span className="text-muted-foreground">{waitingLabel}</span>
