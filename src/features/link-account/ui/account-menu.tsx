@@ -136,7 +136,7 @@ export function AccountMenu({
   return (
     <>
       {account === undefined ? (
-        <span aria-hidden className="inline-block h-8 w-8" />
+        <span aria-hidden className="inline-block size-8 max-sm:size-9" />
       ) : account ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -144,7 +144,7 @@ export function AccountMenu({
               type="button"
               aria-label={`${account.login} 계정`}
               title={account.login}
-              className="inline-flex size-8 items-center justify-center overflow-hidden rounded-full border bg-card hover:bg-accent"
+              className="inline-flex size-8 max-sm:size-9 items-center justify-center overflow-hidden rounded-full border bg-card hover:bg-accent"
             >
               {account.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- GitHub 아바타 한 장, 이미지 최적화 설정 없이 쓴다.
@@ -165,7 +165,7 @@ export function AccountMenu({
           onClick={handleLink}
           disabled={busy}
           title="연결하면 다른 기기·브라우저에서도 같은 기록을 볼 수 있어요"
-          className="inline-flex h-8 items-center gap-1.5 rounded-full border bg-card px-3 text-xs font-medium whitespace-nowrap hover:bg-accent disabled:opacity-60"
+          className="inline-flex h-8 max-sm:h-9 max-sm:text-[13px] items-center gap-1.5 rounded-full border bg-card px-3 text-xs font-medium whitespace-nowrap hover:bg-accent disabled:opacity-60"
         >
           <GithubMark className="size-3.5" />
           GitHub 연결

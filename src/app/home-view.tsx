@@ -58,10 +58,11 @@ export function HomeView({
   }
 
   return (
-    <main className="flex flex-1 flex-col py-8">
+    <main className="flex flex-1 flex-col pb-8">
       <Tabs value={tab} onValueChange={setTab} className="flex-1">
         {/* 휴대폰: 1줄 로고 · 사용법, 2줄 탭(꽉 차게, 아이콘 숨김). sm부터는 한 줄에 로고 … 탭 · 사용법. */}
-        <div className="grid shrink-0 grid-cols-[1fr_auto] items-center gap-x-3 gap-y-4 border-b border-border px-4 pb-4 sm:flex sm:px-6 sm:pb-6">
+        {/* 스크롤해도 로고·탭이 위에 붙어 있게(sticky). 아래 내용이 비치지 않게 배경을 깐다. */}
+        <div className="sticky top-0 z-30 grid shrink-0 grid-cols-[1fr_auto] items-center gap-x-3 gap-y-3 border-b border-border bg-background/95 px-4 pt-4 pb-3 backdrop-blur sm:flex sm:px-6 sm:pt-6 sm:pb-5">
           <h1 className="text-xl font-bold tracking-tight">matchfolio</h1>
           <div className="col-span-2 row-start-2 sm:ml-auto">
             <TabsList className="w-full sm:w-fit">
@@ -91,7 +92,7 @@ export function HomeView({
                 onClick={() => openTutorial({ mode: "guide", chapterId: TUTORIAL_CHAPTER_BY_TAB[tab] })}
                 aria-label="사용법"
                 title="사용법"
-                className="inline-flex size-8 items-center justify-center rounded-full border bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
+                className="inline-flex size-8 max-sm:size-9 items-center justify-center rounded-full border bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
               >
                 <CircleHelp className="size-4" />
               </button>

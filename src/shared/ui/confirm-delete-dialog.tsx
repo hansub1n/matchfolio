@@ -44,7 +44,7 @@ export function ConfirmDeleteDialog({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="h-9 rounded-lg bg-muted text-[13px] font-medium hover:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_6%)]"
+            className="h-9 max-sm:h-10 rounded-lg bg-muted text-[13px] font-medium hover:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_6%)]"
           >
             취소
           </button>
@@ -54,7 +54,7 @@ export function ConfirmDeleteDialog({
               onConfirm();
               onOpenChange(false);
             }}
-            className="h-9 rounded-lg bg-destructive/10 text-[13px] font-medium text-destructive hover:bg-destructive/15"
+            className="h-9 max-sm:h-10 rounded-lg bg-destructive/10 text-[13px] font-medium text-destructive hover:bg-destructive/15"
           >
             삭제
           </button>

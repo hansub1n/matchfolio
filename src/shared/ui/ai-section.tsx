@@ -55,7 +55,7 @@ export function AiSectionButton({
     <button
       type="button"
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-accent",
+        "inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-xs max-sm:px-3.5 max-sm:py-2 max-sm:text-[13px] text-foreground hover:bg-accent",
         className
       )}
       {...props}

@@ -448,7 +448,7 @@ export function CalendarView({
           </div>
         </div>
 
-        <div ref={panelRef} className="flex w-full scroll-mt-4 flex-col gap-3 md:w-[220px] md:shrink-0">
+        <div ref={panelRef} className="flex w-full scroll-mt-36 flex-col gap-3 md:scroll-mt-28 md:w-[220px] md:shrink-0">
           {selectedDay ? (
             <SelectedDayPanel
               day={selectedDay}

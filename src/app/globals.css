@@ -294,3 +294,13 @@ input::-webkit-date-and-time-value {
 html {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* 모달·팝오버 안의 긴 글자(띄어쓰기 없는 링크·영문)는 아무 데서나 줄바꿈한다. 안 그러면 본문이 모달 폭보다
+   넓어져 가로 스크롤이 생기고, 손가락으로 밀리면 내용이 한쪽으로 쏠려 보였다. */
+[data-slot="dialog-content"],
+[data-slot="popover-content"] {
+  overflow-wrap: anywhere;
+}
+[data-slot="dialog-content"] .overflow-y-auto {
+  overflow-x: hidden;
+}

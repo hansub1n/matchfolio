@@ -40,7 +40,7 @@ export function BoardHeader({
           trigger={
             <button
               type="button"
-              className="rounded-full bg-primary px-3 py-1.5 text-xs text-primary-foreground"
+              className="rounded-full bg-primary px-3 py-1.5 text-xs max-sm:px-3.5 max-sm:py-2 max-sm:text-[13px] text-primary-foreground"
             >
               공고 추가
             </button>

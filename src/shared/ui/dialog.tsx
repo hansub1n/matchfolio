@@ -60,6 +60,12 @@ function DialogContent({
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
+        // 열자마자 첫 버튼("지원하기" 등)에 포커스가 가서 두꺼운 포커스 링이 생겼다 — 모달 자체에 포커스를 둔다
+        // (키보드 사용자는 Tab으로 바로 첫 버튼에 간다). 호출하는 쪽이 정하면(props) 그게 이긴다.
+        onOpenAutoFocus={(e) => {
+          e.preventDefault()
+          ;(e.currentTarget as HTMLElement).focus()
+        }}
         className={cn(
           "fixed top-1/2 left-1/2 z-50 grid max-h-[85vh] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-2xl bg-popover p-5 text-sm text-popover-foreground shadow-[0_8px_16px_rgb(0_0_0_/_0.08),0_24px_48px_rgb(0_0_0_/_0.16)] ring-1 ring-black/[0.06] duration-100 outline-none sm:max-w-sm dark:ring-white/[0.08] data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
