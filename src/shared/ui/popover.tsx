@@ -32,6 +32,7 @@ function PopoverContent({
   className,
   align = "center",
   sideOffset = 6,
+  collisionPadding = 16,
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Content>) {
   return (
@@ -40,8 +41,10 @@ function PopoverContent({
         data-slot="popover-content"
         align={align}
         sideOffset={sideOffset}
+        // 휴대폰에서 화면 가장자리에 붙거나 밖으로 나가지 않게 16px 띄우고, 폭도 화면을 넘지 않게.
+        collisionPadding={collisionPadding}
         className={cn(
-          "z-50 flex flex-col gap-3 rounded-xl bg-popover p-3 text-sm text-popover-foreground shadow-[0_8px_16px_rgb(0_0_0_/_0.08),0_24px_48px_rgb(0_0_0_/_0.16)] ring-1 ring-black/[0.06] duration-100 outline-none dark:ring-white/[0.08] data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "z-50 flex max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-xl bg-popover p-3 text-sm text-popover-foreground shadow-[0_8px_16px_rgb(0_0_0_/_0.08),0_24px_48px_rgb(0_0_0_/_0.16)] ring-1 ring-black/[0.06] duration-100 outline-none dark:ring-white/[0.08] data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...props}

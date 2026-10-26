@@ -94,7 +94,7 @@ export function ProjectRow({
           <button
             type="button"
             onClick={stopClick}
-            className="absolute top-3 right-2 rounded-sm p-1 max-sm:p-2 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-muted hover:text-foreground [@media(hover:none)]:opacity-100"
+            className="absolute top-3 right-2 rounded-sm p-1 max-sm:p-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-muted hover:text-foreground [@media(hover:none)]:opacity-100"
           >
             <MoreHorizontal className="size-3.5" />
             <span className="sr-only">더보기</span>

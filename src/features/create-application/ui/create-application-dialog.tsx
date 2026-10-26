@@ -226,7 +226,7 @@ export function CreateApplicationDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {trigger !== null && (
         <DialogTrigger asChild>{trigger ?? (
-            <button type="button" className="rounded-full bg-primary px-3 py-1.5 text-xs max-sm:px-3.5 max-sm:py-2 max-sm:text-[13px] text-primary-foreground">
+            <button type="button" className="rounded-full bg-primary px-3 py-1.5 text-xs max-sm:px-4 max-sm:py-2.5 max-sm:text-[13px] text-primary-foreground">
               공고 추가
             </button>
           )}</DialogTrigger>
@@ -245,7 +245,7 @@ export function CreateApplicationDialog({
                 <button
                   type="button"
                   onClick={switchToManualInput}
-                  className="shrink-0 rounded-full border bg-card px-3 py-1.5 text-xs max-sm:px-3.5 max-sm:py-2 max-sm:text-[13px] hover:bg-accent"
+                  className="shrink-0 rounded-full border bg-card px-3 py-1.5 text-xs max-sm:px-4 max-sm:py-2.5 max-sm:text-[13px] hover:bg-accent"
                 >
                   직접 입력하기
                 </button>

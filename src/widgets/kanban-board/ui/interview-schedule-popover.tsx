@@ -153,7 +153,7 @@ export function InterviewSchedulePopover({
               type="button"
               onClick={() => selectChip(chip)}
               className={cn(
-                "rounded-md px-2 py-1 text-xs",
+                "rounded-md px-2 py-1 text-xs max-sm:px-3 max-sm:py-1.5 max-sm:text-[13px]",
                 selected === chip
                   ? "bg-foreground text-background"
                   : "bg-muted text-muted-foreground hover:text-foreground"
@@ -166,7 +166,7 @@ export function InterviewSchedulePopover({
             type="button"
             onClick={() => selectChip(CUSTOM)}
             className={cn(
-              "rounded-md px-2 py-1 text-xs",
+              "rounded-md px-2 py-1 text-xs max-sm:px-3 max-sm:py-1.5 max-sm:text-[13px]",
               selected === CUSTOM
                 ? "bg-foreground text-background"
                 : "bg-muted text-muted-foreground hover:text-foreground"
@@ -196,13 +196,13 @@ export function InterviewSchedulePopover({
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="flex-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="min-w-0 flex-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm max-sm:py-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           />
           <input
             type="time"
             value={time}
             onChange={(e) => setTime(e.target.value)}
-            className="w-24 rounded-md border border-input bg-background px-2 py-1.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="w-24 shrink-0 rounded-md border border-input bg-background px-2 py-1.5 text-sm max-sm:py-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           />
         </div>
 
