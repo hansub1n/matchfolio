@@ -17,7 +17,6 @@ matchfolio 프로젝트 작업 시 참고할 컨텍스트 문서.
 - UI 컴포넌트: **shadcn/ui** — 채용 공고에서 자주 요구되는 스택이라 채택. npm 설치가 아니라 코드를 프로젝트에 복사하는 방식이므로, 각 컴포넌트를 그대로 쓰지 말고 커스터마이징하며 동작 원리를 이해할 것
 - 아키텍처: **FSD (Feature-Sliced Design)** — 폴더 구조를 app/pages/widgets/features/entities/shared 레이어로 구성. 처음 도입이라 레이어 개념(entities, features, widgets 구분 기준)을 문서로 먼저 정리한 뒤 적용할 것
 - 테스트: **Vitest + expect**, API 목킹은 **MSW**로 처리 — Supabase/Groq API 호출을 MSW로 목킹해 컴포넌트 테스트 진행. 드래그앤드롭 상태 변경, AI 응답 파싱 등 핵심 로직 위주로 작성 (전체 커버리지보다 "왜 이 부분을 테스트했는지" 설명 가능한 게 더 중요)
-- 이슈 관리: **Linear** — 개발 태스크를 이슈로 등록해 진행 상황 관리
 - Backend: Supabase (DB, Storage)
 - AI: 텍스트 전용 라우트는 Groq API(gpt-oss-120b). 스크린샷 비전 추출은 Gemini flash 계열만 쓴다(`GEMINI_MODELS`: 3.8 → 3.6 → 3.5 순서, 즉시 503이면 1.5초 뒤 같은 모델 1회 재시도, 응답 없이 멈추면(25초) 기다리지 않고 다음 모델 — 3.8이 몇 시간 멈춘 적 있음. pro는 무료 한도 0, 2.5 이하는 신규 사용자에게 막힘). 예전 Groq Qwen 비전 폴백은 한국어 공고를 못 읽고 내용을 지어내서 제거
 - 웹 검색: Tavily API (무료 티어)
