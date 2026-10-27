@@ -115,8 +115,6 @@ export function ApplicationCard({
       : "상시 채용"
     : null;
   const isCodingTest = application.stage === "coding_test" && !isFinished;
-  const showBottomRow =
-    isInterestedCard || isInterviewing || isCodingTest || isFailed || isPassed || waitingLabel !== null;
 
   const failureLabel =
     application.stage === "interview" && schedule?.roundLabel
@@ -196,12 +194,17 @@ export function ApplicationCard({
         // 길게 누르는 동안 iOS의 글자 선택·미리보기 메뉴가 끼어들지 않게.
         WebkitTouchCallout: "none",
       }}
-      className={cn("select-none", isDragging ? "cursor-grabbing opacity-50" : "cursor-pointer")}
+      // 끄는 동안은 다른 컬럼 카드 위로 올라오게.
+      className={cn("select-none", isDragging ? "relative z-50 cursor-grabbing" : "cursor-pointer")}
     >
       <div
         className={cn(
-          "group relative flex flex-col rounded-lg border px-3 py-2.5 text-sm transition-colors",
-          isFinished ? "border-transparent" : "border-border bg-card hover:bg-accent"
+          // 길게 누르는 동안(터치) 색이 바뀌어 눌리고 있다는 걸 알 수 있게 — 크기는 그대로.
+          "group relative flex flex-col rounded-lg border px-3 py-2.5 text-sm transition-[background-color,box-shadow,transform] duration-150 [@media(hover:none)]:active:bg-accent",
+          isFinished ? "border-transparent" : "border-border bg-card hover:bg-accent",
+          // 잡힌 카드는 흐리게 남기지 않고 손가락 쪽으로 들어 올린다 — 기울이지 않고 아주 살짝 커지면서 그림자가
+          // 깊어진다. 끄는 동안만이라 레이아웃 자리(크기·위치)는 바뀌지 않는다.
+          isDragging && "scale-[1.02] bg-card shadow-[0_16px_32px_rgb(0_0_0_/_0.16),0_4px_10px_rgb(0_0_0_/_0.08)]"
         )}
       >
         <div className="flex items-center gap-2">
@@ -265,81 +268,78 @@ export function ApplicationCard({
           </div>
         </div>
 
-        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{application.position}</p>
+        {/* 카드 높이를 단계·내용과 상관없이 같게 — 직무는 한 줄, 기술스택 줄은 비어도 자리를 두고, 아래 줄은 항상. */}
+        <p className="mt-1 truncate text-xs text-muted-foreground">{application.position}</p>
 
-        {!isFinished && application.techStack.length > 0 && (
-          <p className="mt-1.5 truncate text-[11px] text-muted-foreground">
-            {application.techStack.slice(0, 3).join(" · ")}
-          </p>
-        )}
+        <p className="mt-1.5 h-4 truncate text-[11px] text-muted-foreground">
+          {!isFinished && application.techStack.slice(0, 3).join(" · ")}
+        </p>
 
-        {showBottomRow && (
-          // 아래 줄 높이를 고정 — D-day 배지가 있는 관심 카드와 글자만 있는 다른 카드의 높이가 같게.
-          <div className="mt-2 flex h-7 items-center justify-between border-t border-border pt-2 text-[11px]">
-            {interestedLabel ? (
-              <>
-                <span className="text-muted-foreground">{interestedLabel}</span>
-                {deadlineBadge && (
-                  <span
-                    className={cn(
-                      "num rounded px-1.5 py-0.5 text-[11px]",
-                      deadlineBadgeClasses(deadlineBadge.tier)
-                    )}
-                  >
-                    {deadlineBadge.label}
-                  </span>
-                )}
-              </>
-            ) : isFailed ? (
-              <span className="text-destructive">{failureLabel}</span>
-            ) : waitingLabel ? (
-              <span className="text-muted-foreground">{waitingLabel}</span>
-            ) : isPassed ? (
-              <span className="text-foreground">
-                <span className="bg-[linear-gradient(transparent_58%,var(--highlight)_58%)] px-0.5">
-                  최종 합격
+        {/* 아래 줄 높이를 고정 — D-day 배지가 있는 관심 카드와 글자만 있는 다른 카드의 높이가 같게. */}
+        <div className="mt-2 flex h-7 items-center justify-between border-t border-border pt-2 text-[11px]">
+          {interestedLabel ? (
+            <>
+              <span className="text-muted-foreground">{interestedLabel}</span>
+              {deadlineBadge && (
+                <span
+                  className={cn(
+                    "num rounded px-1.5 py-0.5 text-[11px]",
+                    deadlineBadgeClasses(deadlineBadge.tier)
+                  )}
+                >
+                  {deadlineBadge.label}
                 </span>
+              )}
+            </>
+          ) : isFailed ? (
+            <span className="text-destructive">{failureLabel}</span>
+          ) : waitingLabel ? (
+            <span className="text-muted-foreground">{waitingLabel}</span>
+          ) : isPassed ? (
+            <span className="text-foreground">
+              <span className="bg-[linear-gradient(transparent_58%,var(--highlight)_58%)] px-0.5">
+                최종 합격
               </span>
-            ) : (
-              <>
-                {isInterviewing ? (
-                  <span className="flex items-center gap-1.5 text-muted-foreground">
-                    <span className="flex items-center gap-0.5">
-                      {Array.from({ length: Math.max(interviewRounds.length, 1) }).map((_, i) => (
-                        <span
-                          key={i}
-                          className={cn(
-                            "h-1 w-3.5 rounded-full",
-                            i < interviewRounds.length - 1 ? "bg-foreground" : "bg-border"
-                          )}
-                        />
-                      ))}
-                    </span>
-                    {interviewRounds.length > 0
-                      ? `${interviewRounds[interviewRounds.length - 1]} 면접`
-                      : "면접"}
+            </span>
+          ) : isInterviewing || isCodingTest ? (
+            <>
+              {isInterviewing ? (
+                <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <span className="flex items-center gap-0.5">
+                    {Array.from({ length: Math.max(interviewRounds.length, 1) }).map((_, i) => (
+                      <span
+                        key={i}
+                        className={cn(
+                          "h-1 w-3.5 rounded-full",
+                          i < interviewRounds.length - 1 ? "bg-foreground" : "bg-border"
+                        )}
+                      />
+                    ))}
                   </span>
-                ) : (
-                  <span className="text-muted-foreground">코딩테스트</span>
-                )}
-                {isInterviewing ? (
-                  <InterviewScheduleDialog
-                    application={application}
-                    schedule={schedule ?? null}
-                    recordedRounds={interviewRounds}
-                    open={scheduleOpen}
-                    defaultNext={scheduleDefaultNext}
-                    onOpenChange={setScheduleOpen}
-                    onSave={onSaveInterviewRound}
-                    trigger={scheduleButton}
-                  />
-                ) : (
-                  scheduleButton
-                )}
-              </>
-            )}
-          </div>
-        )}
+                  {interviewRounds.length > 0
+                    ? `${interviewRounds[interviewRounds.length - 1]} 면접`
+                    : "면접"}
+                </span>
+              ) : (
+                <span className="text-muted-foreground">코딩테스트</span>
+              )}
+              {isInterviewing ? (
+                <InterviewScheduleDialog
+                  application={application}
+                  schedule={schedule ?? null}
+                  recordedRounds={interviewRounds}
+                  open={scheduleOpen}
+                  defaultNext={scheduleDefaultNext}
+                  onOpenChange={setScheduleOpen}
+                  onSave={onSaveInterviewRound}
+                  trigger={scheduleButton}
+                />
+              ) : (
+                scheduleButton
+              )}
+            </>
+          ) : null}
+        </div>
       </div>
 
       <ConfirmDeleteDialog
