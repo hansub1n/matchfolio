@@ -126,6 +126,7 @@ matchfolio 프로젝트 작업 시 참고할 컨텍스트 문서.
   - 입력칸 자동 확대(iOS Safari는 16px 미만 입력칸에 포커스하면 확대)는 글자를 16px로 키우는 대신 viewport `maximumScale: 1`(layout.tsx)로 막는다 — 16px은 휴대폰에서 너무 커 보였음. iOS는 손가락으로 벌려 확대는 그대로 허용. 날짜·시간 입력칸은 min-width 0(기본 최소 폭이 커서 팝오버 밖으로 밀려났음)
   - 모달은 한 칸 grid를 `minmax(0,1fr)`로 — 안쪽 내용(사용법 장면 등)이 최소 폭으로 모달을 밀어 오른쪽으로 치우쳤음. 팝오버는 화면 가장자리에서 16px(collisionPadding), 폭은 화면 - 2rem까지
   - Safari: 날짜·시간 입력칸 왼쪽 정렬·휴대폰 최소 높이 38px(iOS는 비면 높이가 줄어듦), 탭 하이라이트(회색 번쩍임) 끔. 자바스크립트는 Safari 16.4(Next.js 16 기본 대상)보다 새 기능(toSorted·findLast·Object.groupBy 등)을 쓰지 않는다
+- 로고(`shared/ui/logo.tsx`): 검정 둥근 사각형 + 칸반 레인 3개, 가운데 레인 맨 위 라임 카드. 16px 이하는 레인 3개만(가운데 라임). 헤더 "matchfolio" 왼쪽 22px. 탭 아이콘 `app/icon.svg`(카드 있는 기본형), 옛 브라우저용 `app/favicon.ico`(단순형 16·32·48px), 홈 화면 `app/apple-icon.tsx`(next/og), manifest용 `public/icon-192·512.png`
 - 색상/타이포 등 구체적 톤은 추후 확정 — frontend-design 가이드 참고해서 잡을 것
 - 카피 톤: 사실만 담담하게, 권유/재촉 금지
 - 빈 상태: 별도 큰 화면을 만들지 않고 실제 레이아웃을 같은 위치·크기로 그대로 그리고 값만 비운다 — 숫자는 0 또는 "—", 막대는 빈 트랙(bg-muted), 잔디는 회색 칸, 목록은 흐린 예시 행(opacity-40, `shared/ui/placeholder.tsx`의 회색 막대). 섹션별 안내는 한 줄(text-[11.5px] muted)만. 버튼은 가로로 늘리지 않는다(rounded-full text-xs px-3 py-1.5)
