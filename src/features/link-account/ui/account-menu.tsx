@@ -9,6 +9,7 @@ import type { User } from "@supabase/supabase-js";
 
 import { getBrowserSupabase, isSessionOnlyLogin, setSessionOnlyLogin } from "@/shared/api/supabase";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/shared/ui/dialog";
+import { openFeedback } from "@/shared/lib/feedback-store";
 import { showToast } from "@/shared/ui/toast";
 import {
   DropdownMenu,
@@ -258,6 +259,8 @@ export function AccountMenu({
                 />
               </span>
             </DropdownMenuItem>
+            <div className="-mx-1 my-1 h-px bg-border" />
+            <DropdownMenuItem onSelect={() => openFeedback()}>의견 보내기</DropdownMenuItem>
             <div className="-mx-1 my-1 h-px bg-border" />
             <DropdownMenuItem onSelect={handleSignOut}>로그아웃</DropdownMenuItem>
           </DropdownMenuContent>

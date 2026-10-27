@@ -12,11 +12,13 @@ import type { Schedule } from "@/entities/schedule";
 import { AnonymousSignIn } from "@/features/anonymous-sign-in";
 import { AccountMenu } from "@/features/link-account";
 import { TutorialDialog } from "@/features/onboarding";
+import { FeedbackDialog } from "@/features/send-feedback";
 import { ApplicationStats } from "@/widgets/application-stats";
 import { BoardHeader } from "@/widgets/board-header";
 import { CalendarView } from "@/widgets/calendar-view";
 import { KanbanBoard } from "@/widgets/kanban-board";
 import { MyMaterials } from "@/widgets/my-materials";
+import { openFeedback } from "@/shared/lib/feedback-store";
 import { registerTabHandler } from "@/shared/lib/tab-store";
 import { useHideOnScroll } from "@/shared/lib/use-hide-on-scroll";
 import { openTutorial } from "@/shared/lib/tutorial-store";
@@ -151,9 +153,16 @@ export function HomeView({
           />
         </TabsContent>
       </Tabs>
+      {/* 화면 맨 아래 한 줄 — GitHub를 연결하지 않은 사람도(계정 메뉴가 없음) 의견을 보낼 수 있게. */}
+      <footer className="mt-10 flex justify-center gap-3 px-4 text-[11.5px] text-muted-foreground">
+        <button type="button" onClick={() => openFeedback()} className="hover:text-foreground">
+          의견 보내기
+        </button>
+      </footer>
       <Toaster />
       {!signedIn && <AnonymousSignIn />}
       <TutorialDialog />
+      <FeedbackDialog />
     </main>
   );
 }

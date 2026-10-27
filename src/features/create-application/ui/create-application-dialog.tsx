@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { createApplication } from "@/entities/application";
 import { ExtractError, extractJobPosting } from "@/features/extract-job-posting";
 import { track } from "@/shared/lib/analytics";
+import { openFeedback } from "@/shared/lib/feedback-store";
 import { todayKST } from "@/shared/lib/kst-date";
 import { useObjectUrl } from "@/shared/lib/use-object-url";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
@@ -248,16 +249,26 @@ export function CreateApplicationDialog({
           <div className="flex flex-col gap-2">
             <Dropzone onFiles={extractFromFiles} />
             {extractError ? (
-              <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2.5">
-                <p className="text-xs text-foreground">{extractError}</p>
+              <>
+                <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2.5">
+                  <p className="text-xs text-foreground">{extractError}</p>
+                  <button
+                    type="button"
+                    onClick={switchToManualInput}
+                    className="shrink-0 rounded-full border bg-card px-3 py-1.5 text-xs max-sm:px-4 max-sm:py-2.5 max-sm:text-[13px] hover:bg-accent"
+                  >
+                    직접 입력하기
+                  </button>
+                </div>
+                {/* 캡처 이미지는 보내지 않는다(개인정보) — 어디서 실패했는지만 page="extract"로. */}
                 <button
                   type="button"
-                  onClick={switchToManualInput}
-                  className="shrink-0 rounded-full border bg-card px-3 py-1.5 text-xs max-sm:px-4 max-sm:py-2.5 max-sm:text-[13px] hover:bg-accent"
+                  onClick={() => openFeedback({ kind: "inconvenient", page: "extract" })}
+                  className="self-center text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
                 >
-                  직접 입력하기
+                  결과가 이상했나요? 알려주기
                 </button>
-              </div>
+              </>
             ) : (
               <button
                 type="button"
