@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 
-import { InterviewSchedulePopover } from "./interview-schedule-popover";
+import { InterviewScheduleDialog } from "./interview-schedule-dialog";
 
 const STAGE_LABELS = Object.fromEntries(
   APPLICATION_STAGES.map((stage) => [stage.value, stage.label])
@@ -323,7 +323,7 @@ export function ApplicationCard({
                   <span className="text-muted-foreground">코딩테스트</span>
                 )}
                 {isInterviewing ? (
-                  <InterviewSchedulePopover
+                  <InterviewScheduleDialog
                     application={application}
                     schedule={schedule ?? null}
                     recordedRounds={interviewRounds}

@@ -37,7 +37,7 @@ import { defaultOpenGroups, type DetailGroupId } from "../model/detail-groups";
 import { parseJobDescription } from "../model/parse-job-description";
 import { CodingTestScheduleDialog } from "./coding-test-schedule-dialog";
 import { DetailGroup } from "./detail-group";
-import { InterviewSchedulePopover } from "./interview-schedule-popover";
+import { InterviewScheduleDialog } from "./interview-schedule-dialog";
 
 const inputClassName =
   "rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -285,7 +285,7 @@ export function ApplicationDetailDialog(props: Props) {
                   <>
                     <span className="text-muted-foreground">일정</span>
                     {application.stage === "interview" ? (
-                      <InterviewSchedulePopover
+                      <InterviewScheduleDialog
                         application={application}
                         schedule={scheduleForApplication}
                         recordedRounds={props.variant !== "interested" ? props.interviewRounds ?? [] : []}

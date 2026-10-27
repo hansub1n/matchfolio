@@ -10,7 +10,7 @@ export function nextNumberedRound(round: string): string | null {
   return n === null ? null : `${n + 1}차`;
 }
 
-// 면접 일정 Popover의 고정 차수 칩 — 대부분 1~2차 안에서 끝나서, 차수가 쌓일
+// 면접 일정 모달의 고정 차수 칩 — 대부분 1~2차 안에서 끝나서, 차수가 쌓일
 // 때마다 칩이 계속 늘어나지 않도록 1차/2차만 고정으로 보여준다. 3차 이상이나
 // 최종, 커스텀 차수는 "직접 입력"으로 다룬다.
 export const ROUND_CHIPS = ["1차", "2차"];

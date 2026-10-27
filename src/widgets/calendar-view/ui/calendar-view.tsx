@@ -25,7 +25,7 @@ import { PageLayout } from "@/shared/ui/page-layout";
 import {
   ApplicationDetailDialog,
   CodingTestScheduleDialog,
-  InterviewSchedulePopover,
+  InterviewScheduleDialog,
 } from "@/widgets/kanban-board";
 
 import { buildCalendarMonth, type CalendarDay, type CalendarEvent } from "../model/build-calendar-month";
@@ -113,7 +113,7 @@ function UnscheduledRow({
         <span className="text-muted-foreground">{item.label}</span>
       </span>
       {!isCodingTest && application ? (
-        <InterviewSchedulePopover
+        <InterviewScheduleDialog
           application={application}
           schedule={schedule}
           recordedRounds={recordedRounds}
