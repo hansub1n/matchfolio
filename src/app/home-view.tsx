@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { BarChart3, CalendarDays, CircleHelp, FolderGit2, LayoutGrid } from "lucide-react";
+import { cn } from "cn";
 
 import { isSubmitted, type Application } from "@/entities/application";
 import type { UserDocument } from "@/entities/document";
@@ -17,6 +18,7 @@ import { CalendarView } from "@/widgets/calendar-view";
 import { KanbanBoard } from "@/widgets/kanban-board";
 import { MyMaterials } from "@/widgets/my-materials";
 import { registerTabHandler } from "@/shared/lib/tab-store";
+import { useHideOnScroll } from "@/shared/lib/use-hide-on-scroll";
 import { openTutorial } from "@/shared/lib/tutorial-store";
 import type { TutorialChapterId } from "@/shared/config/tutorial";
 import { Logo } from "@/shared/ui/logo";
@@ -47,6 +49,7 @@ export function HomeView({
   signedIn: boolean;
 }) {
   const [tab, setTab] = useState<string>("board");
+  const headerHidden = useHideOnScroll();
   // 상세 모달 안의 "내 자료 →"처럼 깊은 곳에서 탭을 바꾸는 요청을 받는다.
   useEffect(() => registerTabHandler(setTab), []);
   // 내 프로젝트의 "지원 공고 대비 없는 기술"은 실제로 지원한 공고 기준으로 센다.
@@ -62,8 +65,15 @@ export function HomeView({
     <main className="flex flex-1 flex-col pb-8">
       <Tabs value={tab} onValueChange={setTab} className="flex-1">
         {/* 휴대폰: 1줄 로고 · 사용법, 2줄 탭(꽉 차게, 아이콘 숨김). sm부터는 한 줄에 로고 … 탭 · 사용법. */}
-        {/* 스크롤해도 로고·탭이 위에 붙어 있게(sticky). 아래 내용이 비치지 않게 배경을 깐다. */}
-        <div className="sticky top-0 z-30 grid shrink-0 grid-cols-[1fr_auto] items-center gap-x-3 gap-y-3 border-b border-border bg-background/95 px-4 pt-4 pb-3 backdrop-blur sm:flex sm:px-6 sm:pt-6 sm:pb-5">
+        {/* 아래로 스크롤하면 숨고 위로 올리면 다시 나타난다(useHideOnScroll) — 내용을 볼 땐 화면을 넓게, 탭을 바꾸고 싶을 땐
+            살짝 올리기만 하면 되게. 숨는 건 transform이라 아래 내용의 자리는 그대로다. 배경은 불투명하게 — 반투명+흐림이면
+            스크롤할 때 카드가 헤더 뒤로 뿌옇게 비쳐 경계가 어색했다. */}
+        <div
+          className={cn(
+            "sticky top-0 z-30 grid shrink-0 grid-cols-[1fr_auto] items-center gap-x-3 gap-y-3 border-b border-border bg-background px-4 pt-4 pb-3 transition-transform duration-200 ease-out motion-reduce:transition-none sm:flex sm:px-6 sm:pt-6 sm:pb-5",
+            headerHidden && "-translate-y-full"
+          )}
+        >
           <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight">
             <Logo size={22} />
             matchfolio
