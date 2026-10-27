@@ -1,4 +1,5 @@
 import type { ProjectMatches } from "@/entities/project-match";
+import { track } from "@/shared/lib/analytics";
 import { assertNotSampleMode } from "@/shared/lib/sample-mode";
 
 export async function matchProjects(applicationId: string): Promise<ProjectMatches> {
@@ -26,5 +27,6 @@ export async function matchProjects(applicationId: string): Promise<ProjectMatch
     throw new Error(error ?? `공고 매칭에 실패했습니다. (${response.status})`);
   }
 
+  track("ai_used", { feature: "match" });
   return response.json();
 }

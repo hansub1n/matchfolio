@@ -1,4 +1,5 @@
 import type { InterviewPrep } from "@/entities/interview-prep";
+import { track } from "@/shared/lib/analytics";
 import { assertNotSampleMode } from "@/shared/lib/sample-mode";
 
 export async function analyzeCompany(applicationId: string): Promise<InterviewPrep> {
@@ -26,5 +27,6 @@ export async function analyzeCompany(applicationId: string): Promise<InterviewPr
     throw new Error(error ?? `기업분석에 실패했습니다. (${response.status})`);
   }
 
+  track("ai_used", { feature: "company" });
   return response.json();
 }

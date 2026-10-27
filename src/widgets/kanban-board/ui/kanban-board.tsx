@@ -32,6 +32,7 @@ import {
   CreateApplicationDialog,
   type CreateApplicationStatus,
 } from "@/features/create-application";
+import { track } from "@/shared/lib/analytics";
 import { todayKST } from "@/shared/lib/kst-date";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
 import { openTutorial } from "@/shared/lib/tutorial-store";
@@ -137,6 +138,10 @@ export function KanbanBoard({
     const draggedId = active.id as string;
     const draggedApp = items.find((app) => app.id === draggedId);
     if (!draggedApp) return;
+    const from: BoardColumnId = draggedApp.outcome === "in_progress" ? draggedApp.stage : "finished";
+    if (from !== target && (target !== "finished" || canMoveToFinished(draggedApp))) {
+      track("card_moved", { from, to: target });
+    }
 
     if (target === "finished") {
       if (canMoveToFinished(draggedApp)) setPendingOutcomeId(draggedId);

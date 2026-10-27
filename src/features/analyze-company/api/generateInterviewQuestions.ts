@@ -1,4 +1,5 @@
 import type { InterviewPrep } from "@/entities/interview-prep";
+import { track } from "@/shared/lib/analytics";
 import { assertNotSampleMode } from "@/shared/lib/sample-mode";
 
 export async function generateInterviewQuestions(applicationId: string): Promise<InterviewPrep> {
@@ -26,5 +27,6 @@ export async function generateInterviewQuestions(applicationId: string): Promise
     throw new Error(error ?? `예상 질문을 만들지 못했습니다. (${response.status})`);
   }
 
+  track("ai_used", { feature: "interview" });
   return response.json();
 }

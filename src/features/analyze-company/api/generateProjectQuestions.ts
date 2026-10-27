@@ -1,4 +1,5 @@
 import type { InterviewPrepQuestion } from "@/entities/interview-prep";
+import { track } from "@/shared/lib/analytics";
 import { assertNotSampleMode } from "@/shared/lib/sample-mode";
 
 export interface GenerateProjectQuestionsResponse {
@@ -33,5 +34,6 @@ export async function generateProjectQuestions(
     throw new Error(error ?? `프로젝트 기반 질문 생성에 실패했습니다. (${response.status})`);
   }
 
+  track("ai_used", { feature: "interview" });
   return response.json();
 }

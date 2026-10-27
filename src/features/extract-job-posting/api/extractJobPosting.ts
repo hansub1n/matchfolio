@@ -1,4 +1,18 @@
+import type { ExtractFailReason } from "@/shared/lib/analytics";
 import { assertNotSampleMode } from "@/shared/lib/sample-mode";
+
+// 추출 실패 — 화면에 보여줄 문구와, 사용 기록용 실패 종류(서버가 알려준 것만, 그 밖엔 null).
+export class ExtractError extends Error {
+  constructor(
+    message: string,
+    readonly reason: ExtractFailReason | null
+  ) {
+    super(message);
+    this.name = "ExtractError";
+  }
+}
+
+const REASONS: ExtractFailReason[] = ["model", "timeout", "unreadable"];
 
 export interface ExtractedJobPosting {
   screenshotPaths: string[];
@@ -26,14 +40,15 @@ export async function extractJobPosting(files: File[]): Promise<ExtractedJobPost
 
   if (!response.ok) {
     const body = await response.text();
-    const error = (() => {
+    const parsed = (() => {
       try {
-        return JSON.parse(body).error;
+        return JSON.parse(body) as { error?: string; reason?: string };
       } catch {
         return null;
       }
     })();
-    throw new Error(error ?? `스크린샷 분석에 실패했습니다. (${response.status})`);
+    const reason = REASONS.find((r) => r === parsed?.reason) ?? null;
+    throw new ExtractError(parsed?.error ?? `스크린샷 분석에 실패했습니다. (${response.status})`, reason);
   }
 
   return response.json();

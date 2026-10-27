@@ -141,8 +141,20 @@ export async function POST(request: Request) {
     images.push({ buffer, mimeType });
   }
 
+  let modelImages: ImagePart[];
   try {
-    const modelImages = await toModelImages(images);
+    modelImages = await toModelImages(images);
+  } catch (error) {
+    // 깨졌거나 읽을 수 없는 이미지 — AI까지 가지 않았으니 횟수를 돌려준다.
+    console.error("extract-job-posting 이미지 변환 실패:", error);
+    await quota.refund();
+    return NextResponse.json(
+      { error: "이미지를 읽지 못했어요. 다른 캡처로 다시 올려주세요", reason: "unreadable" },
+      { status: 422 }
+    );
+  }
+
+  try {
     const extracted = await runWithModelFallback(
       (model) => {
         console.log(`extract-job-posting: ${model}로 추출 (이미지 ${modelImages.length}장)`);
@@ -159,6 +171,12 @@ export async function POST(request: Request) {
     // 정확도가 낮은 다른 모델로 지어낸 값을 채우느니 실패를 알린다(직접 입력으로 넘어갈 수 있음).
     console.error("extract-job-posting 실패:", error);
     await quota.refund();
-    return NextResponse.json({ error: EXTRACTION_FAILED_MESSAGE }, { status: 503 });
+    // 사용 기록(extract_failed)용 — 마지막 실패가 응답 없음(시간 초과)이었는지, 모델이 거절했는지.
+    const reason = isTimeout(error) ? "timeout" : "model";
+    return NextResponse.json({ error: EXTRACTION_FAILED_MESSAGE, reason }, { status: 503 });
   }
+}
+
+function isTimeout(error: unknown): boolean {
+  return error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
 }

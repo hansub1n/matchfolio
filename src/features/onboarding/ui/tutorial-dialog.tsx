@@ -4,6 +4,7 @@ import { useEffect, useState, type KeyboardEvent } from "react";
 import { Check } from "lucide-react";
 import { cn } from "cn";
 
+import { track } from "@/shared/lib/analytics";
 import { TUTORIAL_CHAPTERS as ALL_CHAPTERS, type TutorialChapterId } from "@/shared/config/tutorial";
 import {
   closeTutorial,
@@ -120,8 +121,10 @@ function TutorialContent({
   }
 
   function handleNext() {
-    if (next === "finish") onClose();
-    else goTo(next);
+    if (next === "finish") {
+      track("tutorial", { action: "completed", chapter: chapter.id });
+      onClose();
+    } else goTo(next);
   }
 
   function handlePrev() {
@@ -176,7 +179,14 @@ function TutorialContent({
           <span className="tabular-nums">
             {chapter.title} · {position.sceneIndex + 1} / {chapter.scenes.length}
           </span>
-          <button type="button" onClick={onClose} className="hover:text-foreground">
+          <button
+            type="button"
+            onClick={() => {
+              track("tutorial", { action: "skipped", chapter: chapter.id });
+              onClose();
+            }}
+            className="hover:text-foreground"
+          >
             건너뛰기
           </button>
         </div>

@@ -13,7 +13,8 @@ import { cn } from "cn";
 import { useRouter } from "next/navigation";
 
 import { createApplication } from "@/entities/application";
-import { extractJobPosting } from "@/features/extract-job-posting";
+import { ExtractError, extractJobPosting } from "@/features/extract-job-posting";
+import { track } from "@/shared/lib/analytics";
 import { todayKST } from "@/shared/lib/kst-date";
 import { useObjectUrl } from "@/shared/lib/use-object-url";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
@@ -89,6 +90,8 @@ export function CreateApplicationDialog({
   const [memo, setMemo] = useState("");
   const [screenshotPaths, setScreenshotPaths] = useState<string[]>([]);
   const [aiFilled, setAiFilled] = useState<Set<AiField>>(new Set());
+  // AI가 처음 채운 칸 수 — 저장할 때 남은 표시와 비교해 사용자가 고친 칸 수를 센다(사용 기록 extract_edited).
+  const [aiFilledCount, setAiFilledCount] = useState(0);
   const [extractError, setExtractError] = useState<string | null>(null);
   // 폼이 AI 추출 결과로 채워졌는지 — 직접 입력일 때는 안내 문구를 숨긴다.
   const [fromAi, setFromAi] = useState(false);
@@ -109,6 +112,7 @@ export function CreateApplicationDialog({
     setMemo("");
     setScreenshotPaths([]);
     setAiFilled(new Set());
+    setAiFilledCount(0);
     setExtractError(null);
     setFromAi(false);
     setSubmitError(null);
@@ -137,10 +141,12 @@ export function CreateApplicationDialog({
       if (extracted.techStack.length > 0) filled.add("techStack");
       if (extracted.description) filled.add("description");
       setAiFilled(filled);
+      setAiFilledCount(filled.size);
       setFromAi(true);
       setStep("form");
     } catch (error) {
       console.warn("스크린샷 추출 실패:", error);
+      if (error instanceof ExtractError && error.reason) track("extract_failed", { reason: error.reason });
       setExtractError(error instanceof Error ? error.message : "알 수 없는 오류");
       setStep("drop");
     }
@@ -201,6 +207,8 @@ export function CreateApplicationDialog({
         memo: memo.trim() || null,
         techStack,
       });
+      track("card_created", { method: fromAi ? "screenshot" : "manual", stage: isApplied ? "document" : "interested" });
+      if (fromAi) track("extract_edited", { fields_changed: aiFilledCount - aiFilled.size });
       reset();
       setOpen(false);
       router.refresh();
