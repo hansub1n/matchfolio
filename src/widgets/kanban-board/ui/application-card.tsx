@@ -204,7 +204,7 @@ export function ApplicationCard({
           isFinished ? "border-transparent" : "border-border bg-card hover:bg-accent",
           // 잡힌 카드는 흐리게 남기지 않고 손가락 쪽으로 들어 올린다 — 기울이지 않고 아주 살짝 커지면서 그림자가
           // 깊어진다. 끄는 동안만이라 레이아웃 자리(크기·위치)는 바뀌지 않는다.
-          isDragging && "scale-[1.02] bg-card shadow-[0_16px_32px_rgb(0_0_0_/_0.16),0_4px_10px_rgb(0_0_0_/_0.08)]"
+          isDragging && "scale-[1.02] bg-card shadow-lift"
         )}
       >
         <div className="flex items-center gap-2">

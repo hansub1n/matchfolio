@@ -18,6 +18,7 @@ interface TurnstileApi {
     options: {
       sitekey: string;
       appearance?: "always" | "execute" | "interaction-only";
+      theme?: "auto" | "light" | "dark";
       callback: (token: string) => void;
       "error-callback"?: () => void;
       "expired-callback"?: () => void;
@@ -87,6 +88,8 @@ export function AnonymousSignIn() {
         widgetId = turnstile.render(containerRef.current, {
           sitekey: env.turnstile.siteKey,
           appearance: "interaction-only",
+          // 앱이 라이트만이라 위젯도 라이트로 맞춘다.
+          theme: "light",
           callback: (token) => {
             setNeedsInteraction(false);
             void signIn(token);
@@ -114,7 +117,7 @@ export function AnonymousSignIn() {
     <div
       className={
         needsInteraction || error
-          ? "fixed right-4 bottom-4 z-50 flex flex-col gap-2 rounded-xl bg-popover p-3 text-xs shadow-[0_8px_16px_rgb(0_0_0_/_0.08),0_24px_48px_rgb(0_0_0_/_0.16)] ring-1 ring-black/[0.06]"
+          ? "fixed right-4 bottom-4 z-50 flex flex-col gap-2 rounded-xl bg-popover p-3 text-xs shadow-overlay ring-1 ring-foreground/[0.06]"
           : "fixed right-4 bottom-4 z-50"
       }
     >

@@ -136,6 +136,9 @@ matchfolio 프로젝트 작업 시 참고할 컨텍스트 문서.
 - AI 영역(회사 분석·공고 매칭·면접 준비) 버튼 문구는 전부 "~하기"로 맞춘다("예상 질문 생성" 같은 명사형은 앱의 해요체 톤과 안 맞아서): 분석하기 · 매칭하기 · 예상 질문 만들기 · 다시 시도하기 · 내 자료 등록하기, 제목 옆 글자 링크도 다시 분석하기 · 다시 매칭하기 · 다시 만들기. 다른 탭으로 보내는 글자 링크만 "내 자료 →"처럼 화살표
 - AI 결과 안내: 공고 추가 폼(AI가 채웠을 때만) 맨 위 "AI가 스크린샷에서 읽은 내용이에요. 저장 전에 한 번 확인해주세요". 회사 분석·공고 매칭·면접 준비는 결과 아래 문장 대신 제목 옆 작은 "AI" 표시(`AiBadge`), 마우스를 올리거나 포커스하면 "AI가 만든 내용이라 사실과 다를 수 있어요"
 - 예시 데이터: "예시 데이터로 보기" 토글은 제거했다. 샘플(`src/app/sample-data.ts`)과 저장/AI 호출 차단 장치(`shared/lib/sample-mode.ts` — 버튼 `blockInSampleMode`, API `assertNotSampleMode`, 토스트)는 나중에 /demo 페이지에서 쓰려고 남겨둠
+- **색은 반드시 토큰으로.** tsx/ts에 hex·white·black·gray 계열을 직접 쓰지 않는다(`globals.css`의 `:root`/`.dark` 토큰 — 모달 뒤 막 `bg-overlay`, 연한 라임 바탕 `bg-highlight-soft`+`text-highlight-soft-foreground`, 그림자 `shadow-overlay`(팝오버·메뉴·모달)·`shadow-lift`(끄는 카드)). 예외: 공유 이미지·아이콘·로고·썸네일처럼 테마와 무관하게 고정된 그림, manifest·theme-color
+- 카드엔 그림자 없음 — 깊이는 border와 bg(배경 < 레인 < 카드) 차이로만. hover도 border 색만 살짝 진하게
+- 다크 모드는 지금 없음(라이트만). 한 번 붙여봤지만 라이트만큼 다듬어지지 않아 뺐다. `globals.css`의 `.dark` 토큰은 나중을 위해 남겨둠 — 다시 할 땐 next-themes(class) + 계정 메뉴 테마 선택, 다크 잔디는 heat-0 → heat-4로 갈수록 밝게(이미 그렇게 맞춰둠)
 - 강조는 테두리 대신 색/굵기로
 - **상태(hover/선택/클릭/데이터 유무)가 바뀌어도 요소의 크기와 위치는 바뀌지 않는다**
   - 탭은 굵기를 바꾸지 않는다(전부 font-medium, 선택은 bg-card + text-foreground). 포커스 테두리는 focus-visible일 때만, 그것도 hover 가능한 기기(마우스·키보드)에서만 — 터치로 누르면 브라우저가 키보드 포커스처럼 다뤄 테두리가 남았음

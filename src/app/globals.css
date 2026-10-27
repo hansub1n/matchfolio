@@ -12,6 +12,14 @@
   --color-urgent: var(--urgent);
   --color-urgent-foreground: var(--urgent-foreground);
   --color-lane: var(--lane);
+  /* 모달 뒤를 덮는 막 — 다크에선 더 진하게 덮어야 모달이 떠 보인다. */
+  --color-overlay: var(--overlay);
+  /* 연한 라임 바탕(내 프로젝트에 있는 기술 칩 등) — 다크에선 어두운 초록 바탕에 밝은 라임 글자. */
+  --color-highlight-soft: var(--highlight-soft);
+  --color-highlight-soft-foreground: var(--highlight-soft-foreground);
+  /* 떠 있는 층(팝오버·메뉴·모달)과 끄는 카드의 그림자. 색을 컴포넌트에 직접 쓰지 않게 토큰으로. */
+  --shadow-overlay: 0 8px 16px var(--shadow-color), 0 24px 48px var(--shadow-color-strong);
+  --shadow-lift: 0 16px 32px var(--shadow-color-strong), 0 4px 10px var(--shadow-color);
   --color-avatar-1-bg: var(--avatar-1-bg);
   --color-avatar-1-fg: var(--avatar-1-fg);
   --color-avatar-2-bg: var(--avatar-2-bg);
@@ -108,6 +116,11 @@
   --heat-3: #a6cc2e;
   --heat-4: #5e7a0e;
   --lane: oklch(0.975 0 0);
+  --overlay: oklch(0 0 0 / 10%);
+  --highlight-soft: var(--heat-1);
+  --highlight-soft-foreground: var(--highlight-foreground);
+  --shadow-color: oklch(0 0 0 / 8%);
+  --shadow-color-strong: oklch(0 0 0 / 16%);
   --avatar-1-bg: oklch(0.9 0.05 200);
   --avatar-1-fg: oklch(0.32 0.08 200);
   --avatar-2-bg: oklch(0.9 0.05 260);
@@ -158,12 +171,18 @@
   --highlight-foreground: oklch(0.22 0.04 126);
   --urgent: oklch(0.7 0.18 55);
   --urgent-foreground: oklch(0.2 0.05 55);
+  /* 잔디는 다크에서 많을수록 밝고 선명하게 — 0(빈 칸) → 4(가장 많음) 순서로 밝기가 올라간다. */
   --heat-0: oklch(0.27 0 0);
-  --heat-1: oklch(0.32 0.035 126);
-  --heat-2: var(--highlight);
-  --heat-3: oklch(0.62 0.15 126);
-  --heat-4: oklch(0.42 0.1 126);
-  --lane: oklch(0.25 0 0);
+  --heat-1: oklch(0.36 0.06 126);
+  --heat-2: oklch(0.5 0.11 126);
+  --heat-3: oklch(0.66 0.16 126);
+  --heat-4: var(--highlight);
+  --lane: oklch(0.245 0 0);
+  --overlay: oklch(0 0 0 / 50%);
+  --highlight-soft: oklch(0.34 0.06 126);
+  --highlight-soft-foreground: oklch(0.93 0.1 126);
+  --shadow-color: oklch(0 0 0 / 30%);
+  --shadow-color-strong: oklch(0 0 0 / 45%);
   --avatar-1-bg: oklch(0.3 0.06 200);
   --avatar-1-fg: oklch(0.85 0.06 200);
   --avatar-2-bg: oklch(0.3 0.07 260);

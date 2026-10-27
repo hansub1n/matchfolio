@@ -346,7 +346,7 @@ export function ApplicationDetailDialog(props: Props) {
                         key={tech}
                         className={cn(
                           "rounded-full px-2.5 py-1 text-xs",
-                          owned ? "bg-[var(--heat-1)]" : "border"
+                          owned ? "bg-highlight-soft text-highlight-soft-foreground" : "border"
                         )}
                       >
                         {tech}

@@ -227,7 +227,7 @@ function QuestionRow({
         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
           {group === "project" && question.noExperience && <span className="text-urgent">대비 필요</span>}
           {group === "project" && !question.noExperience && relatedProjectName && (
-            <span className="rounded bg-[var(--heat-1)] px-1.5 py-0.5 text-highlight-foreground">
+            <span className="rounded bg-highlight-soft px-1.5 py-0.5 text-highlight-soft-foreground">
               {relatedProjectName}
             </span>
           )}
