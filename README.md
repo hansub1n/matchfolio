@@ -6,7 +6,7 @@
 
 🔗 **https://matchfolio-omega.vercel.app** — 회원가입 없이 바로 써볼 수 있습니다
 
-![칸반보드 화면](docs/images/board.png)
+![스크린샷을 올리면 AI가 읽어 카드가 만들어지는 화면](docs/demo.gif)
 
 ## 왜 만들었나
 
