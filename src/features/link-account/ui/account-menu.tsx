@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { cn } from "cn";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import type { User } from "@supabase/supabase-js";
@@ -52,9 +53,12 @@ const SIGNED_OUT_NOTICE_KEY = "matchfolio:signed-out-notice-seen";
 // 헤더가 밀리지 않게 한다.
 export function AccountMenu({
   localCounts,
+  onRequestDeleteAccount,
 }: {
   // 지금 이 브라우저(익명 계정)에 넣어둔 것 — 저장된 보드로 바꾸면 옮겨지지 않아서, 있을 때만 묻는다.
   localCounts: { applications: number; materials: number };
+  // "계정과 모든 기록 지우기" — 확인 창은 계정 지우기 feature 것이라 바깥(app)에서 연다.
+  onRequestDeleteAccount: () => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -261,8 +265,14 @@ export function AccountMenu({
             </DropdownMenuItem>
             <div className="-mx-1 my-1 h-px bg-border" />
             <DropdownMenuItem onSelect={() => openFeedback()}>의견 보내기</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/privacy">개인정보처리방침</Link>
+            </DropdownMenuItem>
             <div className="-mx-1 my-1 h-px bg-border" />
             <DropdownMenuItem onSelect={handleSignOut}>로그아웃</DropdownMenuItem>
+            <DropdownMenuItem variant="destructive" onSelect={onRequestDeleteAccount}>
+              계정과 모든 기록 지우기
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (

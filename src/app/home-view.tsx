@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { BarChart3, CalendarDays, CircleHelp, FolderGit2, LayoutGrid } from "lucide-react";
 import { cn } from "cn";
+import Link from "next/link";
 
 import { isSubmitted, type Application } from "@/entities/application";
 import type { UserDocument } from "@/entities/document";
@@ -10,6 +11,7 @@ import type { MyProject } from "@/entities/my-project";
 import type { ProjectMatchWithCompany } from "@/entities/project-match";
 import type { Schedule } from "@/entities/schedule";
 import { AnonymousSignIn } from "@/features/anonymous-sign-in";
+import { DeleteAccountDialog } from "@/features/delete-account";
 import { AccountMenu } from "@/features/link-account";
 import { TutorialDialog } from "@/features/onboarding";
 import { FeedbackDialog } from "@/features/send-feedback";
@@ -52,6 +54,7 @@ export function HomeView({
 }) {
   const [tab, setTab] = useState<string>("board");
   const headerHidden = useHideOnScroll();
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
   // 상세 모달 안의 "내 자료 →"처럼 깊은 곳에서 탭을 바꾸는 요청을 받는다.
   useEffect(() => registerTabHandler(setTab), []);
   // 내 프로젝트의 "지원 공고 대비 없는 기술"은 실제로 지원한 공고 기준으로 센다.
@@ -114,6 +117,7 @@ export function HomeView({
               </button>
               <AccountMenu
                 localCounts={{ applications: applications.length, materials: myProjects.length + documents.length }}
+                onRequestDeleteAccount={() => setDeleteAccountOpen(true)}
               />
             </div>
         </div>
@@ -153,16 +157,21 @@ export function HomeView({
           />
         </TabsContent>
       </Tabs>
-      {/* 화면 맨 아래 한 줄 — GitHub를 연결하지 않은 사람도(계정 메뉴가 없음) 의견을 보낼 수 있게. */}
+      {/* 화면 맨 아래 한 줄 — GitHub를 연결하지 않은 사람도(계정 메뉴가 없음) 의견을 보내고 개인정보처리방침을 볼 수 있게. */}
       <footer className="mt-10 flex justify-center gap-3 px-4 text-[11.5px] text-muted-foreground">
         <button type="button" onClick={() => openFeedback()} className="hover:text-foreground">
           의견 보내기
         </button>
+        <span aria-hidden>·</span>
+        <Link href="/privacy" className="hover:text-foreground">
+          개인정보처리방침
+        </Link>
       </footer>
       <Toaster />
       {!signedIn && <AnonymousSignIn />}
       <TutorialDialog />
       <FeedbackDialog />
+      <DeleteAccountDialog open={deleteAccountOpen} onOpenChange={setDeleteAccountOpen} />
     </main>
   );
 }

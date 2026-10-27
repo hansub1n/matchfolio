@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Trash2 } from "lucide-react";
 
 import { Button } from "@/shared/ui/button";
@@ -16,6 +17,7 @@ export function ConfirmDeleteDialog({
   open,
   onOpenChange,
   subject,
+  title,
   description = "삭제하면 되돌릴 수 없어요.",
   onConfirm,
 }: {
@@ -23,10 +25,34 @@ export function ConfirmDeleteDialog({
   onOpenChange: (open: boolean) => void;
   // 지우는 것의 종류 — "공고", "관심 공고", "프로젝트", "자소서", "이력서"(모두 받침 없이 끝나서 "를").
   subject: string;
+  // "이 ○○를 삭제할까요?"가 맞지 않을 때(계정 지우기 등) 질문을 통째로.
+  title?: string;
   // 함께 지워지거나 바뀌는 것 한 줄.
   description?: string;
-  onConfirm: () => void;
+  // Promise를 돌려주면 끝날 때까지 창을 열어두고(삭제 중), 실패하면 창 안에 이유를 보여준다.
+  onConfirm: () => void | Promise<void>;
 }) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleConfirm() {
+    const result = onConfirm();
+    if (!(result instanceof Promise)) {
+      onOpenChange(false);
+      return;
+    }
+    setPending(true);
+    setError(null);
+    try {
+      await result;
+      onOpenChange(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "지우지 못했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* 카드·행 안에서 열려도 클릭이 부모(행 열기·드래그)로 올라가지 않게 막는다. 기본 DialogContent는
@@ -37,26 +63,26 @@ export function ConfirmDeleteDialog({
         onClick={stopClick}
       >
         <div className="flex flex-col gap-1.5">
-          <DialogTitle className="text-[15px] font-medium">이 {subject}를 삭제할까요?</DialogTitle>
+          <DialogTitle className="text-[15px] font-medium">{title ?? `이 ${subject}를 삭제할까요?`}</DialogTitle>
           <DialogDescription className="text-[13px] text-muted-foreground">{description}</DialogDescription>
+          {error && <p className="text-[13px] text-destructive">{error}</p>}
         </div>
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="h-9 max-sm:h-10 rounded-lg bg-muted text-[13px] font-medium hover:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_6%)]"
+            disabled={pending}
+            className="h-9 max-sm:h-10 rounded-lg bg-muted text-[13px] font-medium hover:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_6%)] disabled:opacity-60"
           >
             취소
           </button>
           <button
             type="button"
-            onClick={() => {
-              onConfirm();
-              onOpenChange(false);
-            }}
-            className="h-9 max-sm:h-10 rounded-lg bg-destructive/10 text-[13px] font-medium text-destructive hover:bg-destructive/15"
+            onClick={() => void handleConfirm()}
+            disabled={pending}
+            className="h-9 max-sm:h-10 rounded-lg bg-destructive/10 text-[13px] font-medium text-destructive hover:bg-destructive/15 disabled:opacity-60"
           >
-            삭제
+            {pending ? "지우는 중..." : "삭제"}
           </button>
         </div>
       </DialogContent>

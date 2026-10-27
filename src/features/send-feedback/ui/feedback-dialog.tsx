@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { cn } from "cn";
+import Link from "next/link";
 
 import { track, type FeedbackKind } from "@/shared/lib/analytics";
 import { closeFeedback, useFeedbackState, type FeedbackRequest } from "@/shared/lib/feedback-store";
@@ -107,6 +108,12 @@ function FeedbackForm({ request }: { request: FeedbackRequest }) {
             />
             {/* 생겼다 사라지는 줄이라 자리를 미리 둔다. */}
             <p className="min-h-4 text-xs text-destructive">{error}</p>
+            <p className="text-[11.5px] text-muted-foreground">
+              의견은 받은 날부터 3년 보관해요 ·{" "}
+              <Link href="/privacy" className="underline-offset-2 hover:text-foreground hover:underline">
+                개인정보처리방침
+              </Link>
+            </p>
           </div>
           {sent && (
             <p role="status" className="col-start-1 row-start-1 self-center text-center text-sm">

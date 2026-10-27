@@ -15,7 +15,9 @@ export default async function Home() {
   const supabase = await createServerSupabase();
   // 첫 방문자는 아직 계정이 없다 — 빈 화면을 먼저 그리고, 브라우저에서 Turnstile을 통과하면 계정을 만든다.
   const { data: auth } = await supabase.auth.getClaims();
-  const [applications, myProjects, schedules, allProjectMatches, documents] = await Promise.all([
+  const [, applications, myProjects, schedules, allProjectMatches, documents] = await Promise.all([
+    // 마지막으로 들어온 날 — 1년 미접속 자동 정리 기준(020). 하루에 한 번만 실제로 쓴다. 실패해도 화면엔 영향 없음.
+    auth?.claims ? supabase.rpc("touch_user_activity").then(() => undefined) : undefined,
     getApplications(supabase),
     getMyProjects(supabase),
     getSchedules(supabase),

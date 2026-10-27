@@ -22,4 +22,8 @@ export const env = {
   turnstile: {
     siteKey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "",
   },
+  // Vercel Cron이 정리 라우트를 부를 때 Authorization 헤더로 보내는 값(Vercel 환경변수 CRON_SECRET).
+  cron: {
+    secret: process.env.CRON_SECRET ?? "",
+  },
 } as const;
