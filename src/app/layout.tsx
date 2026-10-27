@@ -13,9 +13,28 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://matchfolio-omega.vercel.app";
+const TITLE = "matchfolio — 스크린샷 한 장으로 지원 현황 관리";
+const DESCRIPTION = "채용공고 스크린샷 한 장으로 지원 현황을 정리하세요. 회원가입 없이 바로 시작할 수 있어요.";
+
+// 공유 이미지(opengraph-image.tsx)·아이콘(icon.svg, apple-icon.tsx)·manifest.ts는 파일 규칙으로 Next가 알아서 붙인다.
 export const metadata: Metadata = {
-  title: "matchfolio",
-  description: "취업 지원 현황을 칸반보드로 관리하는 개인 포트폴리오 프로젝트",
+  metadataBase: new URL(SITE_URL),
+  title: { default: TITLE, template: "%s · matchfolio" },
+  description: DESCRIPTION,
+  applicationName: "matchfolio",
+  keywords: ["취업", "지원 현황", "칸반보드", "채용공고", "면접 준비"],
+  // metadataBase 기준으로 운영 주소가 붙는다.
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: "/",
+    locale: "ko_KR",
+    siteName: "matchfolio",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
 // iOS Safari는 16px보다 작은 입력칸에 포커스하면 화면을 확대한다. 입력칸 글자를 16px로 키우면 휴대폰에서 너무 커 보여서,
@@ -24,6 +43,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  // 지금은 라이트만 — 브라우저 상단 색도 배경색 하나.
+  themeColor: "#FAFAFA",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
