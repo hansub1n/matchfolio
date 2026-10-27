@@ -129,6 +129,7 @@ matchfolio 프로젝트 작업 시 참고할 컨텍스트 문서.
 - 로고(`shared/ui/logo.tsx`): 검정 둥근 사각형 + 칸반 레인 3개, 가운데 레인 맨 위 라임 카드. 16px 이하는 레인 3개만(가운데 라임). 헤더 "matchfolio" 왼쪽 22px. 탭 아이콘 `app/icon.svg`(카드 있는 기본형), 옛 브라우저용 `app/favicon.ico`(단순형 16·32·48px), 홈 화면 `app/apple-icon.tsx`(next/og), manifest용 `public/icon-192·512.png`
 - 메타데이터(`app/layout.tsx`): 제목 "matchfolio — 스크린샷 한 장으로 지원 현황 관리", 설명("채용공고 스크린샷 한 장으로 지원 현황을 정리하세요. 회원가입 없이 바로 시작할 수 있어요." — description·OG·트위터·manifest 모두 같은 문장)·키워드, canonical·og:url(metadataBase로 운영 주소), theme-color #FAFAFA. `app/manifest.ts`(배경·테마 색 #FAFAFA, 아이콘 192·512)
 - 공유 이미지 `app/opengraph-image.tsx`(1200×630, 왼쪽 로고·제목, 오른쪽 미니 보드, Pretendard OTF를 node_modules에서 읽음 — next/og는 WOFF2 불가), `twitter-image.tsx`는 그걸 다시 내보냄
+- 포트폴리오 썸네일: 숨김 페이지 `/thumbnail`(개발 서버에서만, 운영은 404, 검색 제외) — 1600×900 고정 캔버스, 예시 데이터(`app/thumbnail/fixtures.ts`, `sample-data.ts` 기반), 기기 화면은 iframe(`?frame=board`)으로 그려 휴대폰 레이아웃이 실제처럼 나옴. `pnpm dev` 켠 채 `pnpm thumbnail`(Playwright + 설치된 Chrome) → `docs/thumbnail.png`
 - 색상/타이포 등 구체적 톤은 추후 확정 — frontend-design 가이드 참고해서 잡을 것
 - 카피 톤: 사실만 담담하게, 권유/재촉 금지
 - 빈 상태: 별도 큰 화면을 만들지 않고 실제 레이아웃을 같은 위치·크기로 그대로 그리고 값만 비운다 — 숫자는 0 또는 "—", 막대는 빈 트랙(bg-muted), 잔디는 회색 칸, 목록은 흐린 예시 행(opacity-40, `shared/ui/placeholder.tsx`의 회색 막대). 섹션별 안내는 한 줄(text-[11.5px] muted)만. 버튼은 가로로 늘리지 않는다(rounded-full text-xs px-3 py-1.5)
