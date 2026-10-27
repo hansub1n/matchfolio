@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { cn } from "cn";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import type { User } from "@supabase/supabase-js";
 
-import { getBrowserSupabase } from "@/shared/api/supabase";
+import { getBrowserSupabase, isSessionOnlyLogin, setSessionOnlyLogin } from "@/shared/api/supabase";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/shared/ui/dialog";
 import { showToast } from "@/shared/ui/toast";
 import {
@@ -42,6 +43,8 @@ function toGithubAccount(user: User | null): GithubAccount | null {
 }
 
 const CALLBACK_PATH = "/auth/callback";
+// 로그아웃 뒤 공용 컴퓨터 안내는 이 브라우저에서 한 번만.
+const SIGNED_OUT_NOTICE_KEY = "matchfolio:signed-out-notice-seen";
 
 // 헤더 오른쪽의 계정 자리. 익명이면 "GitHub 연결"(지금 기록에 GitHub를 붙여 다른 기기·브라우저에서도 같은
 // 기록을 보게), 연결돼 있으면 프로필 사진 + 메뉴(아이디·로그아웃). 확인 전엔 같은 크기 빈 자리를 둬서
@@ -67,6 +70,8 @@ export function AccountMenu({
   }, [pending]);
   // 로그아웃이 끝나면 공용 컴퓨터 안내를 한 번 띄운다.
   const [signedOutNotice, setSignedOutNotice] = useState(false);
+  // "이 기기에서 로그인 유지" — 기본은 꺼짐(브라우저를 닫으면 로그아웃, shared/api/session-persistence).
+  const [remember, setRemember] = useState(false);
   // 오류는 두 경로로 온다: 우리 /auth/callback을 거치면 ?auth_error=, 연결 단계에서 바로 실패하면 Supabase가 첫 화면
   // 주소에 ?error_code=를 붙여 보낸다(이미 다른 보드에 연결된 GitHub가 이쪽).
   const errorKind = classifyAuthError(searchParams.get("auth_error") ?? searchParams.get("error_code"));
@@ -80,14 +85,25 @@ export function AccountMenu({
     const supabase = getBrowserSupabase();
     let cancelled = false;
     supabase.auth.getUser().then(({ data }) => {
-      if (!cancelled) setAccount(toGithubAccount(data.user));
+      if (cancelled) return;
+      setAccount(toGithubAccount(data.user));
+      setRemember(!isSessionOnlyLogin());
+      // GitHub로 갔다가 취소하고 돌아오면 익명인데 "유지 안 함" 표시만 남는다 — 그대로 두면 브라우저를 닫을 때
+      // 익명 보드가 사라지니, 표시를 지우고 세션 쿠키를 다시 오래 가게 써둔다.
+      if (data.user?.is_anonymous && isSessionOnlyLogin()) {
+        setSessionOnlyLogin(false);
+        void supabase.auth.refreshSession();
+      }
     });
     const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
       setAccount(toGithubAccount(session?.user ?? null));
       // 로그아웃 뒤 새 익명 계정이 만들어지면 로그아웃이 끝난 것.
       if (event === "SIGNED_IN" && session?.user?.is_anonymous && pendingRef.current === "signout") {
         setPending(null);
-        setSignedOutNotice(true);
+        if (!readNoticeSeen()) {
+          setSignedOutNotice(true);
+          markNoticeSeen();
+        }
       }
     });
     return () => {
@@ -105,6 +121,7 @@ export function AccountMenu({
   async function handleLink() {
     setBusy(true);
     setPending("github");
+    setSessionOnlyLogin(true);
     // 지금 익명 계정에 GitHub를 붙인다 — 같은 계정이라 넣어둔 기록이 그대로 이어진다.
     const { error } = await getBrowserSupabase().auth.linkIdentity({
       provider: "github",
@@ -112,6 +129,7 @@ export function AccountMenu({
     });
     if (error) {
       setPending(null);
+      setSessionOnlyLogin(false);
       console.error("GitHub 연결 시작 실패:", error.message);
       // 콘솔에만 남기면 버튼이 안 눌린 것처럼 보여서 화면에도 알린다.
       showToast("GitHub 연결을 시작하지 못했어요. 잠시 후 다시 시도해주세요");
@@ -122,10 +140,12 @@ export function AccountMenu({
   // 이 GitHub에 이미 저장된 보드가 있다 — 그 보드로 로그인한다(지금 브라우저의 익명 기록은 그대로 둔다).
   // 시작에 실패하면 토스트로 알리고 false를 돌려준다.
   function signInToSavedBoard(): Promise<boolean> {
+    setSessionOnlyLogin(true);
     return getBrowserSupabase()
       .auth.signInWithOAuth({ provider: "github", options: oauthOptions() })
       .then(({ error }) => {
         if (!error) return true;
+        setSessionOnlyLogin(false);
         console.error("GitHub 로그인 시작 실패:", error.message);
         showToast("GitHub 로그인을 시작하지 못했어요. 잠시 후 다시 시도해주세요");
         return false;
@@ -156,9 +176,25 @@ export function AccountMenu({
     setTimeout(() => {
       if (pendingRef.current === "signout") setPending(null);
     }, 20000);
+    // 다음에 만들어질 익명 계정은 다시 오래 유지돼야 한다(지우는 쿠키는 표시와 상관없이 지워진다).
+    setSessionOnlyLogin(false);
     await getBrowserSupabase().auth.signOut();
     // 세션이 없어지면 첫 방문처럼 새 익명 계정이 만들어진다. GitHub로 다시 로그인하면 기록이 돌아온다.
     router.refresh();
+  }
+
+  async function handleToggleRemember() {
+    const next = !remember;
+    setRemember(next);
+    setSessionOnlyLogin(!next);
+    // 세션 쿠키를 지금 설정대로 다시 쓴다(유지 → 만료일 400일, 안 함 → 브라우저를 닫으면 사라짐).
+    const { error } = await getBrowserSupabase().auth.refreshSession();
+    if (error) {
+      setRemember(!next);
+      setSessionOnlyLogin(next);
+      showToast("설정을 바꾸지 못했어요. 잠시 후 다시 시도해주세요");
+      return;
+    }
   }
 
   function clearError() {
@@ -186,8 +222,43 @@ export function AccountMenu({
               )}
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <p className="px-2 py-1.5 text-[12px] text-muted-foreground">@{account.login}로 연결됨</p>
+          {/* 폭을 고정 — 스위치를 켜고 끌 때 아래 설명 길이가 바뀌어도 메뉴 폭이 흔들리지 않게. */}
+          <DropdownMenuContent align="end" className="w-60 max-sm:w-64">
+            <p className="px-2 py-1.5 text-[12px] text-muted-foreground max-sm:px-3 max-sm:py-2 max-sm:text-[13px]">@{account.login}로 연결됨</p>
+            <div className="-mx-1 my-1 h-px bg-border" />
+            {/* 동작이 아니라 켜고 끄는 설정이라 스위치 + 지금 상태에서 어떻게 되는지 한 줄. 기본은 꺼짐 — 공용
+                컴퓨터에서 로그아웃을 깜빡해도 브라우저를 닫으면 끝나게. 메뉴는 닫지 않는다. */}
+            <DropdownMenuItem
+              role="menuitemcheckbox"
+              aria-checked={remember}
+              className="items-start justify-between gap-3"
+              onSelect={(e) => {
+                e.preventDefault();
+                void handleToggleRemember();
+              }}
+            >
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span>로그인 유지</span>
+                <span className="text-[11.5px] text-muted-foreground max-sm:text-[12.5px]">
+                  {remember ? "브라우저를 닫아도 로그인돼 있어요" : "브라우저를 닫으면 로그아웃돼요"}
+                </span>
+              </span>
+              <span
+                aria-hidden
+                className={cn(
+                  "mt-0.5 flex h-[18px] w-8 shrink-0 items-center rounded-full p-0.5 transition-colors",
+                  remember ? "bg-foreground" : "bg-muted-foreground/30"
+                )}
+              >
+                <span
+                  className={cn(
+                    "size-3.5 rounded-full bg-background shadow-sm transition-transform",
+                    remember && "translate-x-3.5"
+                  )}
+                />
+              </span>
+            </DropdownMenuItem>
+            <div className="-mx-1 my-1 h-px bg-border" />
             <DropdownMenuItem onSelect={handleSignOut}>로그아웃</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -258,15 +329,15 @@ export function AccountMenu({
           <div className="flex flex-col gap-1.5">
             <DialogTitle className="text-[15px] font-medium">로그아웃했어요</DialogTitle>
             <DialogDescription className="text-[13px] text-muted-foreground">
-              이 브라우저에 GitHub 로그인이 남아 있으면, 다른 사람이 “GitHub 연결”로 다시 들어올 수 있어요. 공용
-              컴퓨터라면 GitHub에서도 로그아웃해야 안전해요.
+              내 기기라면 이대로 괜찮아요. 공용 컴퓨터였다면 GitHub에서도 로그아웃해주세요. 이 브라우저에 GitHub
+              로그인이 남아 있으면 다른 사람이 “GitHub 연결”로 들어올 수 있어요.
             </DialogDescription>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setSignedOutNotice(false)}
-              className="h-9 rounded-lg bg-muted text-[13px] font-medium max-sm:h-10 hover:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_6%)]"
+              className="h-9 rounded-lg bg-primary text-[13px] font-medium text-primary-foreground max-sm:h-10 hover:bg-primary/80"
             >
               확인
             </button>
@@ -275,7 +346,7 @@ export function AccountMenu({
               target="_blank"
               rel="noreferrer"
               onClick={() => setSignedOutNotice(false)}
-              className="flex h-9 items-center justify-center rounded-lg bg-primary text-[13px] font-medium text-primary-foreground max-sm:h-10 hover:bg-primary/80"
+              className="flex h-9 items-center justify-center rounded-lg bg-muted text-[13px] font-medium max-sm:h-10 hover:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_6%)]"
             >
               GitHub 로그아웃 →
             </a>
@@ -284,6 +355,22 @@ export function AccountMenu({
       </Dialog>
     </>
   );
+}
+
+function readNoticeSeen(): boolean {
+  try {
+    return localStorage.getItem(SIGNED_OUT_NOTICE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markNoticeSeen() {
+  try {
+    localStorage.setItem(SIGNED_OUT_NOTICE_KEY, "1");
+  } catch {
+    // 저장이 막힌 브라우저면 다음에 한 번 더 보일 뿐이다.
+  }
 }
 
 // "이 브라우저에 넣은 공고 3개와 내 자료 1개는 옮겨지지 않아요." — 있는 것만 센다.

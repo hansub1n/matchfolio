@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 import { env } from "@/shared/config/env";
+import { isEphemeralCookieSet, toSessionCookieOptions } from "@/shared/api/session-persistence";
 
 // 매 요청마다 세션 쿠키를 갱신한다. 세션이 없는 첫 방문자의 익명 계정은 여기서 만들지 않는다 — 봇이 계정을
 // 무한히 만들지 못하게 Turnstile을 통과해야 만들어지는데, 그 확인은 브라우저에서만 할 수 있어서
@@ -17,7 +18,9 @@ export async function proxy(request: NextRequest) {
       setAll(cookiesToSet, headers) {
         for (const { name, value } of cookiesToSet) request.cookies.set(name, value);
         response = NextResponse.next({ request });
-        for (const { name, value, options } of cookiesToSet) response.cookies.set(name, value, options);
+        const ephemeral = isEphemeralCookieSet(request.cookies.getAll());
+        for (const { name, value, options } of cookiesToSet)
+          response.cookies.set(name, value, toSessionCookieOptions(options, ephemeral));
         for (const [key, value] of Object.entries(headers ?? {})) response.headers.set(key, value);
       },
     },
