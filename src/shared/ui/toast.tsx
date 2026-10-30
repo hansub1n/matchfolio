@@ -38,7 +38,8 @@ export function Toaster() {
   return (
     <div
       role="status"
-      className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-foreground px-4 py-2 text-xs text-background shadow-lg"
+      // 모달(z-50) 위에서도 보이게 — 모달 안에서 일어난 일(스크린샷 6장 초과 등)을 알리는 경우가 많다.
+      className="fixed bottom-6 left-1/2 z-[80] -translate-x-1/2 rounded-full bg-foreground px-4 py-2 text-xs text-background shadow-lg"
     >
       {current}
     </div>

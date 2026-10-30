@@ -13,6 +13,7 @@ import { computeTileRects } from "@/features/extract-job-posting/model/split-tal
 import { getRequestUser } from "@/shared/api/supabase-server";
 import { env } from "@/shared/config/env";
 import { JOB_POSTING_SCREENSHOTS_BUCKET } from "@/shared/config/constants";
+import { MAX_SCREENSHOTS } from "@/shared/config/constants";
 import { GEMINI_MODELS, isOverloaded } from "@/shared/lib/gemini";
 import { consumeAiQuota, quotaExceededResponse } from "@/shared/lib/ai-quota";
 import { isSameOrigin, unauthorizedResponse } from "@/shared/lib/request-guard";
@@ -115,6 +116,9 @@ export async function POST(request: Request) {
 
   if (files.length === 0) {
     return NextResponse.json({ error: "파일이 없습니다." }, { status: 400 });
+  }
+  if (files.length > MAX_SCREENSHOTS) {
+    return NextResponse.json({ error: `스크린샷은 한 번에 ${MAX_SCREENSHOTS}장까지 읽을 수 있어요` }, { status: 400 });
   }
 
   const quota = await consumeAiQuota(user.id, "extract_job_posting");

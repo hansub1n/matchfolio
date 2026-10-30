@@ -1,9 +1,6 @@
 "use client";
 
 import {
-  useEffect,
-  useEffectEvent,
-  useRef,
   useState,
   type ClipboardEvent,
   type FormEvent,
@@ -17,6 +14,7 @@ import { ExtractError, extractJobPosting } from "@/features/extract-job-posting"
 import { track } from "@/shared/lib/analytics";
 import { openFeedback } from "@/shared/lib/feedback-store";
 import { todayKST } from "@/shared/lib/kst-date";
+import { MAX_SCREENSHOTS } from "@/shared/config/constants";
 import { useObjectUrl } from "@/shared/lib/use-object-url";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
 import { Button } from "@/shared/ui/button";
@@ -31,6 +29,7 @@ import {
 import { Dropzone } from "@/shared/ui/dropzone";
 import { ExtractingPanel } from "@/shared/ui/extracting-panel";
 import { TagInput } from "@/shared/ui/tag-input";
+import { showToast } from "@/shared/ui/toast";
 
 const inputClassName =
   "rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -66,7 +65,7 @@ export function CreateApplicationDialog({
 }: {
   trigger?: ReactNode;
   initialStatus?: CreateApplicationStatus;
-  // 보드 컬럼에 스크린샷을 바로 놓은 경우 — 열리자마자 추출을 시작한다.
+  // 보드 컬럼에 스크린샷을 놓거나 보드에 붙여넣은 경우 — 모아두는 칸에 미리 넣어둔다(더 붙여넣고 "공고 읽기").
   initialFiles?: File[];
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -76,8 +75,10 @@ export function CreateApplicationDialog({
   const open = openProp ?? openState;
   const setOpen = onOpenChangeProp ?? setOpenState;
 
-  const [step, setStep] = useState<Step>(initialFiles ? "extracting" : "drop");
-  const [previewFile, setPreviewFile] = useState<File | null>(initialFiles?.[0] ?? null);
+  const [step, setStep] = useState<Step>("drop");
+  // 읽기 전에 모아두는 스크린샷 — 한 공고를 여러 장으로 캡처한 경우 다 모은 뒤 한 번에 읽는다.
+  const [pendingFiles, setPendingFiles] = useState<File[]>(() => (initialFiles ?? []).slice(0, MAX_SCREENSHOTS));
+  const [previewFile, setPreviewFile] = useState<File | null>(null);
   const previewUrl = useObjectUrl(previewFile);
 
   const [status, setStatus] = useState<CreateApplicationStatus>(initialStatus);
@@ -101,6 +102,7 @@ export function CreateApplicationDialog({
 
   function reset() {
     setStep("drop");
+    setPendingFiles([]);
     setPreviewFile(null);
     setStatus(initialStatus);
     setCompany("");
@@ -119,11 +121,28 @@ export function CreateApplicationDialog({
     setSubmitError(null);
   }
 
-  function extractFromFiles(files: File[]) {
-    setPreviewFile(files[0] ?? null);
+  // 놓거나 붙여넣은 스크린샷을 모아두는 칸에 더한다. 같은 파일을 두 번 넣으면 한 번만, 최대 MAX_SCREENSHOTS장.
+  function addFiles(files: File[]) {
+    const images = files.filter((file) => file.type.startsWith("image/"));
+    if (images.length === 0) return;
+    setExtractError(null);
+    const key = (f: File) => `${f.name}-${f.size}-${f.lastModified}`;
+    const seen = new Set(pendingFiles.map(key));
+    const next = [...pendingFiles, ...images.filter((f) => !seen.has(key(f)))];
+    if (next.length > MAX_SCREENSHOTS) showToast(`최대 ${MAX_SCREENSHOTS}장까지 넣을 수 있어요`);
+    setPendingFiles(next.slice(0, MAX_SCREENSHOTS));
+  }
+
+  function removeFile(index: number) {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function startExtraction() {
+    if (pendingFiles.length === 0) return;
+    setPreviewFile(pendingFiles[0]);
     setStep("extracting");
     setExtractError(null);
-    void runExtraction(files);
+    void runExtraction(pendingFiles);
   }
 
   async function runExtraction(files: File[]) {
@@ -153,18 +172,6 @@ export function CreateApplicationDialog({
     }
   }
 
-  // 컬럼에 놓은 파일은 열리는 순간 한 번만 추출한다. 개발 모드(StrictMode)에서
-  // effect가 두 번 돌아도 AI 호출이 중복되지 않게 ref로 막는다.
-  const startedRef = useRef(false);
-  const startInitialExtraction = useEffectEvent(() => {
-    if (initialFiles) void runExtraction(initialFiles);
-  });
-  useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
-    startInitialExtraction();
-  }, []);
-
   function switchToManualInput() {
     setExtractError(null);
     setFromAi(false);
@@ -177,7 +184,7 @@ export function CreateApplicationDialog({
       .filter((item) => item.type.startsWith("image/"))
       .map((item) => item.getAsFile())
       .filter((file): file is File => file !== null);
-    if (files.length > 0) extractFromFiles(files);
+    if (files.length > 0) addFiles(files);
   }
 
   function clearAiFilled(field: AiField) {
@@ -247,7 +254,7 @@ export function CreateApplicationDialog({
 
         {step === "drop" && (
           <div className="flex flex-col gap-2">
-            <Dropzone onFiles={extractFromFiles} />
+            <Dropzone onFiles={addFiles} files={pendingFiles} onRemove={removeFile} maxFiles={MAX_SCREENSHOTS} />
             {extractError ? (
               <>
                 <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2.5">
@@ -269,14 +276,34 @@ export function CreateApplicationDialog({
                   결과가 이상했나요? 알려주기
                 </button>
               </>
+            ) : null}
+            {pendingFiles.length > 0 ? (
+              // 모은 스크린샷을 한 번에 읽는다 — 한 공고를 여러 장으로 캡처했으면 다 붙여넣은 뒤 누르면 된다.
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={switchToManualInput}
+                  className={cn(
+                    "text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline",
+                    extractError && "invisible"
+                  )}
+                >
+                  직접 입력할게요
+                </button>
+                <Button type="button" onClick={startExtraction}>
+                  {extractError ? "다시 읽기" : "공고 읽기"} · {pendingFiles.length}장
+                </Button>
+              </div>
             ) : (
-              <button
-                type="button"
-                onClick={switchToManualInput}
-                className="self-center text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-              >
-                직접 입력할게요
-              </button>
+              !extractError && (
+                <button
+                  type="button"
+                  onClick={switchToManualInput}
+                  className="self-center text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  직접 입력할게요
+                </button>
+              )
             )}
           </div>
         )}
