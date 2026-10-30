@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { readJobFromUrl } from "@/features/extract-from-url/model/read-job-from-url";
 import { safeFetchHtml } from "@/features/extract-from-url/model/safe-fetch";
-import { isAllowedFetchHost } from "@/features/extract-from-url/model/sites";
+import { isAllowedFetchHost, LINK_READING_ENABLED } from "@/features/extract-from-url/model/sites";
 import { checkJobUrl } from "@/features/extract-from-url/model/url-guard";
 import { EXTRACTION_SCHEMA } from "@/features/extract-job-posting/model/extraction-schema";
 import type { ExtractedJobPosting } from "@/features/extract-job-posting/model/normalize-extraction";
@@ -82,6 +82,10 @@ function failure(reason: string, site: string | null, status = 422) {
 export async function POST(request: NextRequest) {
   if (!isSameOrigin(request)) {
     return NextResponse.json({ error: "허용되지 않은 요청입니다." }, { status: 403 });
+  }
+  // 꺼져 있으면 아무 사이트도 받아오지 않는다(sites.ts의 LINK_READING_ENABLED).
+  if (!LINK_READING_ENABLED) {
+    return NextResponse.json({ error: "지금은 링크로 넣기를 쓸 수 없어요", reason: "unsupported", site: null }, { status: 404 });
   }
   const { supabase, user } = await getRequestUser();
   if (!user) return unauthorizedResponse();

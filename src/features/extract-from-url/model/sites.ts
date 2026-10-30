@@ -3,6 +3,12 @@
 // 사람인·잡코리아는 본문이 별도 프레임 주소에 있고 공고에 따라 통이미지라, 어댑터 자리만 두고 아직 열지 않는다.
 // 로켓펀치는 Cloudflare 봇 차단(403), 프로그래머스 커리어는 도메인이 없어 받아올 수 없다.
 
+// 링크로 넣기는 지금 꺼져 있다(2026-10-30). 원티드·리멤버·점핏 모두 운영 서버에서 읽히는 것까지 확인했지만, 세 곳
+// 약관 모두 허락 없는 자동 수집을 금지하고 있어서 껐다. 같은 편의는 스크린샷 붙여넣기로 이미 된다.
+// 사이트와 제휴하거나 공식 API가 생기면 이 값을 true로 바꾸면 입력칸과 서버 라우트가 함께 다시 켜진다.
+// 동작 모습: docs/link-demo.gif
+export const LINK_READING_ENABLED = false;
+
 export type SiteId = "wanted" | "remember" | "jumpit" | "saramin" | "jobkorea" | "rocketpunch" | "programmers";
 
 export interface SiteAdapter {

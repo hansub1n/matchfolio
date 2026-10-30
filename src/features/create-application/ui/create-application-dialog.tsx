@@ -10,7 +10,13 @@ import { cn } from "cn";
 import { useRouter } from "next/navigation";
 
 import { createApplication } from "@/entities/application";
-import { extractFromUrl, LinkError, SUPPORTED_SITE_LABELS, type LinkExtraction } from "@/features/extract-from-url";
+import {
+  extractFromUrl,
+  LINK_READING_ENABLED,
+  LinkError,
+  SUPPORTED_SITE_LABELS,
+  type LinkExtraction,
+} from "@/features/extract-from-url";
 import { ExtractError, extractJobPosting } from "@/features/extract-job-posting";
 import { track } from "@/shared/lib/analytics";
 import { requestOpenApplication } from "@/shared/lib/application-open-store";
@@ -243,7 +249,7 @@ export function CreateApplicationDialog({
     }
     // 입력칸 밖에서 공고 주소를 붙여넣으면 바로 링크로 읽는다(링크 입력칸 안에서는 평소처럼 붙여넣기만).
     const target = e.target as HTMLElement;
-    if (target.closest("input, textarea")) return;
+    if (!LINK_READING_ENABLED || target.closest("input, textarea")) return;
     const text = e.clipboardData.getData("text").trim();
     if (/^https?:\/\/\S+$/.test(text)) {
       e.preventDefault();
@@ -326,7 +332,7 @@ export function CreateApplicationDialog({
               inputId={SCREENSHOT_INPUT_ID}
             />
             {/* 링크로 넣기 — 스크린샷을 모으는 중엔 숨긴다(둘 중 하나로). 입력칸 밖에서 주소를 붙여넣어도 읽는다. */}
-            {pendingFiles.length === 0 && (
+            {LINK_READING_ENABLED && pendingFiles.length === 0 && (
               <form
                 className="flex items-center gap-2"
                 onSubmit={(e) => {
