@@ -13,6 +13,7 @@ import { computeTileRects } from "@/features/extract-job-posting/model/split-tal
 import { getRequestUser } from "@/shared/api/supabase-server";
 import { env } from "@/shared/config/env";
 import { JOB_POSTING_SCREENSHOTS_BUCKET } from "@/shared/config/constants";
+import { EXTRACTION_SCHEMA } from "@/features/extract-job-posting/model/extraction-schema";
 import { MAX_SCREENSHOTS } from "@/shared/config/constants";
 import { GEMINI_MODELS, isOverloaded } from "@/shared/lib/gemini";
 import { consumeAiQuota, quotaExceededResponse } from "@/shared/lib/ai-quota";
@@ -25,27 +26,6 @@ const ATTEMPT_TIMEOUT_MS = 25000;
 const OVERLOAD_RETRY_DELAY_MS = 1500;
 const EXTRACTION_FAILED_MESSAGE = "지금 AI 요청이 몰려서 읽지 못했어요. 잠시 후 다시 시도해주세요";
 
-const EXTRACTION_SCHEMA = {
-  type: "object",
-  properties: {
-    company: { type: "string" },
-    position: { type: "string" },
-    deadline: { type: "string", description: "YYYY-MM-DD, 없으면 빈 문자열" },
-    techStack: {
-      type: "array",
-      items: { type: "string" },
-      description:
-        "공고에 적힌 구체적인 기술 이름만(언어/프레임워크/라이브러리/DB/클라우드/도구, 예: React, TypeScript, AWS). 최대 10개. 업무 분야('빅데이터 분석', '사이버 보안'), 전공·자격, 설명 문구는 넣지 말고, 괄호 안 설명 없이 기술 이름만.",
-    },
-    description: {
-      type: "string",
-      description:
-        "HTML 태그·엔티티 없는 평문. '주요업무', '자격요건', '우대사항' 소제목마다 줄바꿈으로 구분하고, 각 항목 아래에 '- '로 시작하는 불릿 1~3개를 줄바꿈으로 나열. 스크린샷에 보이는 내용만 쓰고 지어내지 말 것. 내용이 없는 소제목은 생략.",
-    },
-  },
-  required: ["company", "position", "deadline", "techStack", "description"],
-  additionalProperties: false,
-};
 
 function buildPrompt(imageCount: number) {
   return imageCount > 1
