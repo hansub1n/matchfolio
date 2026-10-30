@@ -10,9 +10,27 @@ export type BoardColumn = "interested" | "document" | "coding_test" | "interview
 export type ExtractFailReason = "model" | "timeout" | "unreadable";
 export type AiFeature = "company" | "match" | "interview";
 export type FeedbackKind = "inconvenient" | "idea" | "good";
+// 링크로 넣기 — 사이트별로 얼마나 읽히고 왜 실패하는지 본다(features/extract-from-url의 사이트·이유와 같은 값).
+export type LinkSite = "wanted" | "remember" | "jumpit" | "saramin" | "jobkorea" | "rocketpunch" | "programmers" | "unknown";
+export type LinkMethod = "url-jsonld" | "url-text" | "url-image";
+export type LinkFailReason =
+  | "invalid"
+  | "unsupported"
+  | "not_posting"
+  | "duplicate"
+  | "quota"
+  | "blocked"
+  | "not_found"
+  | "timeout"
+  | "too_large"
+  | "redirect_blocked"
+  | "private_ip"
+  | "network"
+  | "no_content"
+  | "ai_failed";
 
 export interface AnalyticsEvents {
-  card_created: { method: "screenshot" | "manual"; stage: CardStage };
+  card_created: { method: "screenshot" | "url" | "manual"; stage: CardStage };
   extract_failed: { reason: ExtractFailReason };
   // 추출 뒤 저장 전에 사용자가 고친 칸 수 — 추출 정확도를 본다.
   extract_edited: { fields_changed: number };
@@ -20,6 +38,8 @@ export interface AnalyticsEvents {
   ai_used: { feature: AiFeature };
   tutorial: { action: "completed" | "skipped"; chapter: TutorialChapterId };
   feedback_sent: { kind: FeedbackKind };
+  link_read: { site: LinkSite; method: LinkMethod };
+  link_failed: { site: LinkSite; reason: LinkFailReason };
 }
 
 export function track<E extends keyof AnalyticsEvents>(event: E, properties: AnalyticsEvents[E]) {

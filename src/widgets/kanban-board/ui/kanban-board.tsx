@@ -33,6 +33,7 @@ import {
   type CreateApplicationStatus,
 } from "@/features/create-application";
 import { track } from "@/shared/lib/analytics";
+import { registerApplicationOpener } from "@/shared/lib/application-open-store";
 import { todayKST } from "@/shared/lib/kst-date";
 import { blockInSampleMode } from "@/shared/lib/sample-mode";
 import { openTutorial } from "@/shared/lib/tutorial-store";
@@ -126,6 +127,9 @@ export function KanbanBoard({
     setDetailMode(mode);
     setDetailId(id);
   }
+
+  // 공고 추가 모달의 "이미 추가한 공고예요 · 그 카드 열기" 같은 바깥 요청으로 상세를 연다.
+  useEffect(() => registerApplicationOpener((id) => openDetail(id, "view")), []);
 
   // 드래그 중에는 컬럼 단위 멈춤(snap)을 끈다 — 화면 끝에서 자동으로 넘어갈 때 snap이 겹쳐 한 번에 휙 넘어갔다.
   const [isDragging, setIsDragging] = useState(false);

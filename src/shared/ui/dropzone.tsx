@@ -39,6 +39,7 @@ export function Dropzone({
   files = [],
   onRemove,
   maxFiles,
+  inputId,
   disabled,
   className,
 }: {
@@ -46,6 +47,8 @@ export function Dropzone({
   files?: File[];
   onRemove?: (index: number) => void;
   maxFiles?: number;
+  // 바깥에서 파일 고르기를 열 수 있게(숨은 입력칸의 id).
+  inputId?: string;
   disabled?: boolean;
   className?: string;
 }) {
@@ -75,6 +78,7 @@ export function Dropzone({
   const input = (
     <input
       ref={inputRef}
+      id={inputId}
       type="file"
       accept="image/*"
       multiple

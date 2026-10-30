@@ -328,7 +328,7 @@ export function ApplicationDetailDialog(props: Props) {
                       rel="noopener noreferrer"
                       className="text-primary underline underline-offset-2"
                     >
-                      공고 링크 ↗
+                      원본 공고 →
                     </a>
                   </>
                 )}

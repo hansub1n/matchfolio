@@ -10,8 +10,10 @@ import { cn } from "cn";
 import { useRouter } from "next/navigation";
 
 import { createApplication } from "@/entities/application";
+import { extractFromUrl, LinkError, SUPPORTED_SITE_LABELS, type LinkExtraction } from "@/features/extract-from-url";
 import { ExtractError, extractJobPosting } from "@/features/extract-job-posting";
 import { track } from "@/shared/lib/analytics";
+import { requestOpenApplication } from "@/shared/lib/application-open-store";
 import { openFeedback } from "@/shared/lib/feedback-store";
 import { todayKST } from "@/shared/lib/kst-date";
 import { MAX_SCREENSHOTS } from "@/shared/config/constants";
@@ -35,6 +37,8 @@ const inputClassName =
   "rounded-md border border-input bg-background px-3 py-1.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
 type Step = "drop" | "extracting" | "form";
+// 링크 실패 안내의 "스크린샷으로 넣기"가 드롭존의 파일 고르기를 연다.
+const SCREENSHOT_INPUT_ID = "create-application-screenshot-input";
 // 새 공고는 보통 "괜찮아 보여서 저장해둘 때" 캡처하므로 관심이 기본. 이미 지원한
 // 공고를 나중에 기록할 때만 지원 완료를 고른다.
 export type CreateApplicationStatus = "interested" | "applied";
@@ -97,6 +101,11 @@ export function CreateApplicationDialog({
   const [extractError, setExtractError] = useState<string | null>(null);
   // 폼이 AI 추출 결과로 채워졌는지 — 직접 입력일 때는 안내 문구를 숨긴다.
   const [fromAi, setFromAi] = useState(false);
+  // 어디서 읽었는지(스크린샷/링크) — 안내 문구와 사용 기록(card_created method)에.
+  const [source, setSource] = useState<"screenshot" | "url">("screenshot");
+  // 링크로 넣기 — 입력칸 값과 실패(이유별로 다른 안내).
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkError, setLinkError] = useState<LinkError | null>(null);
   const [pending, setPending] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -118,6 +127,9 @@ export function CreateApplicationDialog({
     setAiFilledCount(0);
     setExtractError(null);
     setFromAi(false);
+    setSource("screenshot");
+    setLinkUrl("");
+    setLinkError(null);
     setSubmitError(null);
   }
 
@@ -145,31 +157,72 @@ export function CreateApplicationDialog({
     void runExtraction(pendingFiles);
   }
 
+  // AI·링크로 읽은 값으로 폼을 채운다 — 채운 칸은 라벨 옆 점으로 표시.
+  function fillForm(extracted: { company: string; position: string; deadline: string | null; techStack: string[]; description: string }) {
+    setCompany(extracted.company);
+    setPosition(extracted.position);
+    setDeadline(extracted.deadline ?? "");
+    setTechStack(extracted.techStack);
+    setDescription(extracted.description);
+    const filled = new Set<AiField>();
+    if (extracted.company) filled.add("company");
+    if (extracted.position) filled.add("position");
+    if (extracted.deadline) filled.add("deadline");
+    if (extracted.techStack.length > 0) filled.add("techStack");
+    if (extracted.description) filled.add("description");
+    setAiFilled(filled);
+    setAiFilledCount(filled.size);
+    setFromAi(true);
+    setStep("form");
+  }
+
   async function runExtraction(files: File[]) {
     try {
       const extracted = await extractJobPosting(files);
-      setCompany(extracted.company);
-      setPosition(extracted.position);
-      setDeadline(extracted.deadline ?? "");
-      setTechStack(extracted.techStack);
-      setDescription(extracted.description);
       setScreenshotPaths(extracted.screenshotPaths);
-      const filled = new Set<AiField>();
-      if (extracted.company) filled.add("company");
-      if (extracted.position) filled.add("position");
-      if (extracted.deadline) filled.add("deadline");
-      if (extracted.techStack.length > 0) filled.add("techStack");
-      if (extracted.description) filled.add("description");
-      setAiFilled(filled);
-      setAiFilledCount(filled.size);
-      setFromAi(true);
-      setStep("form");
+      setSource("screenshot");
+      fillForm(extracted);
     } catch (error) {
       console.warn("스크린샷 추출 실패:", error);
       if (error instanceof ExtractError && error.reason) track("extract_failed", { reason: error.reason });
       setExtractError(error instanceof Error ? error.message : "알 수 없는 오류");
       setStep("drop");
     }
+  }
+
+  async function readLink(raw: string) {
+    const url = raw.trim();
+    if (!url) return;
+    setLinkUrl(url);
+    setLinkError(null);
+    setExtractError(null);
+    setPreviewFile(null);
+    setStep("extracting");
+    try {
+      const extracted: LinkExtraction = await extractFromUrl(url);
+      track("link_read", { site: extracted.site, method: extracted.method });
+      setJobPostingUrl(extracted.sourceUrl);
+      setSource("url");
+      fillForm(extracted);
+    } catch (error) {
+      const linkFailure =
+        error instanceof LinkError ? error : new LinkError("이 링크는 읽지 못했어요", "network", null);
+      track("link_failed", { site: linkFailure.site ?? "unknown", reason: linkFailure.reason });
+      setLinkError(linkFailure);
+      setStep("drop");
+    }
+  }
+
+  // "스크린샷으로 넣기" — 링크 실패 안내를 걷고 파일 고르기를 연다(드롭존의 숨은 입력칸).
+  function switchToScreenshot() {
+    setLinkError(null);
+    setLinkUrl("");
+    document.getElementById(SCREENSHOT_INPUT_ID)?.click();
+  }
+
+  function openExistingCard(applicationId: string) {
+    handleOpenChange(false);
+    requestOpenApplication(applicationId);
   }
 
   function switchToManualInput() {
@@ -184,7 +237,18 @@ export function CreateApplicationDialog({
       .filter((item) => item.type.startsWith("image/"))
       .map((item) => item.getAsFile())
       .filter((file): file is File => file !== null);
-    if (files.length > 0) addFiles(files);
+    if (files.length > 0) {
+      addFiles(files);
+      return;
+    }
+    // 입력칸 밖에서 공고 주소를 붙여넣으면 바로 링크로 읽는다(링크 입력칸 안에서는 평소처럼 붙여넣기만).
+    const target = e.target as HTMLElement;
+    if (target.closest("input, textarea")) return;
+    const text = e.clipboardData.getData("text").trim();
+    if (/^https?:\/\/\S+$/.test(text)) {
+      e.preventDefault();
+      void readLink(text);
+    }
   }
 
   function clearAiFilled(field: AiField) {
@@ -215,7 +279,7 @@ export function CreateApplicationDialog({
         memo: memo.trim() || null,
         techStack,
       });
-      track("card_created", { method: fromAi ? "screenshot" : "manual", stage: isApplied ? "document" : "interested" });
+      track("card_created", { method: fromAi ? source : "manual", stage: isApplied ? "document" : "interested" });
       if (fromAi) track("extract_edited", { fields_changed: aiFilledCount - aiFilled.size });
       reset();
       setOpen(false);
@@ -254,7 +318,69 @@ export function CreateApplicationDialog({
 
         {step === "drop" && (
           <div className="flex flex-col gap-2">
-            <Dropzone onFiles={addFiles} files={pendingFiles} onRemove={removeFile} maxFiles={MAX_SCREENSHOTS} />
+            <Dropzone
+              onFiles={addFiles}
+              files={pendingFiles}
+              onRemove={removeFile}
+              maxFiles={MAX_SCREENSHOTS}
+              inputId={SCREENSHOT_INPUT_ID}
+            />
+            {/* 링크로 넣기 — 스크린샷을 모으는 중엔 숨긴다(둘 중 하나로). 입력칸 밖에서 주소를 붙여넣어도 읽는다. */}
+            {pendingFiles.length === 0 && (
+              <form
+                className="flex items-center gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void readLink(linkUrl);
+                }}
+              >
+                <input
+                  value={linkUrl}
+                  onChange={(e) => {
+                    setLinkUrl(e.target.value);
+                    setLinkError(null);
+                  }}
+                  inputMode="url"
+                  placeholder={`${SUPPORTED_SITE_LABELS.join("·")} 공고 링크`}
+                  aria-label="공고 링크"
+                  className={`min-w-0 flex-1 ${inputClassName}`}
+                />
+                <Button type="submit" variant="outline" size="sm" className="shrink-0" disabled={!linkUrl.trim()}>
+                  읽기
+                </Button>
+              </form>
+            )}
+            {linkError &&
+              (linkError.reason === "duplicate" && linkError.applicationId ? (
+                <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2.5">
+                  <p className="text-xs text-foreground">이미 추가한 공고예요</p>
+                  <button
+                    type="button"
+                    onClick={() => openExistingCard(linkError.applicationId!)}
+                    className="shrink-0 rounded-full border bg-card px-3 py-1.5 text-xs max-sm:px-4 max-sm:py-2.5 max-sm:text-[13px] hover:bg-accent"
+                  >
+                    그 카드 열기
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2.5">
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <p className="text-xs text-foreground">
+                      {linkError.reason === "unsupported" ? "아직 지원하지 않는 사이트예요" : "이 링크는 읽지 못했어요"}
+                    </p>
+                    {linkError.reason !== "unsupported" && (
+                      <p className="text-[11.5px] text-muted-foreground">{linkError.message}</p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={switchToScreenshot}
+                    className="shrink-0 rounded-full border bg-card px-3 py-1.5 text-xs max-sm:px-4 max-sm:py-2.5 max-sm:text-[13px] hover:bg-accent"
+                  >
+                    스크린샷으로 넣기
+                  </button>
+                </div>
+              ))}
             {extractError ? (
               <>
                 <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2.5">
@@ -308,13 +434,16 @@ export function CreateApplicationDialog({
           </div>
         )}
 
-        {step === "extracting" && <ExtractingPanel previewUrl={previewUrl} label="공고 읽는 중" />}
+        {step === "extracting" && (
+          <ExtractingPanel previewUrl={previewUrl} label={previewFile ? "공고 읽는 중" : "링크 읽는 중"} />
+        )}
 
         {step === "form" && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             {fromAi && (
               <p className="text-[11.5px] text-muted-foreground">
-                AI가 스크린샷에서 읽은 내용이에요. 저장 전에 한 번 확인해주세요
+                {source === "url" ? "링크에서 읽은 내용이에요" : "AI가 스크린샷에서 읽은 내용이에요"}. 저장 전에 한 번
+                확인해주세요
               </p>
             )}
             {screenshotPaths.length > 0 && (
