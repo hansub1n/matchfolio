@@ -198,12 +198,13 @@ export function CreateMyProjectDialog({
                   value={githubUrl}
                   onChange={(e) => setGithubUrl(e.target.value)}
                   placeholder="GitHub 저장소 URL"
-                  className={`flex-1 ${inputClassName}`}
+                  className={`min-w-0 flex-1 ${inputClassName}`}
                 />
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="shrink-0"
                   disabled={!githubUrl.trim()}
                   onClick={() => handleExtract({ githubUrl: githubUrl.trim() })}
                 >
@@ -224,12 +225,13 @@ export function CreateMyProjectDialog({
                   onChange={(e) => setPasteText(e.target.value)}
                   placeholder="README나 devlog 등 설명 텍스트를 붙여넣으세요"
                   rows={3}
-                  className={`flex-1 ${inputClassName}`}
+                  className={`min-w-0 flex-1 ${inputClassName}`}
                 />
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="shrink-0"
                   disabled={!pasteText.trim()}
                   onClick={() => handleExtract({ text: pasteText.trim() })}
                 >

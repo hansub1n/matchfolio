@@ -297,14 +297,15 @@ html body[data-scroll-locked] {
   }
 }
 
-/* iOS Safari는 날짜·시간 값을 가운데 정렬해서 다른 입력칸(왼쪽 정렬)과 어긋난다. 또 날짜 입력칸은 기본 최소 폭이
-   커서 좁은 자리(팝오버 등)에서 칸을 밀어내 화면 밖으로 삐져나갔다 — 최소 폭을 없앤다. */
+/* iOS Safari는 날짜·시간 값을 가운데 정렬해서 다른 입력칸(왼쪽 정렬)과 어긋난다. */
 input::-webkit-date-and-time-value {
   text-align: left;
 }
-input[type="date"],
-input[type="time"],
-input[type="datetime-local"] {
+/* 입력칸은 기본 최소 폭(글자 20자 안팎, 날짜 칸은 더 넓음)이 있어서, 옆에 버튼이 있는 줄에서 줄어들지 않고 버튼을
+   모달 밖으로 밀어냈다(휴대폰 "GitHub 저장소 URL + 불러오기", 팝오버 날짜 칸). 최소 폭을 없애 칸이 줄어들게 한다. */
+input,
+textarea,
+select {
   min-width: 0;
 }
 
